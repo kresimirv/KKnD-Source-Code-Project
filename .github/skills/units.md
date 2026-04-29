@@ -92,14 +92,14 @@ The "brain". Only exists for gameplay-relevant actors (not decorations/particles
 
 ## Task — Execution Context
 
-Every Entity gets a Task. Task determines HOW the entity's logic runs:
+Every Entity gets a Task. Task determines HOW the entity's logic runs. See [task.md](task.md) for full architecture.
 
 | TaskKind | Execution Model | Used By |
 |----------|----------------|---------|
 | `TaskKind_Callback` | `entry_point(task)` called every frame by scheduler | Most combat units (infantry, vehicles, buildings) |
 | `TaskKind_Coroutine` | Cooperative fiber, can `TASK_yield()` to suspend | OilPatch, Hut, explosions, camera shake, UI scripts, AI tasks |
 
-**Critical insight:** Most unit handlers (UNIT_Handler_Infantry, etc.) are **Callbacks** — called every frame by the task scheduler. Some passive objects (OilPatch, Hut) are **Coroutines** — suspended fibers that yield in infinite loops. The `g_scripts[]` table determines which kind each handler uses.
+**Critical insight:** Most unit handlers are **Callbacks** — called every frame. Some passive objects (OilPatch, Hut) are **Coroutines** — suspended fibers yielding in infinite loops. The `g_scripts[]` table determines which kind each handler uses.
 
 ---
 
@@ -184,141 +184,21 @@ For buildings:
 
 ---
 
-## Coroutines vs Callbacks — The Two Execution Models
+## Callbacks vs Coroutines — Which Handlers Use What
 
-### Callback (TaskKind_Callback) — Most combat units
+Combat units use **Callbacks** — mode-pointer pattern gives instant external preemption (any code can overwrite `unit->mode`). Passive objects use **Coroutines** — temporal flow expressed linearly with `TASK_yield` suspension.
 
-```
-Scheduler iterates active task list every frame:
-  → for each task where kind == Callback:
-      task->entry_point(task)    // UNIT_Handler_Xxx
-          → unit->mode(unit)    // one tick of current state
-      // returns immediately
-```
+For detailed TASK_yield semantics (polymorphic behavior, scheduler loop, callback vs coroutine differences), see [task.md](task.md#L100).
 
-No fiber suspension. Handler runs, does one frame of work, returns.
+**Confirmed Coroutine handlers** (`__cdecl __noreturn`, `while(1) TASK_yield` loop):
+- `UNIT_Handler_OilPatch` (line 29875), `UNIT_Handler_Hut`
 
-### Coroutine (TaskKind_Coroutine) — Terrain objects, explosions, scripts, UI
-
-```
-Fiber with own stack. Can call TASK_yield(task, flags, sleep_ticks).
-Yield suspends fiber mid-function. Scheduler resumes it later.
-```
-
-Used for things with **temporal flow** that's easier to express linearly:
-```c
-void __cdecl __noreturn task_explosion(Task *task) {
-    // play explosion anim
-    TASK_yield(task, Task_Sleep, 10);  // wait 10 frames
-    // spawn debris
-    TASK_yield(task, Task_Sleep, 20);  // wait 20 frames
-    // remove entity
-    entity_remove(task->entity);
-    TASK_Terminate(task);
-}
-```
-
-### Why Combat Units Use Callbacks, Not Coroutines
-
-Combat units need to be **externally interruptible** every frame. Their handler does:
-1. Call `unit->mode(unit)` — one tick
-2. Check bounds
-3. Scan for opportunity targets
-4. Update order target tracking
-
-A coroutine can't be externally interrupted without complex cancellation logic. The mode-pointer pattern gives instant preemption — any external code can just overwrite `unit->mode`.
-
-Passive terrain objects (OilPatch, Hut) don't need this — they just sit there waiting for events, so coroutine with infinite yield loop is simpler.
-
-### TASK_yield Behavior — Callbacks vs Coroutines
-
-`TASK_yield` is a **polymorphic function** — same call, different behavior depending on `task->kind`.
-
-#### TASK_yield implementation (verified from code):
-
-```c
-unsigned int TASK_yield(Task *task, TaskYieldFlags yield_flags, int sleep_ticks) {
-    // ... message wake-up logic ...
-
-    if (yield_flags & Task_Sleep) {
-        if (sleep_ticks)
-            task->sleep = sleep_ticks;
-        // ... early exit if sleep==0 ...
-    }
-
-    task->flags_20 = 0;
-    task->wait_flags = yield_flags;
-
-    if (task->kind == TaskKind_Coroutine) {
-        TASK_ExecuteAsync(g_coroutine_list_head);   // FIBER SUSPEND — switches to scheduler
-        task->wait_flags = 0;                        // runs when resumed
-        task->field_2C = 0;
-    }
-    // For Callbacks: just returns normally. No suspension.
-    return task->flags_20;
-}
-```
-
-#### Scheduler tick loop (verified from code):
-
-```c
-for (task = g_task_active_head; task != sentinel; task = task->next) {
-    // 1. Decrement sleep counter
-    if (task->sleep) {
-        task->sleep--;
-        if (task->sleep == 0)
-            task->flags_20 |= 0x80000000;  // set "sleep expired" flag
-    }
-
-    // 2. Check if task should execute this frame
-    wait_flags = task->wait_flags;
-    if (!wait_flags || (wait_flags & task->flags_20) || ...)  {
-        if (task->kind == TaskKind_Callback)
-            TASK_ExecuteSync(task);          // task->entry_point(task)
-        else
-            TASK_ExecuteAsync(task->entry_point);  // resume fiber
-    }
-    // Otherwise: skip this task (sleeping or waiting)
-}
-```
-
-#### For Coroutines (kind == 0):
-`TASK_yield` calls `TASK_ExecuteAsync` which **switches fibers** — execution suspends mid-function and resumes at the same point later. True cooperative multitasking.
-
-#### For Callbacks (kind == 1):
-`TASK_yield` sets `task->wait_flags` and `task->sleep`, then **returns normally**. Code after the yield call **executes immediately, same frame**. The sleep counter prevents the scheduler from calling `entry_point` for N frames on subsequent ticks.
-
-This means in `unit_destroy`:
-```c
-unit->hitpoints = 0;
-TASK_yield(task, Task_Sleep, 1);   // sets sleep=1, returns immediately
-unit->hitpoints = 0;               // executes NOW, same frame
-unit->mode = next_mode;            // executes NOW, same frame
-unit->destroyed = 1;               // executes NOW, same frame
-// handler returns. Next frame: scheduler skips this task (sleep=1).
-// Frame after: sleep expires, handler called again, runs new mode.
-```
-
-The yield does NOT pause execution — it marks the task to be **skipped for 1 frame** on the NEXT scheduler tick. All post-yield code runs immediately. This is a "schedule a gap" operation, not a suspension.
-
-#### Some handlers ARE true Coroutines
-
-Not all UNIT_Handlers are Callbacks. The `g_scripts[]` table (indexed by `TaskType`) stores `kind` per script. The CPLC level spawner reads it:
-```c
-v6 = g_scripts[cplc->task_type];
-v8 = v6->kind ? TASK_CreateCallback(...) : TASK_CreateFiber(...);
-```
-
-**Confirmed Coroutine handlers** (declared `__cdecl __noreturn`, use `while(1) TASK_yield`):
-- `UNIT_Handler_OilPatch` — spawned as `TaskKind_Coroutine` (line 29875)
-- `UNIT_Handler_Hut` — `__noreturn`, eternal yield loop
-
-**Confirmed Callback handlers** (use `unit->mode(unit)` pattern):
+**Confirmed Callback handlers** (`unit->mode(unit)` pattern, returns each frame):
 - `UNIT_Handler_Infantry`, `UNIT_Handler_General`, `UNIT_Handler_Bomber`
 - All building handlers: Tower, Outpost, MachineShop, Clanhall, BeastEnclosure, etc.
 - `UNIT_Handler_Tanker`, `UNIT_Handler_TankerConvoy`, `UNIT_Handler_MobileDerrick`
 
-**Rule of thumb**: If handler has `__noreturn` and `while(1) TASK_yield` loop → Coroutine. If handler calls `unit->mode(unit)` and returns → Callback.
+**Rule of thumb**: `__noreturn` + `while(1) TASK_yield` → Coroutine. Calls `unit->mode(unit)` and returns → Callback. The `g_scripts[]` table stores `kind` per TaskType — see [task.md](task.md#L392).
 
 ---
 
@@ -362,17 +242,17 @@ unit_44C890(unit):
 
 ## Message System
 
-Tasks communicate via messages. Two delivery modes:
+Units communicate via task messages — direct (`TASK_send_message`) or broadcast (`TASK_broadcast_message`) on channels. Key unit-relevant channels:
 
-1. **Direct** (`TASK_send_message`): If target is Callback → immediate `message_handler()` call. If Coroutine → queue message, set wake flag.
-2. **Broadcast** (`TASK_broadcast_message`): Send to all tasks on a `TaskChannel`.
+- `TaskChannel_Units (0xEAEA)` — type tag for all units (set at init, buildings overwrite with specific channel)
+- `TaskChannel_UnitLifecycle (0x9876)` — AI listens for unit birth/death events
+- `TaskChannel_Tanker/Drillrig/PowerPlant (0xCA000000+)` — resource chain disruption bus
+- Building-specific channels (0xCA000000+) — construction completion self-notification
 
-Key channels:
-- `TaskChannel_Units` — all units
-- `TaskChannel_UnitLifecycle` — creation/destruction notifications
-- `TaskChannel_Tanker`, `TaskChannel_Drillrig`, `TaskChannel_PowerPlant` — resource chain
+For Callbacks, `message_handler` is called **synchronously inline** during send. This is how buildings learn about construction progress, attacks, etc.
 
-For Callback tasks, `message_handler` is called inline during send — **synchronous delivery**. This is how buildings learn about construction progress, attacks, etc.
+For full messaging architecture (delivery modes, channel categories, message pooling), see [task.md](task.md#L169).
+For channel pub/sub patterns (lifecycle bus, tanker bus, building channels, AI awareness), see [task.md](task.md#L247).
 
 ---
 
@@ -402,6 +282,6 @@ See [units-todo.md](units-todo.md) for naming suggestions, decompilation mistake
 |---|---|---|---|---|
 | Unit | 599 | `g_unit_pool` | `g_unit_free_head` | `g_unit_list_head` / `g_unit_list_tail` |
 | Entity | 2000 | `g_entity_pool` | `g_entity_free_pool_head` | `g_entity_head` / `g_entity_tail` |
-| Task | 2000 | `g_tasks` | `g_task_terminated_head` | `g_task_active_head` / `g_task_active_tail` |
-| Coroutine | 2000 | `g_coroutine_pool` | `dword_477350` | `g_coroutine_list_head` |
 | Escort | 500 | `g_escort_pool` | `g_escort_free_list_head` | `g_escort_active_list_head/tail` |
+
+For Task/Coroutine pool details, see [task.md](task.md#L493).

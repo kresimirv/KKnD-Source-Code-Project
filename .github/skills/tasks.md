@@ -116,6 +116,43 @@ unsigned int TASK_yield(Task *task, TaskYieldFlags yield_flags, int sleep_ticks)
 
 This means `TASK_yield` inside a Callback is a "schedule a gap" — not a suspension.
 
+### Callback Yield In Practice — unit_destroy Example
+
+```c
+// Inside a Callback handler:
+unit->hitpoints = 0;
+TASK_yield(task, Task_Sleep, 1);   // sets sleep=1, returns immediately
+unit->hitpoints = 0;               // executes NOW, same frame
+unit->mode = next_mode;            // executes NOW, same frame
+unit->destroyed = 1;               // executes NOW, same frame
+// handler returns. Next frame: scheduler skips this task (sleep=1).
+// Frame after: sleep expires, handler called again, runs new mode.
+```
+
+The yield does NOT pause execution — it marks the task to be **skipped for 1 frame** on the NEXT scheduler tick. All post-yield code runs immediately. This is a "schedule a gap" operation, not a suspension.
+
+### Why Combat Units Use Callbacks, Not Coroutines
+
+Combat units need to be **externally interruptible** every frame. Their handler does:
+1. Call `unit->mode(unit)` — one tick
+2. Check bounds, scan for opportunity targets, update order target
+
+A coroutine can't be externally interrupted without complex cancellation logic. The mode-pointer pattern gives instant preemption — any external code can overwrite `unit->mode`.
+
+Passive terrain objects (OilPatch, Hut) don't need this — they just sit there waiting for events, so coroutine with infinite yield loop is simpler.
+
+### Confirmed Handler Classification
+
+**Coroutine handlers** (declared `__cdecl __noreturn`, use `while(1) TASK_yield`):
+- `UNIT_Handler_OilPatch` (kknd.c:29875), `UNIT_Handler_Hut`
+
+**Callback handlers** (use `unit->mode(unit)` pattern, return each frame):
+- `UNIT_Handler_Infantry`, `UNIT_Handler_General`, `UNIT_Handler_Bomber`
+- All building handlers: Tower, Outpost, MachineShop, Clanhall, BeastEnclosure, etc.
+- `UNIT_Handler_Tanker`, `UNIT_Handler_TankerConvoy`, `UNIT_Handler_MobileDerrick`
+
+**Rule of thumb**: `__noreturn` + `while(1) TASK_yield` → Coroutine. Calls `unit->mode(unit)` and returns → Callback.
+
 ### TaskYieldFlags (kknd.h:1208)
 
 | Flag | Value | Meaning |

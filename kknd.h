@@ -3337,10 +3337,10 @@ struct KKND::DrillrigState
 };
 
 /* 291 */
-struct KKND::stru28
+struct KKND::scar
 {
-  KKND::stru28 *next;
-  KKND::stru28 *prev;
+  KKND::scar *next;
+  KKND::scar *prev;
   ptrdiff_t mobd_frame;
   KKND::Entity *entity;
 };

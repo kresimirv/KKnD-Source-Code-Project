@@ -488,7 +488,335 @@ Reset formula: `(rng_min + rand(rng_max)) >> 2`
 
 - [ ] Investigate mission-specific AIs (Mute_05 ambush, Mute_08 convoy) in detail
 - [ ] Map AiController_struC fields from convoy AI usage
-- [ ] Decode `g_464DD0` table (creature_id → unit_type mapping)
 - [ ] Trace `sub_40AB60` — placement validation function
 - [ ] Map `_ai_controller_D0`, `_ai_controller_E4/E8`, `_ai_controller_FC` fields
 - [ ] Investigate `_ai_controller_200` list purpose (4th squad state?)
+
+---
+
+## Strategic Decision Logic (Deep Dive)
+
+### Target Selection Algorithm (`ai_40B020_send_attack_order`)
+
+Two-tier scoring system when picking which enemy to attack:
+
+**Tier 1 — Close-range aggro** (within `0x10000` = 65536 world units ≈ 4 tiles):
+```
+for each enemy in enemy_list:
+    skip if destroyed or ai_strategic_value == 0
+    dx = abs(enemy.x - squad_center_x)
+    dy = abs(enemy.y - squad_center_y)
+    if dx < 0x10000 AND dy < 0x10000:
+        pick closest by manhattan distance (dx + dy)
+        lock tier — no tier-2 can override
+```
+
+**Tier 2 — Strategic value weighting** (only if no tier-1 target exists):
+```
+score = (dx + dy) / ai_strategic_value
+pick lowest score (high-value targets selected even if far)
+```
+
+**Implication**: Nearby enemies always take priority (reactive defense). Distant high-value buildings (Outpost=300, Drillrig=500) get attacked over distant low-value units.
+
+### The Confidence Formula
+
+Each idle squad evaluates whether to ATTACK or MERGE:
+
+$$\text{confidence} = \frac{100 \times (\text{own\_threat} - \text{enemy\_threat})}{\text{own\_threat} + \text{enemy\_threat} + 1}$$
+
+- Range: -100 (vastly outgunned) to +100 (no enemies)
+- Default threshold: `-50` (attack even when at significant disadvantage)
+- Squad attacks if ANY of:
+  - `confidence >= threshold` (-50)
+  - `base_area_threat > 0` (base under attack → emergency attack regardless)
+  - Drillrig defense needed (`v164` flag)
+
+**Attack confidence -50 means**: squad attacks unless enemy area threat is >3× own threat. Very aggressive AI.
+
+### Override Conditions (Always Attack)
+```c
+if (base_threatened || drillrig_needs_defense || confidence >= -50):
+    → ATTACK nearest valuable target
+else:
+    → MERGE: find nearest idle squad, move toward it, combine forces
+```
+
+### Squad Lifecycle State Machine
+
+```
+[Production] → attacker_unassigned
+    ↓ (rally point exists)
+attacker_rallying → (arrive at rally) → join rally_squad
+    ↓ (squad threat >= squad_threshold=200)
+squad_idle
+    ├── confidence OK → ATTACK → stays idle (re-evaluates next tick)
+    ├── confidence LOW → MERGE → squad_marching (toward nearest idle)
+    │       ↓ (within 0x4000)
+    │   members merge into target squad → original freed
+    └── patrol available → squad_patrolling
+            ↓ (no threat + near destination)
+        → squad_idle
+```
+
+---
+
+## Threat Evaluation System
+
+### `ai_get_threat_in_area(ai, radius, x, y)`
+Square area check (NOT circular):
+```
+threat = sum(stats->ai_threat_weight) for all enemies within ±radius manhattan of (x,y)
+```
+Excludes destroyed units and those with `ai_threat_weight == 0`.
+
+### Patrol Waypoint Assessment (`ai_40B230`)
+
+**Phase A — Base defense**:
+Sum enemy threat within base bounding box ± 49152 (3 tiles buffer).
+
+**Phase B — Patrol hotspot detection**:
+```
+for each of 4 waypoints:
+    score = 0
+    for each enemy within 81920 radius:
+        if mobile (speed > 0): score += threat_weight
+        if building (speed == 0): score -= threat_weight >> 1
+    pick waypoint with highest score (ties random)
+```
+
+**Key insight**: Mobile enemies increase patrol urgency. Enemy buildings *reduce* patrol score (by half weight). AI focuses patrols on areas with mobile threats, not static defenses.
+
+---
+
+## Economic Strategy
+
+### Production Priority (descending)
+1. **Tanker** — absolute priority. If any drillrig needs a tanker, produce one before anything else.
+2. **Scripted queue** (`_ai_controller_318`) — level-designer-specified fixed production list
+3. **Build order rotation** (`_ai_controller_274`) — circular CPLC-defined queue from Outpost/Clanhall
+
+### Build Order Queue Source
+
+Populated when an Outpost/Clanhall is registered. CPLC spawn params contain a linked list of child nodes, each with a `creature_id` at offset +24. These are transcribed into the circular `Ai_stru26C` linked list.
+
+The AI cycles through this queue endlessly (circular). Each entry's `creature_id` is resolved via `g_464DD0[]` (a linear lookup table of `{creature_id, unit_type}` pairs terminated by `TaskType_Invalid`) to determine the actual `UnitType` to produce.
+
+### `g_464DD0` — Creature ID Mapping Table
+
+```c
+struct KKND::_ai_stru57 {
+    KKND::TaskType creature_id;  // CPLC script identifier
+    KKND::UnitType unit_type;    // game unit type
+};
+```
+Linear search table. Maps level-designer creature script IDs to engine UnitTypes.
+
+### Cost Reduction Formula
+
+$$\text{effective\_cost} = \frac{\text{cost\_factor} \times \text{base\_cost}}{256}$$
+
+Where `cost_factor`:
+- Demo mode: `g_ai_unit_cost_reductions[g_difficulty_mult]`
+- Campaign: `g_lvl_desc[level].superlvl_ai_cost_reduction`
+
+Factor of 256 = full price. Factor of 128 = half price. Minimum effective cost = 10.
+
+**Towers**: Always use `cost >> 2` (quarter price, bypasses the cost_factor system).
+
+### Production Timing
+```
+production_time_ticks = max(60 * g_unit_stats[type].production_time, 1)
+cost_per_tick = (effective_cost << 8) / production_time_ticks
+```
+Factory "pays off" the unit at this bandwidth rate. When `remaining_cost <= 0`, unit spawns.
+
+---
+
+## Building Placement Strategy
+
+### When to Build
+- Cash > 0
+- No current construction task active
+- Placement queue (`_ai_controller_2EC`) has entries
+
+### Safety Check
+```c
+threat = ai_get_threat_in_area(ai, 0x10000, location_x, location_y);
+if (threat >= GIANT_SCORPION_THREAT_WEIGHT  // 50
+    && location_strategic_value < POWER_STATION_STRATEGIC_VALUE)  // 120
+{
+    SKIP this location  // too dangerous for low-value building
+}
+```
+High-value structures (strategic_value ≥ 120) bypass the safety check — AI will build Power Stations and above even in contested areas.
+
+### Construction Stages
+Building completion progresses through 4 visual stages based on remaining cost:
+```
+remaining_ratio = (remaining_cost << 8) / base_cost   // 0-256 scale
+
+> 171 (>66% left):  Stage 0 — just foundations
+85-171 (33-66%):    Stage 1 — partial structure
+< 85 (<33%):        Stage 2 — nearly complete
+== 0:               Stage 3 — operational
+```
+
+---
+
+## Airstrike Target Selection (`ai_40B490`)
+
+Density heatmap algorithm:
+
+1. **Grid**: Map divided into 0x4000-unit (1 tile) cells
+2. **Stamp enemies** with 3×3 kernel (±1 cell around position):
+   - **Buildings**: weight = `(rand() & 7) + 1` (random 1-8, effectively noise)
+   - **Mobile units**: weight = `(ai_strategic_value + ai_threat_weight + 10) >> 2`
+3. **Max cell wins**: linear scan for highest accumulated value
+4. **Result**: world coordinates of densest cell
+
+**Key insight**: Buildings are de-prioritized via randomization (1-8 weight vs 20+ for combat units). Airstrikes target **clusters of mobile combat units**, not static buildings.
+
+---
+
+## AI Threat/Value Reference Table
+
+| Unit | threat_weight | strategic_value | Notes |
+|------|:---:|:---:|-------|
+| Rifleman | 10 | 10 | Baseline |
+| Berserker | 12 | 12 | |
+| Flamer/SWAT | 15 | 15 | |
+| Sapper | 20 | 20 | |
+| RPG Launcher | 30 | 30 | |
+| Sniper | 40 | 40 | |
+| Giant Scorpion | 50 | 50 | Threat threshold for "dangerous area" |
+| Anaconda Tank | 60 | 60 | |
+| ATV Flamethrower | 70 | 70 | |
+| War Mastodon | 80 | 80 | |
+| Barrage Craft | 80 | 80 | |
+| Guard Tower | **100** | 100 | High threat (defensive) |
+| Autocannon/Missile Crab | **120** | 100 | Strongest combat units |
+| Wasp/Bomber | **120** | 100 | Air units |
+| El Presidente/Saboteur | 10 | **100** | Low threat, high strategic (priority target) |
+| Power Station | 0 | **120** | Building placement threshold |
+| Oil Tanker | 0 | **200** | Economic target |
+| Mobile Outpost | 0 | **200** | |
+| Machine Shop | 0 | **200** | |
+| Outpost/Clanhall | 0 | **300** | High-priority target |
+| Drill Rig | 0 | **500** | Highest value target |
+| Mobile Derrick | 0 | **500** | |
+
+**Pattern**: Combat units have threat ≈ strategic value. Economic/production buildings have zero threat but very high strategic value (AI targets them from afar via tier-2 scoring).
+
+---
+
+## Difficulty Scaling
+
+| Factor | Effect |
+|--------|--------|
+| `cost_reduction_factor` (per level/difficulty) | Lower = cheaper AI units = faster army buildup |
+| `ai_starting_cash` (per level) | Higher = AI starts richer |
+| `num_ai_players` | Army cap = `549/(N+1)` — more AIs = smaller individual armies |
+| `squad_threshold` (200 general, 4 mission) | Lower = AI attacks with smaller groups more often |
+| `attack_confidence` (-50) | Lower = AI attacks even when outgunned (very aggressive) |
+| Tower cost `>> 2` | Towers always cost 1/4 for AI (anti-rush defense) |
+| Airstrike config | Per-level count, interval, and randomization range |
+
+### Effective Behaviors by Difficulty
+- **Easy**: High cost factor (≈256) → slow production. AI armies smaller and rarer.
+- **Hard**: Low cost factor (≈128 or less) → units produced at half price or less. AI floods with units.
+- **Mission AI** (squad_threshold=4): Splits squads immediately (every 4 threat = 1 rifleman). Sends constant small raids.
+
+---
+
+## Drillrig Defense Logic
+
+```
+for each drillrig with guard_squad:
+    threat = ai_get_threat_in_area(81920, drillrig.x, drillrig.y)
+    if threat == 0:
+        release guard squad → idle (will attack elsewhere)
+        if tanker_count < desired_tankers:
+            flag drillrig_needing_tanker
+    else:
+        keep guard squad assigned (defend)
+```
+
+Desired tanker count = `distance_to_powerplant / 51200`, clamped [1, 3]. Farther drillrigs get more tankers (longer round-trip needs more tankers to maintain throughput).
+
+---
+
+## Wanderer AI (Pre-Placed Units)
+
+Units placed by level designer with `cplc_spawn_param` become "wanderers" — independent of the squad system.
+
+### Activation Logic
+```
+for each pending wanderer:
+    decrement cplc_spawn_param
+    if (param is odd) AND (enemy within 51200):
+        reset param to 1  // triggers next tick
+    if param == 0:
+        move to active list (skip Warlords)
+
+for each active wanderer:
+    if unit is idle (EventHandler_Passive):
+        target = ai_find_nearest_enemy(manhattan distance)
+        send TaskMessage_AttackOrder
+```
+
+**Odd countdown trick**: When the countdown is on an odd number and an enemy is nearby, the timer is forced to 1 — meaning it activates next tick. This creates "proximity activation" for pre-placed ambush units.
+
+---
+
+## Complete Decision Flowchart (Per AI Tick — 60 frames)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    AI TICK START                          │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  1. TANKER ASSIGNMENT                                    │
+│     Any drillrig needs tanker? → Find idle tanker → Assign│
+│                                                          │
+│  2. DRILLRIG DEFENSE                                     │
+│     For each guarded drillrig:                           │
+│       threat==0? → Release guard squad, check tankers    │
+│       threat>0?  → Keep defending                        │
+│                                                          │
+│  3. PRODUCTION PRIORITY                                  │
+│     ┌── Drillrig needs tanker? → Produce tanker          │
+│     └── Scripted queue? → Produce scripted unit          │
+│         └── Build order rotation → Produce next in cycle │
+│                                                          │
+│  4. AIRSTRIKE (super-levels only)                        │
+│     Timer <= 0? → Density heatmap → Spawn bomber at max  │
+│                                                          │
+│  5. BUILDING PLACEMENT                                   │
+│     Cash > 0 + no active construction?                   │
+│       → Evaluate placement queue                         │
+│       → Skip if threat ≥ 50 AND value < 120             │
+│       → Start construction (4 stages over time)          │
+│                                                          │
+│  6. SQUAD POSITION UPDATE                                │
+│     Compute centroids, area threats, track max           │
+│                                                          │
+│  7. RALLY MANAGEMENT                                     │
+│     Unassigned → rallying → arrive → join rally squad    │
+│     Rally squad full? → Split to idle/patrol             │
+│                                                          │
+│  8. SQUAD ATTACK DECISIONS                               │
+│     ┌─ Marching: near target? → Merge into target squad  │
+│     ├─ Patrolling: safe + arrived? → Return to idle      │
+│     └─ Idle:                                             │
+│         confidence = 100*(own-enemy)/(total+1)           │
+│         ├── ≥-50 OR base_threatened → ATTACK             │
+│         │   (pick by distance if close, value if far)    │
+│         └── <-50 → MERGE with nearest idle squad         │
+│                                                          │
+│  9. WANDERER PROCESSING                                  │
+│     Countdown pending → activate → attack nearest        │
+│                                                          │
+│  SLEEP(60 frames)                                        │
+└──────────────────────────────────────────────────────────┘
+```

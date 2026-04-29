@@ -54169,24 +54169,24 @@ int sub_438840()
 // 47C064: using guessed type int dword_47C064[];
 
 //----- (00438930) --------------------------------------------------------
-BOOL stru28_init()
+BOOL scar_init()
 {
-  KKND::stru28 *v0; // eax
+  KKND::scar *v0; // eax
   int i; // ecx
 
-  v0 = (KKND::stru28 *)malloc(0x280u);
-  g_stru28_pool = v0;
+  v0 = (KKND::scar *)malloc(0x280u);
+  g_scar_pool = v0;
   if ( !v0 )
     return 0;
-  g_stru28_list_free_head = v0;
+  g_scar_list_free_head = v0;
   for ( i = 0; i < 39; ++i )
   {
     v0[i].next = &v0[i + 1];
-    v0 = g_stru28_pool;
+    v0 = g_scar_pool;
   }
-  g_stru28_pool[39].next = nullptr;
-  g_stru28_list_head = (KKND::stru28 *)&g_stru28_list_head;
-  g_stru28_list_tail = (KKND::stru28 *)&g_stru28_list_head;
+  g_scar_pool[39].next = nullptr;
+  g_scar_list_head = (KKND::scar *)&g_scar_list_head;
+  g_scar_list_tail = (KKND::scar *)&g_scar_list_head;
   return 1;
 }
 
@@ -54198,13 +54198,13 @@ void __fastcall sub_4389A0(int x, int y)
   signed int v6; // esi
   signed int v7; // edi
   signed int v8; // ebx
-  KKND::stru28 *v9; // eax
+  KKND::scar *v9; // eax
   KKND::Entity *v10; // ecx
-  KKND::stru28 *v11; // esi
-  KKND::stru28 *v12; // edx
-  KKND::stru28 **p_prev; // eax
+  KKND::scar *v11; // esi
+  KKND::scar *v12; // edx
+  KKND::scar **p_prev; // eax
   KKND::Entity *entity; // eax
-  KKND::stru28 *v15; // edx
+  KKND::scar *v15; // edx
   int v16; // ecx
   int v17; // edx
 
@@ -54219,13 +54219,13 @@ void __fastcall sub_4389A0(int x, int y)
       v8 = v6;
       if ( (g_terrain[(v7 >> 13) + g_map_num_tiles_x * (v6 >> 13)].flags1 & 0xE0) == 0 )
       {
-        v9 = g_stru28_list_head;
-        if ( g_stru28_list_head == (KKND::stru28 *)&g_stru28_list_head )
+        v9 = g_scar_list_head;
+        if ( g_scar_list_head == (KKND::scar *)&g_scar_list_head )
         {
 LABEL_11:
-          v11 = g_stru28_list_free_head;
-          if ( g_stru28_list_free_head )
-            g_stru28_list_free_head = g_stru28_list_free_head->next;
+          v11 = g_scar_list_free_head;
+          if ( g_scar_list_free_head )
+            g_scar_list_free_head = g_scar_list_free_head->next;
           else
             v11 = nullptr;
           if ( v11 )
@@ -54233,28 +54233,28 @@ LABEL_11:
             entity = entity_create(MobdId_Explosions, nullptr, nullptr);
             if ( !entity )
             {
-              v11->next = g_stru28_list_free_head;
-              g_stru28_list_free_head = v11;
+              v11->next = g_scar_list_free_head;
+              g_scar_list_free_head = v11;
               return;
             }
-            v15 = g_stru28_list_head;
-            v11->prev = (KKND::stru28 *)&g_stru28_list_head;
+            v15 = g_scar_list_head;
+            v11->prev = (KKND::scar *)&g_scar_list_head;
             v11->next = v15;
-            g_stru28_list_head->prev = v11;
-            g_stru28_list_head = v11;
+            g_scar_list_head->prev = v11;
+            g_scar_list_head = v11;
             entity->rend->render_state_handler = (KKND::RenderStateUpdater)render_state_handler_terrain_detail;
           }
           else
           {
-            v12 = g_stru28_list_tail;
-            p_prev = &g_stru28_list_tail->prev;
-            g_stru28_list_tail->next->prev = g_stru28_list_tail->prev;
+            v12 = g_scar_list_tail;
+            p_prev = &g_scar_list_tail->prev;
+            g_scar_list_tail->next->prev = g_scar_list_tail->prev;
             (*p_prev)->next = v12->next;
-            v12->next = g_stru28_list_head;
-            *p_prev = (KKND::stru28 *)&g_stru28_list_head;
+            v12->next = g_scar_list_head;
+            *p_prev = (KKND::scar *)&g_scar_list_head;
             v11 = v12;
-            g_stru28_list_head->prev = v12;
-            g_stru28_list_head = v12;
+            g_scar_list_head->prev = v12;
+            g_scar_list_head = v12;
             entity = v12->entity;
           }
           entity->x = v7;
@@ -54272,7 +54272,7 @@ LABEL_11:
             if ( v10->x == v7 && v10->y == v6 )
               break;
             v9 = v9->next;
-            if ( v9 == (KKND::stru28 *)&g_stru28_list_head )
+            if ( v9 == (KKND::scar *)&g_scar_list_head )
               goto LABEL_11;
           }
           v17 = v9->mobd_frame + 1;
@@ -72634,7 +72634,7 @@ LABEL_18:
             result = sub_411040();
             if ( result )
             {
-              result = stru28_init();
+              result = scar_init();
               if ( result )
               {
                 if ( !GAME_construction_init() )
