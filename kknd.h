@@ -47,6 +47,7 @@ struct KKND::MobdAnimation;
 struct KKND::BoxdCollisionHandler;
 struct ___remove__KKND::BoxdCollisionState;
 struct KKND::RenderViewport;
+struct KKND::OilPatch;
 struct KKND::Unit;
 struct KKND::RenderNode;
 struct KKND::UnitStats;
@@ -1151,7 +1152,7 @@ enum __udec KKND::TaskMessageType : unsigned __int32
   TaskMessage_AttackOrder = 1523u,
   TaskMessage_MoveOrder = 1524u,
   TaskMessage_MissionAccomplished = 1524u, ///< Duplicated enum value as far as I understand, used depending on context
-  TaskMessage_1525 = 1525u,
+  TaskMessage_GuardAreaOrder = 1525u,
   TaskMessage_Infiltrate = 1526u,
   TaskMessage_OpenBriefing = 1526u,
   TaskMessage_Follow = 1527u,
@@ -1354,6 +1355,27 @@ enum __dec KKND::MobdId : unsigned __int32
   MobdId_Invalid = -1,
 };
 
+/* 380 */
+struct KKND::EntityBuildingContext
+{
+  int hitpoints;                        ///< HP inhereted from the deploying unit (base, drillrig)
+  int _unused;
+};
+
+/* 381 */
+struct KKND::EntityProjectileContext
+{
+  KKND::Unit *attacker;                 ///< who fired the projectile
+  int attacker_unit_id;
+};
+
+/* 382 */
+union KKND::EntityContext
+{
+  KKND::EntityBuildingContext building_ctx;
+  KKND::EntityProjectileContext projectile_ctx;
+};
+
 /* 198 */
 struct KKND::Entity
 {
@@ -1393,9 +1415,8 @@ struct KKND::Entity
   KKND::CplcSpawnParams *cplc_spawn_params;
   KKND::CplcEntity *cplc_meta;
   KKND::CplcEntityInViewport *cplc_view;
-  void *ctx;
-  void *_80_attacker_unit_or__stru29__sprite__initial_hitpoints;
-  int _80_unit_id;
+  void *ctx1;
+  KKND::EntityContext ctx2;
   BOOL is_collidable;
   __int16 infantry_damage;
   __int16 vehicle_damage;
@@ -1473,7 +1494,7 @@ enum __dec KKND::SoundId : unsigned __int32
   SoundId_57 = 57,
   SoundId_58 = 58,
   SoundId_59 = 59,
-  SoundId_60 = 60,
+  SoundId_Surv_TankerUnderAttack = 60,
   SoundId_61 = 61,
   SoundId_62 = 62,
   SoundId_63 = 63,
@@ -1545,7 +1566,7 @@ enum __dec KKND::SoundId : unsigned __int32
   SoundId_129 = 129,
   SoundId_130 = 130,
   SoundId_131 = 131,
-  SoundId_132 = 132,
+  SoundId_Mute_TankerUnderAttack = 132,
   SoundId_133 = 133,
   SoundId_134 = 134,
   SoundId_135 = 135,
@@ -1859,6 +1880,135 @@ struct KKND::CplcEntityInViewport
   KKND::Entity *entity;
 };
 
+/* 234 */
+typedef void (__fastcall *KKND::UnitMode)(KKND::Unit *);
+
+/* 236 */
+struct KKND::UnitMobdAnchors
+{
+  KKND::MobdPoint *turret;
+  KKND::MobdPoint *rally;
+  KKND::MobdPoint *render;
+  KKND::MobdPoint *grid;
+  KKND::MobdPoint *_unit_mobd_anchors_10_unused;
+  KKND::MobdPoint *dock_point;
+};
+
+/* 237 */
+/// actually a typedef int, with various enum values are simply #defines - there are units with 8 and 16 orientations (potentially more) both use this type for their orientation holding variables
+enum __dec KKND::MobdOrientation : unsigned __int32
+{
+  MobdOrientation_N = 0,
+  MobdOrientation_NNE = 16,
+  MobdOrientation_NE = 32,
+  MobdOrientation_E = 64,
+  MobdOrientation_SE = 96,
+  MobdOrientation_SSE = 112,
+  MobdOrientation_S = 128,
+  MobdOrientation_SSW = 144,
+  MobdOrientation_SW = 160,
+  MobdOrientation_W = 192,
+  MobdOrientation_NW = 224,
+  MobdOrientation_NNW = 240,
+};
+
+/* 238 */
+enum KKND::Veterancy : unsigned __int32
+{
+  Veterancy_Rookie = 0x0,
+  Veterancy_Mature = 0x1,
+  Veterancy_Veteran = 0x2,
+};
+
+/* 239 */
+typedef unsigned __int32 fixed;
+
+/* 240 */
+enum __dec KKND::UnitTilePosition : unsigned __int32
+{
+  UnitPosition_Slot0 = 0,               ///< Always 0 for all non-infantry units
+  UnitPosition_Slot1 = 1,
+  UnitPosition_Slot2 = 2,
+  UnitPosition_Slot3 = 3,
+  UnitPosition_Slot4 = 4,
+  UnitTilePosition_Invalid = 5,
+  UnitTilePosition_BuildingPlacement = 64,
+};
+
+/* 241 */
+enum __dec KKND::UnitOrder : unsigned __int32
+{
+  UnitOrder_Idle = 0,
+  UnitOrder_Move = 1,
+  UnitOrder_Attack = 2,
+  UnitOrder_RepairInfiltrate = 3,
+  UnitOrder_Retreat = 4,
+  UnitOrder_Escort = 5,
+  UnitOrder_TankerConvoyNextCheckpoint = 6,
+  UnitOrder_TankerDock = 7,
+  UnitOrder_AttackMove = 8,
+  UnitOrder_GuardArea = 9,
+  UnitOrder_RepairBayDock = 10,
+  UnitOrder_ReturnToPosition = 11,      ///< after ATTACK: target destroyed/lost during attack → return to home
+                                        ///< after RETREAT: retreat completed → return to home
+};
+
+/* 247 */
+enum __bitmask KKND::UnitPathFlags : unsigned __int32
+{
+  UnitPathFlags_ApproachingWaypoint = 0x1, ///< close to target, skip rotation
+  UnitPathFlags_CwObstacleHit = 0x2,    ///< clockwise scan hit obstacle
+  UnitPathFlags_CcwObstacleHit = 0x4,   ///< counter-clockwise scan hit obstacle
+  UnitPathFlags_CwObstacleScan = 0x8,   ///< scanning CW around obstacle
+  UnitPathFlags_CcwObstacleScan = 0x10, ///< scanning CCW around obstacle
+  UnitPathFlags_ScansDiverged = 0x20,   ///< CW/CCW scans found different tiles
+  UnitPathFlags_BlockedByUnit = 0x40,   ///< waiting for slower unit to clear
+  UnitPathFlags_ArrivedFromBuilding = 0x80, ///< created from prison/bunker/outpost
+};
+
+/* 225 */
+enum __dec KKND::Direction
+{
+  Direction_N = 0,
+  Direction_NE = 1,
+  Direction_E = 2,
+  Direction_SE = 3,
+  Direction_S = 4,
+  Direction_SW = 5,
+  Direction_W = 6,
+  Direction_NW = 7,
+};
+
+/* 250 */
+enum __dec KKND::BoxdRaycastResult : unsigned __int32
+{
+  BoxdRaycastResult_ClearWithWaypoints = 0,
+  BoxdRaycastResult_UnitObstacle = 1,
+  BoxdRaycastResult_NoWaypoints = 2,
+  BoxdRaycastResult_TerrainObstacle = 3,
+  BoxdRaycastResult_ClearStraightLine = 4,
+  BoxdRaycastResult_InvalidState = 5,
+};
+
+/* 249 */
+/// Scan-phase pathing working state.
+struct KKND::UnitScanPhaseNav
+{
+  int ray_stack;                        ///< Stack index into raycast results
+  int cw_scan_x;                        ///< CW scan probe tile position. Also used directly for movement target when scan finds passable tile. Also used outside scanning as a general "current target tile" — written when finding a blocked unit, and for blocked-unit speed comparison tiles.
+  int cw_scan_y;
+  int ccw_scan_x;
+  int ccw_scan_y;
+  KKND::Direction cw_heading;           ///< Approach direction rotated 90° CW to step around obstacles
+  KKND::Direction ccw_heading;          ///< Approach direction rotated 90° CCW to step around obstacles
+  int first_clear_tile_x;               ///< Blocked-tile fallback target. This is the first free tile hit by the ray that has no prior passable tiles — meaning the ray started directly inside an obstacle and this is the first clear tile found. Used as fallback waypoint in raycast results 2 and 5 — replaces order_next_waypoint when primary path data is incomplete.
+                                        ///< Initialized to (0,0) every raycast. Nonzero check = "was a fallback found?"
+  int first_clear_tile_y;
+  KKND::BoxdRaycastResult ray_result;
+  int disperse_timer;                   ///< Temporarily treat partially occupied tiles as impassible to avoid congestion
+  int push_through_timer;               ///< Temporarily treat partially occupied tiles as clear to help the unit push through (e.g a freshly created unit leaving its production building)
+};
+
 /* 350 */
 enum KKND::BlitterMode : unsigned __int32
 {
@@ -1880,6 +2030,230 @@ struct KKND::MobdSprtImage
   KKND::Blitter blitter;
   int flags;                            ///< &1 = flip horizontally
   KKND::MobdImageData *bitmap;
+};
+
+/* 220 */
+struct KKND::Unit
+{
+  KKND::Unit *next;
+  KKND::Unit *prev;
+  KKND::Unit *locked_target;            ///< current active target
+  KKND::Task *task;
+  KKND::UnitType type;
+  int player_num;
+  KKND::UnitStats *stats;
+  KKND::Turret *turret;
+  void *state;
+  void *ai_node_per_side[7];
+  KKND::UnitMode mode;
+  KKND::UnitMode mode_idle;
+  KKND::UnitMode mode_arrive;
+  KKND::UnitMode mode_attacked;
+  KKND::UnitMode mode_return;
+  KKND::UnitMode mode_turn_return;
+  KKND::MessageHandler message_handler;
+  KKND::Entity *entity;
+  KKND::UnitMobdAnchors mobd_anchors;
+  int _unit_field_78_unused;
+  KKND::MobdOrientation orientation;
+  int _unit_field_80_unused;
+  int _unit_field_84_unused;
+  KKND::MobdOrientation target_orientation;
+  BOOL destroyed;
+  int hitpoints;
+  int experience;
+  KKND::Veterancy veterancy;
+  fixed hp_regen_accumulator;           ///< classic fixed-point fractional accumulation: accumulator overflows by 256 → gain 1 HP. Each idle tick: accumulator += increment. When high byte changes ((new ^ old) & 0xFFFFFF00), integer HP crossed → hitpoints++
+  fixed hp_regen_rate;
+  KKND::UnitTilePosition tile_position;
+  int map_x;
+  int map_y;
+  int order_next_waypoint_x;
+  int order_next_waypoint_y;
+  int order_starting_x;
+  int order_starting_y;
+  int base_anim_speed;                  ///< needs saving because every frame there's a random nudge to every unit's anim so that a group of units don't turn/move inunnatural lockstep
+  int path_next_tile_x;
+  int path_next_tile_y;
+  int path_next_waypoint_tile_x;
+  int path_next_waypoint_tile_y;
+  int path_scan_direction;              ///< Direction flag for wall-following. Set to 1 or 0 depending which clockwise/counterclockwise scan found shorter path. Checked as: not clockwise ? -1 : 1 (scan direction multiplier), and if clockwise → orientation +64, else -64.
+                                        ///< → path_scan_direction (0 = counterclockwise, 1 = clockwise)
+  int path_scan_orientation;            ///< Orientation for pathfinding obstacle avoidance. Set from (orientation ± 64) & 0xE0 — perpendicular to current facing. Used as (path_scan_direction >> 5) to get 3-bit direction index for tile neighbor scanning.
+  KKND::UnitOrder order;
+  KKND::Unit *order_target;             ///< Primary target of current order (attack, repair, dock target)
+  KKND::Unit *opportunity_target;       ///< Attack-move opportunity target or when enemy approaches an idle unit
+  KKND::Unit *escort_target;
+  int order_target_id;
+  int opportunity_target_id;
+  int active_target_id;
+  int escort_target_id;
+  int order_target_x;
+  int order_target_y;
+  KKND::UnitEscortNode *escort_list_head;
+  KKND::UnitEscortNode *escort_list_tail;
+  int _unit_field_10C_unused;
+  int _unit_field_110_unused;
+  int _unit_field_114_unused;
+  KKND::Unit *last_attacker;
+  KKND::UnitUnion1 _u1;
+  KKND::UnitPathFlags path_flags;
+  int multi_purpose_field_1;            ///< 1. Infantry/Vehicle — Obstacle wait countdown (value: 60)
+                                        ///<     Set to 60 when unit hits blocked tile (another unit in way)
+                                        ///<     Decremented each frame in entity_mode_417FC0, entity_mode_4181B0
+                                        ///<     When reaches 0 → give up waiting, repath
+                                        ///<     Meaning: blocked_wait_timer or obstacle_patience_counter
+                                        ///< 
+                                        ///< 2. Infantry/Vehicle — Pathfinding step counter (value: 0, incremented)
+                                        ///<     Set to 0 at start of obstacle-scan movement (Infantry.cpp:3193)
+                                        ///<     Incremented each step in entity_mode_417A20 — compared against base_anim_speed
+                                        ///<     Meaning: path_scan_step_count — how many scan steps taken around obstacle
+                                        ///< 
+                                        ///< 3. Repair bay — Docking animation countdown (value: 100)
+                                        ///<     Set to 100 when entering/leaving repair bay (Infantry.cpp:4263)
+                                        ///<     Decremented in entity_mode_419180_in_repairbay / entity_mode_418E90_leaving_repair_bay
+                                        ///<     When ≤ 0 → done moving into/out of bay
+                                        ///<     Meaning: repair_bay_move_timer
+                                        ///< 
+                                        ///< 4. Repair sprite — Active repair script count (value: 1, incremented)
+                                        ///<     In script_4188F0 (repair coroutine): incremented when repair sprite spawned, decremented on terminate
+                                        ///<     Used as refcount for repair overlay sprites
+                                        ///<     Meaning: repair_sprite_refcount
+                                        ///< 
+                                        ///< 5. Aircraft — Bomb run pass counter (value: 2, decremented)
+                                        ///<     Set to 2 for bomber on spawn (Aircraft.cpp:165)
+                                        ///<     Decremented per bombing pass; -1 = return to base, -2 = wait
+                                        ///<     Meaning: bombing_passes_remaining
+                                        ///< 
+                                        ///< 6. Tech bunker / Hut — Detection radius (value: 24576)
+                                        ///<     Set to 24576 (= 3 tiles × 8192) on creation (Detenshn.cpp:438)
+                                        ///<     Passed to entity_find_any_entity_in_radius() as distance parameter
+                                        ///<     Then overwritten with player_side of found entity
+                                        ///<     Meaning: detect_radius → then captured_by_side
+                                        ///< 
+                                        ///< 7. Scout — Detection radius (value: 76800)
+                                        ///<     Set to 76800 in UNIT_Handler_Scout (Mission.cpp:936)
+                                        ///<     Same pattern as tech bunker — passed to entity_find_player_entity_in_radius()
+                                        ///<     Meaning: scout_detect_radius
+  int cplc_spawn_param;                 ///< 1. Prison/Bunker — Spawn queue count (value: 0–10)
+                                        ///<     Set to 10 on prison death → spawns units one-by-one
+                                        ///<     Decremented per spawn; when 0 → done spawning
+                                        ///<     Also: index into surv_prison_spawns_table[] / mute_prison_spawns_table[] (counts down from 10)
+                                        ///<     Meaning: spawn_queue_remaining
+                                        ///< 
+                                        ///< 2. Tech bunker — Spawn type / loot table index (value: 0–10, 9 = random)
+                                        ///<     Set from level data (param_1C) or 9 (= pick random) in entity_407690_techbunker_spawn
+                                        ///<     Values 0–3: unit from techbunker_spawns_table[], 4: tanker, 5: +5000 resources, 6: +1000 resources
+                                        ///<     Value 10: special — spawn El Presidente then set to 5
+                                        ///<     Meaning: techbunker_spawn_type
+                                        ///< 
+                                        ///< 3. Hut — Variant / orientation selector (value: 0–4)
+                                        ///<     Read on creation in UNIT_Handler_Hut, used in switch to pick anim frame (0/16/32/48/64)
+                                        ///<     Comes from level data. Never modified after init.
+                                        ///<     Meaning: hut_variant
+                                        ///< 
+                                        ///< 4. Aircraft — Fire cooldown timer (value: 15, decremented)
+                                        ///<     Set to 15 after firing projectile in aircraft attack mode (Aircraft.cpp:341)
+                                        ///<     Decremented each tick; when 0 → can fire again
+                                        ///<     Also set to 0 when bombing pass ends (Aircraft.cpp:395)
+                                        ///<     Meaning: fire_cooldown
+                                        ///< 
+                                        ///< 5. Building/DrillRig/Tanker — "Under attack" voice line cooldown (value: 1000–2000)
+                                        ///<     Set to 1500 (drillrig), 2000 (building), 1000 (tanker) when attacked
+                                        ///<     Decremented in unit handler each tick
+                                        ///<     When 0 → can play "under attack" sound again
+                                        ///<     Prevents voice line spam
+                                        ///<     Meaning: attacked_voice_cooldown
+                                        ///< 
+                                        ///< 6. AI Wanderer — Wanderer tracking timer (value: 2, decremented)
+                                        ///<     Set to 2 when unit added to AI wanderer list (EnemyAI.cpp:3968)
+                                        ///<     Decremented in AI tick; odd values trigger distance check; when 0 → remove from wanderer list
+                                        ///<     Meaning: ai_wanderer_ttl
+                                        ///< 
+                                        ///< 7. Entity spawn — "Spawned from building" flag (value: from level data or 2)
+                                        ///<     On creation via EntityFactory::Create: set from param_1C or hardcoded 2
+                                        ///<     If nonzero → path_flags |= PATHFIND_SPAWNED_FROM_BUILDING
+                                        ///<     Meaning: spawn_source_param (how many tiles to walk out of building)
+                                        ///< 
+                                        ///< 8. Scout — Discovery delay multiplier (value: 60)
+                                        ///<     Set to 60 in UNIT_Handler_Scout (Mission.cpp:935)
+                                        ///<     Stored into _134 on discovery: _134 = _12C
+                                        ///<     Meaning: scout_discovery_delay
+                                        ///< 
+                                        ///< 9. Mission objective — Building alive flag (value: 0 or nonzero)
+                                        ///<     Checked == 0 to mean "building destroyed" in mission win/fail conditions (Mission.cpp:1084)
+                                        ///<     Meaning: is_destroyed (0 = dead, nonzero = alive/cooldown active)
+  int unit_id;
+  int multi_purpose_field_3;            ///< 1. Mobile Outpost/Clanhall — Saved unit_id before planting (UnitType value)
+                                        ///<     In entity_4279E0_mobile_outpost_clanhall_wagon_plant: _134 = unit_type before swapping to outpost/clanhall unit_type
+                                        ///<     If plant fails → unit_type = _134 to restore original
+                                        ///<     After plant succeeds → unit_type = _134 in entity_427C30 to spawn mobile unit as building
+                                        ///<     Meaning: saved_unit_id
+                                        ///< 
+                                        ///< 2. Infantry/Vehicle/General — "New order" immunity timer (value: 600, decremented)
+                                        ///<     Set to 600 whenever unit receives a new order (move, attack, escort, guard area, repair, etc.)
+                                        ///<     Decremented each tick in unit handler
+                                        ///<     While nonzero → blocks opportunity fire (!_134 && can_fire_on_entity check in Infantry.cpp:412)
+                                        ///<     Also blocks entity_mode_405690 tanker convoy idle transition
+                                        ///<     Meaning: order_cooldown — prevents unit from immediately re-engaging opportunity targets after receiving new orders. Gives time to start executing order before getting distracted.
+                                        ///< 
+                                        ///< 3. Aircraft — Ammo / shots remaining (value: 1, decremented)
+                                        ///<     Set to 1 when bomber starts attack pass (Aircraft.cpp:396)
+                                        ///<     Checked nonzero → fire projectile + decrement (Aircraft.cpp:311-342)
+                                        ///<     When 0 → stop firing, transition to next mode
+                                        ///<     Meaning: ammo_remaining
+                                        ///< 
+                                        ///< 4. Tech bunker — Spawn delay timer (value: ~28800–54000 or 5)
+                                        ///<     In multiplayer: _134 = rand() % 25200 + 28800 (~48–90 second delay at 10fps) (Detenshn.cpp:409)
+                                        ///<     In singleplayer: _134 = 5 (almost instant)
+                                        ///<     Decremented in entity_mode_407950_techbunker_spawn_generic; when ≤ 0 → show turret, enable detection
+                                        ///<     Meaning: techbunker_activation_delay
+                                        ///< 
+                                        ///< 5. Scout — Discovery delay countdown (value: copied from _12C, e.g. 60)
+                                        ///<     In entity_mode_425920_scout: _134 = _12C (scout discovery delay)
+                                        ///<     While nonzero → scout stays dormant, waiting to be discovered
+                                        ///<     Meaning: scout_dormant_timer
+                                        ///< 
+                                        ///< 6. Loaded unit — Reset to 0 on load
+                                        ///<     When loading saved game entity, if entity has no cplc meta: _134 = 0; veterancy = 0; — initialization for "fresh" spawn from save
+                                        ///<     Meaning: just zeroed out as part of init
+  int path_scan_origin_tile_x;          ///< Sprite tile X at scan start. Exit condition: if scan returns within 1 tile of origin → done
+  int path_scan_origin_tile_y;
+  int path_scan_iteration;              ///< Monotonic counter, 0→max. Incremented each loop step. Also used in attack-move scan
+  int path_scan_max_iterations;         ///< = 2 × initial manhattan distance. Failsafe loop limit
+  int path_scan_best_distance;          ///< Lowest manhattan distance to target found so far. Updated when better candidate discovered
+  int path_scan_best_tile_x;            ///< X of best waypoint candidate. On scan completion → copied to path_next_waypoint_tile_x
+  int path_scan_best_tile_y;
+  int path_scan_best_iteration;         ///< Iteration # when best candidate found. After scan: base_anim_speed = this + 1 (sync animation to path length)
+  int path_scan_cur_distance;           ///< Scratch — manhattan distance of current candidate being evaluated. Overwritten each iteration
+  int ray_exit_map_xs[10];              ///< First free tile after each obstacle zone — the actual waypoint target
+  int ray_exit_map_ys[10];
+  int ray_unit_obstacle_map_xs[10];     ///< Last unit obstacle tile before exit — gives scan approach direction
+  int ray_unit_obstacle_map_ys[10];
+  int ray_terrain_obstacle_xs[10];      ///< Last terrain-wall (class-0) tile — fallback approach for when entity obstacles are unreliable198.
+  int ray_terrain_obstacle_ys[10];
+  KKND::UnitScanPhaseNav scan_pathing;  ///< Pathing works in two phases:
+                                        ///<     1. Raycast phase (0041B970 BOXD_pathing_bresenham_raycast) — Cast Bresenham ray from unit to target. Records obstacle boundaries into ray_exit_* / ray_obstacle_* / ray_terrain_* arrays, indexed by ray_stack.
+                                        ///<     2. Obstacle-scan phase (e.g unit_mode_416060, unit_mode_attack_move) — fine-grained local navigation: for each waypoint, run CW + CCW wall-following scans around the obstacle. Two scan probes advance independently, each tracking its current tile position.
+                                        ///< 
+                                        ///< This is actually a union and some of these fields are used for
+                                        ///< different purposes e.g to save x/y speed values depending on context
+                                        ///< 
+  KKND::Unit *nav_obstacle;             ///< Pointer to blocking/obstructing entity found during pathfinding tile checks.
+  int nav_obstacle_id;
+  KKND::MobdSprtImage overlay_sprt;     ///< Overlay sprite (selection, healthbar)
+  KKND::RenderNode *overlay_rn;         ///< Render node that controls ovelay sprite rendering (not sure why the sprite is held separately since render node already owns the image unit->overlay->image = &unit->overlay_sprt)
+  unsigned __int8 control_groups[8];
+  __int16 idle_fidget_timer;
+  __int16 last_stuck_tile_x;
+  __int16 last_stuck_tile_y;
+  __int16 stuck_timer;                  ///< If unit is stuck in the same tile , stuck timer accumulates and unit sleeps for increasing amount of time waiting to get unstuck
+  __int16 next_order;                   ///< New interrupting order received mid-action: 0=idle, 1=move, 2=attack
+  __int16 _unit_field_2A6;
+  KKND::Unit *next_order_target;
+  int next_order_target_id;
+  int next_order_target_x;
+  int next_order_target_y;
 };
 
 /* 206 */
@@ -1941,6 +2315,110 @@ struct KKND::RenderViewport
   int _render_viewport_20;
 };
 
+/* 280 */
+typedef int ptrdiff_t;
+
+/* 285 */
+enum __dec KKND::UnitSize : unsigned __int32
+{
+  UnitSize_None = 0,
+  UnitSize_Regular = 128,               ///< 1 tile unit
+  UnitSize_Small = 512,                 ///< sub-tile unit (infantry) - up to 5 in one tile
+  UnitSize_XL = 4096,                   ///< 2x2 tiles unit
+};
+
+/* 229 */
+enum __bitmask __dec KKND::Race : unsigned __int32
+{
+  Race_Survivors = 1,
+  Race_Evolved = 2,
+};
+
+/* 227 */
+struct KKND::UnitStats
+{
+  KKND::MobdId mobd_id;
+  KKND::TaskFn task_fn;
+  const char *name;
+  int cost;
+  int hitpoints __dec;
+  int speed __dec;
+  int reload_time __dec;
+  int turning_speed __dec;
+  int view_range __dec;
+  int firing_range __dec;
+  int accuracy __dec;
+  BOOL can_crush;
+  BOOL is_infantry;
+  ptrdiff_t mobd_lookup_offset_attack;  ///< -1 for turreted units
+  ptrdiff_t mobd_lookup_offset_move;
+  ptrdiff_t mobd_lookup_offset_idle;
+  ptrdiff_t mobd_lookup_offset_4;       ///< damaged_buildings?
+  KKND::UnitAttachment *attachment;
+  KKND::UnitProjectileType *projectile;
+  KKND::UnitSize size;                  ///< map tile size
+                                        ///< 
+                                        ///< 4096: XL (2x2 tiles)
+                                        ///< autocannon, missile crab, mobile outposts, gort, plasma tank
+                                        ///< 
+                                        ///< 512: 1/5th of a tile
+                                        ///< infantry
+                                        ///< 
+                                        ///< 128: exactly 1 tile
+                                        ///< vehicles, buildings,
+                                        ///< tech bunker, sentinel droid
+                                        ///< gorn, tree, hut
+  KKND::Race race;
+  int ai_threat_weight __dec;
+  int ai_strategic_value __dec;
+  KKND::UnitType factory;
+  int production_time __dec;
+};
+
+/* 283 */
+typedef void (__fastcall *KKND::TurretMode)(KKND::Turret *);
+
+/* 228 */
+struct KKND::Turret
+{
+  KKND::Task *task;
+  KKND::Entity *entity;
+  KKND::Unit *parent;
+  KKND::Unit *target;
+  KKND::TurretMode mode;
+  ptrdiff_t current_mobd_frame;
+  int reload_timer;
+  int volley_remaining;
+  int volley_reload_time;
+  KKND::MobdPoint *projectile_spawn_anchor;
+  KKND::UnitAttachment *attachment;
+  int _turret_field_2C_unused;
+  int target_unit_id;
+  int _turret_field_34_unused;
+};
+
+/* 231 */
+struct KKND::UnitEscortNode
+{
+  KKND::UnitEscortNode *next;
+  KKND::UnitEscortNode *prev;
+  KKND::Unit *escort;
+};
+
+/* 246 */
+struct KKND::Vec2i
+{
+  fixed x;
+  fixed y;
+};
+
+/* 244 */
+union KKND::UnitUnion1
+{
+  KKND::Vec2i infantry_return;
+  KKND::OilPatch *oil_patch;
+};
+
 /* 191 */
 struct __unaligned __declspec(align(2)) KKND::MobdImageData
 {
@@ -1949,6 +2427,47 @@ struct __unaligned __declspec(align(2)) KKND::MobdImageData
   unsigned __int8 format;               ///< pixel format: 0=raw, 2=RLE compressed
                                         ///< raw: one byte per pixel (palette index). Zero bytes are transparent
   unsigned __int8 pixels[1];
+};
+
+/* 232 */
+struct KKND::UnitAttachment
+{
+  KKND::MobdId mobd_id;
+  void (__fastcall *mode_attach)(KKND::Task *task);
+  int rotation_speed __dec;
+  int fire_delay __dec;                 ///< fire -> fire delay -> fire -> fire delay -> ... end of volley -> wait reload_time
+  int reload_time __dec;
+  int volley_size __dec;
+  ptrdiff_t mobd_lookup_offset_idle;
+  ptrdiff_t mobd_lookup_offset_attack;
+  KKND::UnitProjectileType *projectile_type;
+  int _unit_attachment_field_24;
+};
+
+/* 233 */
+struct KKND::UnitProjectileType
+{
+  KKND::MobdId mobd_id;
+  void (__cdecl *task_fn)(KKND::Task *task);
+  ptrdiff_t mobd_lookup_offset_travel;
+  ptrdiff_t mobd_lookup_offset_impact;
+  int speed __dec;
+  int damage_infantry __dec;
+  int damage_vehicle __dec;
+  int damage_building __dec;
+  int radius __dec;                     ///< 32 for most, 128 for bombers - radius/8 tiles around the impact
+  int _projectile_type_field_24;
+};
+
+/* 219 */
+struct KKND::OilPatch
+{
+  KKND::OilPatch *next;
+  KKND::OilPatch *prev;
+  KKND::Entity *entity;
+  int amount;
+  KKND::Unit *drillrig;
+  int drillrig_unit_id;
 };
 
 /* 167 */
@@ -2387,504 +2906,6 @@ struct KKND::OilPatchSaveStruct
   __int32 drillrig_entity_id;
 };
 
-/* 219 */
-struct KKND::OilPatch
-{
-  KKND::OilPatch *next;
-  KKND::OilPatch *prev;
-  KKND::Entity *entity;
-  int amount;
-  KKND::Unit *drillrig;
-  int drillrig_unit_id;
-};
-
-/* 234 */
-typedef void (__fastcall *KKND::UnitMode)(KKND::Unit *);
-
-/* 236 */
-struct KKND::UnitMobdAnchors
-{
-  KKND::MobdPoint *turret;
-  KKND::MobdPoint *rally;
-  KKND::MobdPoint *render;
-  KKND::MobdPoint *grid;
-  KKND::MobdPoint *_unit_mobd_anchors_10_unused;
-  KKND::MobdPoint *dock_point;
-};
-
-/* 237 */
-/// actually a typedef int, with various enum values are simply #defines - there are units with 8 and 16 orientations (potentially more) both use this type for their orientation holding variables
-enum __dec KKND::MobdOrientation : unsigned __int32
-{
-  MobdOrientation_N = 0,
-  MobdOrientation_NNE = 16,
-  MobdOrientation_NE = 32,
-  MobdOrientation_E = 64,
-  MobdOrientation_SE = 96,
-  MobdOrientation_SSE = 112,
-  MobdOrientation_S = 128,
-  MobdOrientation_SSW = 144,
-  MobdOrientation_SW = 160,
-  MobdOrientation_W = 192,
-  MobdOrientation_NW = 224,
-  MobdOrientation_NNW = 240,
-};
-
-/* 238 */
-enum KKND::Veterancy : unsigned __int32
-{
-  Veterancy_Rookie = 0x0,
-  Veterancy_Mature = 0x1,
-  Veterancy_Veteran = 0x2,
-};
-
-/* 239 */
-typedef unsigned __int32 fixed;
-
-/* 240 */
-enum __dec KKND::UnitTilePosition : unsigned __int32
-{
-  UnitPosition_Slot0 = 0,               ///< Always 0 for all non-infantry units
-  UnitPosition_Slot1 = 1,
-  UnitPosition_Slot2 = 2,
-  UnitPosition_Slot3 = 3,
-  UnitPosition_Slot4 = 4,
-  UnitTilePosition_Invalid = 5,
-  UnitTilePosition_BuildingPlacement = 64,
-};
-
-/* 241 */
-enum __dec KKND::UnitOrder : unsigned __int32
-{
-  UnitOrder_Idle = 0,
-  UnitOrder_Move = 1,
-  UnitOrder_Attack = 2,
-  UnitOrder_RepairInfiltrate = 3,
-  UnitOrder_Retreat = 4,
-  UnitOrder_Escort = 5,
-  UnitOrder_TankerConvoyNextCheckpoint = 6,
-  UnitOrder_TankerDock = 7,
-  UnitOrder_AttackMove = 8,
-  UnitOrder_GuardArea = 9,
-  UnitOrder_RepairBayDock = 10,
-  UnitOrder_ReturnToPosition = 11,      ///< after ATTACK: target destroyed/lost during attack → return to home
-                                        ///< after RETREAT: retreat completed → return to home
-};
-
-/* 247 */
-enum __bitmask KKND::UnitPathFlags : unsigned __int32
-{
-  UnitPathFlags_ApproachingWaypoint = 0x1, ///< close to target, skip rotation
-  UnitPathFlags_CwObstacleHit = 0x2,    ///< clockwise scan hit obstacle
-  UnitPathFlags_CcwObstacleHit = 0x4,   ///< counter-clockwise scan hit obstacle
-  UnitPathFlags_CwObstacleScan = 0x8,   ///< scanning CW around obstacle
-  UnitPathFlags_CcwObstacleScan = 0x10, ///< scanning CCW around obstacle
-  UnitPathFlags_ScansDiverged = 0x20,   ///< CW/CCW scans found different tiles
-  UnitPathFlags_BlockedByUnit = 0x40,   ///< waiting for slower unit to clear
-  UnitPathFlags_ArrivedFromBuilding = 0x80, ///< created from prison/bunker/outpost
-};
-
-/* 225 */
-enum __dec KKND::Direction
-{
-  Direction_N = 0,
-  Direction_NE = 1,
-  Direction_E = 2,
-  Direction_SE = 3,
-  Direction_S = 4,
-  Direction_SW = 5,
-  Direction_W = 6,
-  Direction_NW = 7,
-};
-
-/* 250 */
-enum __dec KKND::BoxdRaycastResult : unsigned __int32
-{
-  BoxdRaycastResult_ClearWithWaypoints = 0,
-  BoxdRaycastResult_UnitObstacle = 1,
-  BoxdRaycastResult_NoWaypoints = 2,
-  BoxdRaycastResult_TerrainObstacle = 3,
-  BoxdRaycastResult_ClearStraightLine = 4,
-  BoxdRaycastResult_InvalidState = 5,
-};
-
-/* 249 */
-/// Scan-phase pathing working state.
-struct KKND::UnitScanPhaseNav
-{
-  int ray_stack;                        ///< Stack index into raycast results
-  int cw_scan_x;                        ///< CW scan probe tile position. Also used directly for movement target when scan finds passable tile. Also used outside scanning as a general "current target tile" — written when finding a blocked unit, and for blocked-unit speed comparison tiles.
-  int cw_scan_y;
-  int ccw_scan_x;
-  int ccw_scan_y;
-  KKND::Direction cw_heading;           ///< Approach direction rotated 90° CW to step around obstacles
-  KKND::Direction ccw_heading;          ///< Approach direction rotated 90° CCW to step around obstacles
-  int first_clear_tile_x;               ///< Blocked-tile fallback target. This is the first free tile hit by the ray that has no prior passable tiles — meaning the ray started directly inside an obstacle and this is the first clear tile found. Used as fallback waypoint in raycast results 2 and 5 — replaces order_next_waypoint when primary path data is incomplete.
-                                        ///< Initialized to (0,0) every raycast. Nonzero check = "was a fallback found?"
-  int first_clear_tile_y;
-  KKND::BoxdRaycastResult ray_result;
-  int disperse_timer;                   ///< Temporarily treat partially occupied tiles as impassible to avoid congestion
-  int push_through_timer;               ///< Temporarily treat partially occupied tiles as clear to help the unit push through (e.g a freshly created unit leaving its production building)
-};
-
-/* 220 */
-struct KKND::Unit
-{
-  KKND::Unit *next;
-  KKND::Unit *prev;
-  KKND::Unit *locked_target;            ///< current active target
-  KKND::Task *task;
-  KKND::UnitType type;
-  int player_num;
-  KKND::UnitStats *stats;
-  KKND::Turret *turret;
-  void *state;
-  void *ai_node_per_side[7];
-  KKND::UnitMode mode;
-  KKND::UnitMode mode_idle;
-  KKND::UnitMode mode_arrive;
-  KKND::UnitMode mode_attacked;
-  KKND::UnitMode mode_return;
-  KKND::UnitMode mode_turn_return;
-  KKND::MessageHandler message_handler;
-  KKND::Entity *entity;
-  KKND::UnitMobdAnchors mobd_anchors;
-  int _unit_field_78_unused;
-  KKND::MobdOrientation orientation;
-  int _unit_field_80_unused;
-  int _unit_field_84_unused;
-  KKND::MobdOrientation target_orientation;
-  BOOL destroyed;
-  int hitpoints;
-  int experience;
-  KKND::Veterancy veterancy;
-  fixed hp_regen_accumulator;           ///< classic fixed-point fractional accumulation: accumulator overflows by 256 → gain 1 HP. Each idle tick: accumulator += increment. When high byte changes ((new ^ old) & 0xFFFFFF00), integer HP crossed → hitpoints++
-  fixed hp_regen_rate;
-  KKND::UnitTilePosition tile_position;
-  int map_x;
-  int map_y;
-  int order_next_waypoint_x;
-  int order_next_waypoint_y;
-  int order_starting_x;
-  int order_starting_y;
-  int base_anim_speed;                  ///< needs saving because every frame there's a random nudge to every unit's anim so that a group of units don't turn/move inunnatural lockstep
-  int path_next_tile_x;
-  int path_next_tile_y;
-  int path_next_waypoint_tile_x;
-  int path_next_waypoint_tile_y;
-  int path_scan_direction;              ///< Direction flag for wall-following. Set to 1 or 0 depending which clockwise/counterclockwise scan found shorter path. Checked as: not clockwise ? -1 : 1 (scan direction multiplier), and if clockwise → orientation +64, else -64.
-                                        ///< → path_scan_direction (0 = counterclockwise, 1 = clockwise)
-  int path_scan_orientation;            ///< Orientation for pathfinding obstacle avoidance. Set from (orientation ± 64) & 0xE0 — perpendicular to current facing. Used as (path_scan_direction >> 5) to get 3-bit direction index for tile neighbor scanning.
-  KKND::UnitOrder order;
-  KKND::Unit *order_target;             ///< Primary target of current order (attack, repair, dock target)
-  KKND::Unit *opportunity_target;       ///< Attack-move opportunity target or when enemy approaches an idle unit
-  KKND::Unit *escort_target;
-  int order_target_id;
-  int opportunity_target_id;
-  int active_target_id;
-  int escort_target_id;
-  int order_target_x;
-  int order_target_y;
-  KKND::UnitEscortNode *escort_list_head;
-  KKND::UnitEscortNode *escort_list_tail;
-  int _unit_field_10C_unused;
-  int _unit_field_110_unused;
-  int _unit_field_114_unused;
-  KKND::Unit *last_attacker;
-  KKND::UnitUnion1 _u1;
-  KKND::UnitPathFlags path_flags;
-  int multi_purpose_field_1;            ///< 1. Infantry/Vehicle — Obstacle wait countdown (value: 60)
-                                        ///<     Set to 60 when unit hits blocked tile (another unit in way)
-                                        ///<     Decremented each frame in entity_mode_417FC0, entity_mode_4181B0
-                                        ///<     When reaches 0 → give up waiting, repath
-                                        ///<     Meaning: blocked_wait_timer or obstacle_patience_counter
-                                        ///< 
-                                        ///< 2. Infantry/Vehicle — Pathfinding step counter (value: 0, incremented)
-                                        ///<     Set to 0 at start of obstacle-scan movement (Infantry.cpp:3193)
-                                        ///<     Incremented each step in entity_mode_417A20 — compared against base_anim_speed
-                                        ///<     Meaning: path_scan_step_count — how many scan steps taken around obstacle
-                                        ///< 
-                                        ///< 3. Repair bay — Docking animation countdown (value: 100)
-                                        ///<     Set to 100 when entering/leaving repair bay (Infantry.cpp:4263)
-                                        ///<     Decremented in entity_mode_419180_in_repairbay / entity_mode_418E90_leaving_repair_bay
-                                        ///<     When ≤ 0 → done moving into/out of bay
-                                        ///<     Meaning: repair_bay_move_timer
-                                        ///< 
-                                        ///< 4. Repair sprite — Active repair script count (value: 1, incremented)
-                                        ///<     In script_4188F0 (repair coroutine): incremented when repair sprite spawned, decremented on terminate
-                                        ///<     Used as refcount for repair overlay sprites
-                                        ///<     Meaning: repair_sprite_refcount
-                                        ///< 
-                                        ///< 5. Aircraft — Bomb run pass counter (value: 2, decremented)
-                                        ///<     Set to 2 for bomber on spawn (Aircraft.cpp:165)
-                                        ///<     Decremented per bombing pass; -1 = return to base, -2 = wait
-                                        ///<     Meaning: bombing_passes_remaining
-                                        ///< 
-                                        ///< 6. Tech bunker / Hut — Detection radius (value: 24576)
-                                        ///<     Set to 24576 (= 3 tiles × 8192) on creation (Detenshn.cpp:438)
-                                        ///<     Passed to entity_find_any_entity_in_radius() as distance parameter
-                                        ///<     Then overwritten with player_side of found entity
-                                        ///<     Meaning: detect_radius → then captured_by_side
-                                        ///< 
-                                        ///< 7. Scout — Detection radius (value: 76800)
-                                        ///<     Set to 76800 in UNIT_Handler_Scout (Mission.cpp:936)
-                                        ///<     Same pattern as tech bunker — passed to entity_find_player_entity_in_radius()
-                                        ///<     Meaning: scout_detect_radius
-  int cplc_spawn_param;                 ///< 1. Prison/Bunker — Spawn queue count (value: 0–10)
-                                        ///<     Set to 10 on prison death → spawns units one-by-one
-                                        ///<     Decremented per spawn; when 0 → done spawning
-                                        ///<     Also: index into surv_prison_spawns_table[] / mute_prison_spawns_table[] (counts down from 10)
-                                        ///<     Meaning: spawn_queue_remaining
-                                        ///< 
-                                        ///< 2. Tech bunker — Spawn type / loot table index (value: 0–10, 9 = random)
-                                        ///<     Set from level data (param_1C) or 9 (= pick random) in entity_407690_techbunker_spawn
-                                        ///<     Values 0–3: unit from techbunker_spawns_table[], 4: tanker, 5: +5000 resources, 6: +1000 resources
-                                        ///<     Value 10: special — spawn El Presidente then set to 5
-                                        ///<     Meaning: techbunker_spawn_type
-                                        ///< 
-                                        ///< 3. Hut — Variant / orientation selector (value: 0–4)
-                                        ///<     Read on creation in UNIT_Handler_Hut, used in switch to pick anim frame (0/16/32/48/64)
-                                        ///<     Comes from level data. Never modified after init.
-                                        ///<     Meaning: hut_variant
-                                        ///< 
-                                        ///< 4. Aircraft — Fire cooldown timer (value: 15, decremented)
-                                        ///<     Set to 15 after firing projectile in aircraft attack mode (Aircraft.cpp:341)
-                                        ///<     Decremented each tick; when 0 → can fire again
-                                        ///<     Also set to 0 when bombing pass ends (Aircraft.cpp:395)
-                                        ///<     Meaning: fire_cooldown
-                                        ///< 
-                                        ///< 5. Building/DrillRig/Tanker — "Under attack" voice line cooldown (value: 1000–2000)
-                                        ///<     Set to 1500 (drillrig), 2000 (building), 1000 (tanker) when attacked
-                                        ///<     Decremented in unit handler each tick
-                                        ///<     When 0 → can play "under attack" sound again
-                                        ///<     Prevents voice line spam
-                                        ///<     Meaning: attacked_voice_cooldown
-                                        ///< 
-                                        ///< 6. AI Wanderer — Wanderer tracking timer (value: 2, decremented)
-                                        ///<     Set to 2 when unit added to AI wanderer list (EnemyAI.cpp:3968)
-                                        ///<     Decremented in AI tick; odd values trigger distance check; when 0 → remove from wanderer list
-                                        ///<     Meaning: ai_wanderer_ttl
-                                        ///< 
-                                        ///< 7. Entity spawn — "Spawned from building" flag (value: from level data or 2)
-                                        ///<     On creation via EntityFactory::Create: set from param_1C or hardcoded 2
-                                        ///<     If nonzero → path_flags |= PATHFIND_SPAWNED_FROM_BUILDING
-                                        ///<     Meaning: spawn_source_param (how many tiles to walk out of building)
-                                        ///< 
-                                        ///< 8. Scout — Discovery delay multiplier (value: 60)
-                                        ///<     Set to 60 in UNIT_Handler_Scout (Mission.cpp:935)
-                                        ///<     Stored into _134 on discovery: _134 = _12C
-                                        ///<     Meaning: scout_discovery_delay
-                                        ///< 
-                                        ///< 9. Mission objective — Building alive flag (value: 0 or nonzero)
-                                        ///<     Checked == 0 to mean "building destroyed" in mission win/fail conditions (Mission.cpp:1084)
-                                        ///<     Meaning: is_destroyed (0 = dead, nonzero = alive/cooldown active)
-  int unit_id;
-  int multi_purpose_field_3;            ///< 1. Mobile Outpost/Clanhall — Saved unit_id before planting (UnitType value)
-                                        ///<     In entity_4279E0_mobile_outpost_clanhall_wagon_plant: _134 = unit_type before swapping to outpost/clanhall unit_type
-                                        ///<     If plant fails → unit_type = _134 to restore original
-                                        ///<     After plant succeeds → unit_type = _134 in entity_427C30 to spawn mobile unit as building
-                                        ///<     Meaning: saved_unit_id
-                                        ///< 
-                                        ///< 2. Infantry/Vehicle/General — "New order" immunity timer (value: 600, decremented)
-                                        ///<     Set to 600 whenever unit receives a new order (move, attack, escort, guard area, repair, etc.)
-                                        ///<     Decremented each tick in unit handler
-                                        ///<     While nonzero → blocks opportunity fire (!_134 && can_fire_on_entity check in Infantry.cpp:412)
-                                        ///<     Also blocks entity_mode_405690 tanker convoy idle transition
-                                        ///<     Meaning: order_cooldown — prevents unit from immediately re-engaging opportunity targets after receiving new orders. Gives time to start executing order before getting distracted.
-                                        ///< 
-                                        ///< 3. Aircraft — Ammo / shots remaining (value: 1, decremented)
-                                        ///<     Set to 1 when bomber starts attack pass (Aircraft.cpp:396)
-                                        ///<     Checked nonzero → fire projectile + decrement (Aircraft.cpp:311-342)
-                                        ///<     When 0 → stop firing, transition to next mode
-                                        ///<     Meaning: ammo_remaining
-                                        ///< 
-                                        ///< 4. Tech bunker — Spawn delay timer (value: ~28800–54000 or 5)
-                                        ///<     In multiplayer: _134 = rand() % 25200 + 28800 (~48–90 second delay at 10fps) (Detenshn.cpp:409)
-                                        ///<     In singleplayer: _134 = 5 (almost instant)
-                                        ///<     Decremented in entity_mode_407950_techbunker_spawn_generic; when ≤ 0 → show turret, enable detection
-                                        ///<     Meaning: techbunker_activation_delay
-                                        ///< 
-                                        ///< 5. Scout — Discovery delay countdown (value: copied from _12C, e.g. 60)
-                                        ///<     In entity_mode_425920_scout: _134 = _12C (scout discovery delay)
-                                        ///<     While nonzero → scout stays dormant, waiting to be discovered
-                                        ///<     Meaning: scout_dormant_timer
-                                        ///< 
-                                        ///< 6. Loaded unit — Reset to 0 on load
-                                        ///<     When loading saved game entity, if entity has no cplc meta: _134 = 0; veterancy = 0; — initialization for "fresh" spawn from save
-                                        ///<     Meaning: just zeroed out as part of init
-  int path_scan_origin_tile_x;          ///< Sprite tile X at scan start. Exit condition: if scan returns within 1 tile of origin → done
-  int path_scan_origin_tile_y;
-  int path_scan_iteration;              ///< Monotonic counter, 0→max. Incremented each loop step. Also used in attack-move scan
-  int path_scan_max_iterations;         ///< = 2 × initial manhattan distance. Failsafe loop limit
-  int path_scan_best_distance;          ///< Lowest manhattan distance to target found so far. Updated when better candidate discovered
-  int path_scan_best_tile_x;            ///< X of best waypoint candidate. On scan completion → copied to path_next_waypoint_tile_x
-  int path_scan_best_tile_y;
-  int path_scan_best_iteration;         ///< Iteration # when best candidate found. After scan: base_anim_speed = this + 1 (sync animation to path length)
-  int path_scan_cur_distance;           ///< Scratch — manhattan distance of current candidate being evaluated. Overwritten each iteration
-  int ray_exit_map_xs[10];              ///< First free tile after each obstacle zone — the actual waypoint target
-  int ray_exit_map_ys[10];
-  int ray_unit_obstacle_map_xs[10];     ///< Last unit obstacle tile before exit — gives scan approach direction
-  int ray_unit_obstacle_map_ys[10];
-  int ray_terrain_obstacle_xs[10];      ///< Last terrain-wall (class-0) tile — fallback approach for when entity obstacles are unreliable198.
-  int ray_terrain_obstacle_ys[10];
-  KKND::UnitScanPhaseNav scan_pathing;  ///< Pathing works in two phases:
-                                        ///<     1. Raycast phase (0041B970 BOXD_pathing_bresenham_raycast) — Cast Bresenham ray from unit to target. Records obstacle boundaries into ray_exit_* / ray_obstacle_* / ray_terrain_* arrays, indexed by ray_stack.
-                                        ///<     2. Obstacle-scan phase (e.g unit_mode_416060, unit_mode_attack_move) — fine-grained local navigation: for each waypoint, run CW + CCW wall-following scans around the obstacle. Two scan probes advance independently, each tracking its current tile position.
-                                        ///< 
-                                        ///< This is actually a union and some of these fields are used for
-                                        ///< different purposes e.g to save x/y speed values depending on context
-                                        ///< 
-  KKND::Unit *nav_obstacle;             ///< Pointer to blocking/obstructing entity found during pathfinding tile checks.
-  int nav_obstacle_id;
-  KKND::MobdSprtImage overlay_sprt;     ///< Overlay sprite (selection, healthbar)
-  KKND::RenderNode *overlay_rn;         ///< Render node that controls ovelay sprite rendering (not sure why the sprite is held separately since render node already owns the image unit->overlay->image = &unit->overlay_sprt)
-  unsigned __int8 control_groups[8];
-  __int16 idle_fidget_timer;
-  __int16 last_stuck_tile_x;
-  __int16 last_stuck_tile_y;
-  __int16 stuck_timer;                  ///< If unit is stuck in the same tile , stuck timer accumulates and unit sleeps for increasing amount of time waiting to get unstuck
-  __int16 next_order;                   ///< New interrupting order received mid-action: 0=idle, 1=move, 2=attack
-  __int16 _unit_field_2A6;
-  KKND::Unit *next_order_target;
-  int next_order_target_id;
-  int next_order_target_x;
-  int next_order_target_y;
-};
-
-/* 280 */
-typedef int ptrdiff_t;
-
-/* 285 */
-enum __dec KKND::UnitSize : unsigned __int32
-{
-  UnitSize_None = 0,
-  UnitSize_Regular = 128,               ///< 1 tile unit
-  UnitSize_Small = 512,                 ///< sub-tile unit (infantry) - up to 5 in one tile
-  UnitSize_XL = 4096,                   ///< 2x2 tiles unit
-};
-
-/* 229 */
-enum __bitmask __dec KKND::Race : unsigned __int32
-{
-  Race_Survivors = 1,
-  Race_Evolved = 2,
-};
-
-/* 227 */
-struct KKND::UnitStats
-{
-  KKND::MobdId mobd_id;
-  KKND::TaskFn task_fn;
-  const char *name;
-  int cost;
-  int hitpoints __dec;
-  int speed __dec;
-  int reload_time __dec;
-  int turning_speed __dec;
-  int view_range __dec;
-  int firing_range __dec;
-  int accuracy __dec;
-  BOOL can_crush;
-  BOOL is_infantry;
-  ptrdiff_t mobd_lookup_offset_attack;  ///< -1 for turreted units
-  ptrdiff_t mobd_lookup_offset_move;
-  ptrdiff_t mobd_lookup_offset_idle;
-  ptrdiff_t mobd_lookup_offset_4;       ///< damaged_buildings?
-  KKND::UnitAttachment *attachment;
-  KKND::UnitProjectileType *projectile;
-  KKND::UnitSize size;                  ///< map tile size
-                                        ///< 
-                                        ///< 4096: XL (2x2 tiles)
-                                        ///< autocannon, missile crab, mobile outposts, gort, plasma tank
-                                        ///< 
-                                        ///< 512: 1/5th of a tile
-                                        ///< infantry
-                                        ///< 
-                                        ///< 128: exactly 1 tile
-                                        ///< vehicles, buildings,
-                                        ///< tech bunker, sentinel droid
-                                        ///< gorn, tree, hut
-  KKND::Race race;
-  int ai_threat_weight __dec;
-  int ai_strategic_value __dec;
-  KKND::UnitType factory;
-  int production_time __dec;
-};
-
-/* 283 */
-typedef void (__fastcall *KKND::TurretMode)(KKND::Turret *);
-
-/* 228 */
-struct KKND::Turret
-{
-  KKND::Task *task;
-  KKND::Entity *entity;
-  KKND::Unit *parent;
-  KKND::Unit *target;
-  KKND::TurretMode mode;
-  ptrdiff_t current_mobd_frame;
-  int reload_timer;
-  int volley_remaining;
-  int volley_reload_time;
-  KKND::MobdPoint *projectile_spawn_anchor;
-  KKND::UnitAttachment *attachment;
-  int _turret_field_2C_unused;
-  int target_unit_id;
-  int _turret_field_34_unused;
-};
-
-/* 231 */
-struct KKND::UnitEscortNode
-{
-  KKND::UnitEscortNode *next;
-  KKND::UnitEscortNode *prev;
-  KKND::Unit *escort;
-};
-
-/* 246 */
-struct KKND::Vec2i
-{
-  fixed x;
-  fixed y;
-};
-
-/* 244 */
-union KKND::UnitUnion1
-{
-  KKND::Vec2i infantry_return;
-  KKND::OilPatch *oil_patch;
-};
-
-/* 232 */
-struct KKND::UnitAttachment
-{
-  KKND::MobdId mobd_id;
-  void (__fastcall *mode_attach)(KKND::Task *task);
-  int rotation_speed __dec;
-  int fire_delay __dec;                 ///< fire -> fire delay -> fire -> fire delay -> ... end of volley -> wait reload_time
-  int reload_time __dec;
-  int volley_size __dec;
-  ptrdiff_t mobd_lookup_offset_idle;
-  ptrdiff_t mobd_lookup_offset_attack;
-  KKND::UnitProjectileType *projectile_type;
-  int _unit_attachment_field_24;
-};
-
-/* 233 */
-struct KKND::UnitProjectileType
-{
-  KKND::MobdId mobd_id;
-  void (__cdecl __noreturn *task_fn)(KKND::Task *task);
-  ptrdiff_t mobd_lookup_offset_travel;
-  ptrdiff_t mobd_lookup_offset_impact;
-  int speed __dec;
-  int damage_infantry __dec;
-  int damage_vehicle __dec;
-  int damage_building __dec;
-  int radius __dec;                     ///< 32 for most, 128 for bombers - radius/8 tiles around the impact
-  int _projectile_type_field_24;
-};
-
 /* 223 */
 enum KKND::TerrainTileFlags1 : unsigned __int8
 {
@@ -2949,13 +2970,13 @@ struct KKND::TankerState
 {
   int _0_oil_loaded;
   KKND::Unit *current_destination;
-  KKND::Unit *powerstation;
+  KKND::Unit *powerplant;
   KKND::Unit *drillrig;
   int drillrig_entity_id;
   int powerstation_entity_id;
   int current_destination_unit_id;
-  int array_20_size;
-  KKND::Unit *array_20[20];
+  int num_destinations;
+  KKND::Unit *powerplants_drillrigs[20];
   KKND::MobdImageData *img;
 };
 
@@ -3216,10 +3237,10 @@ struct KKND::ProductionSharedState
 /* 272 */
 /// One for each type of parent factory's production (tank, tanker, etc) - see FactoryProduction
 /// Player can enqueue more than one of the same unit, but it's managed in the sidebar logic
-struct KKND::FactoryProductionOption
+struct KKND::FactoryProdJob
 {
-  KKND::FactoryProductionOption *next;
-  KKND::FactoryProductionOption *prev;
+  KKND::FactoryProdJob *next;
+  KKND::FactoryProdJob *prev;
   int base_bandwidth;                   ///< max amount of money factory can spend per tick
   int effective_bandwidth;              ///< effective amount of money this production receives based on number of other concurrent productions
   int base_cost;                        ///< base total cost of the unit
@@ -3307,12 +3328,12 @@ struct KKND::Sidebar
 
 /* 274 */
 /// Production per individual factory
-struct KKND::FactoryProduction
+struct KKND::FactoryProd
 {
-  KKND::FactoryProduction *next;
-  KKND::FactoryProduction *prev;
-  KKND::FactoryProductionOption *production_list_head;
-  KKND::FactoryProductionOption *production_list_tail;
+  KKND::FactoryProd *next;
+  KKND::FactoryProd *prev;
+  KKND::FactoryProdJob *prod_list_head;
+  KKND::FactoryProdJob *production_list_tail;
   int _factory_production_field_10_unused;
   int _factory_production_field_14_unused;
   int _factory_production_field_18_unused;
@@ -3339,8 +3360,8 @@ struct KKND::BuildingState
   __int16 garrison_strength;            ///< Init from params (typically 5). Friendly unit enters → increment (max 5). Enemy saboteur → decrement. Zero = building captured/destroyed.
   KKND::SidebarFactoryProduction *prod;
   KKND::MobdImageData *status_bar;
-  int _building_state_field_18_unused;
-  int _building_state_field_1C_unused;
+  KKND::Unit *docked_tanker;
+  int docked_tanker_unit_id;
   KKND::Entity *repair_anim;            ///< wrench
   int num_active_repairs;               ///< e.g 2 technicians enter the building
 };
@@ -3580,11 +3601,11 @@ struct KKND::AiController
   char _ai_controller_50[8];
   KKND::AiAttackerNode *attacker_pool;
   KKND::AiAttackerNode *attacker_free_head;
-  KKND::AiAttackerNode *rally_march_head;
-  KKND::AiAttackerNode *rally_march_tail;
+  KKND::AiAttackerNode *convoy_escort_head;
+  KKND::AiAttackerNode *convoy_escort_tail;
   char _ai_controller_68[8];
-  KKND::AiAttackerNode *_ai_controller_70;
-  KKND::AiAttackerNode *_ai_controller_74;
+  KKND::AiAttackerNode *convoy_escort_pool;
+  KKND::AiAttackerNode *convoy_escort_free_head;
   KKND::AiBuildNode *build_head;
   KKND::AiBuildNode *build_tail;
   char _ai_controller_80[20];
@@ -3650,7 +3671,7 @@ struct KKND::AiController
   KKND::Race player_race;
   int *cash;
   int attacker_count;
-  int max_attackers;
+  int max_units;
   int squad_threshold;
   int attack_confidence;
   int base_threat;
@@ -3704,7 +3725,7 @@ struct KKND::AiAttackerNode
 {
   KKND::AiAttackerNode *next;
   KKND::AiAttackerNode *prev;
-  KKND::AiSquadNode *_ai_attacker_node_8;
+  KKND::AiSquadNode *squad;
   KKND::Unit *unit;
 };
 
@@ -4182,15 +4203,22 @@ struct KKND::RenderBlitter
   int (__fastcall *mode_cleanup)();
 };
 
+/* 375 */
+enum __bitmask KKND::FileFlags : unsigned __int32
+{
+  File_Stdio = 0x1,
+  File_MemoryMapped = 0x2,
+};
+
 /* 328 */
 struct KKND::File
 {
-  int flags;
+  KKND::FileFlags flags;
   FILE *fp;
-  HANDLE _file_2;
-  void *mapped_view;
-  void *view_pos;
-  int _file_11;
+  HANDLE map_handle;
+  void *map_base;
+  void *map_cursor;
+  void *map_end;
   KKND::File *next;
   KKND::File *prev;
 };
@@ -4402,10 +4430,17 @@ struct _DSBCAPS
   DWORD dwPlayCpuOverhead;
 };
 
+/* 376 */
+enum __bitmask KKND::MovieBppFlags : unsigned __int16
+{
+  MovieBpp_8 = 0x1,
+  MovieBpp_16 = 0x2,
+};
+
 /* 341 */
 struct KKND::MovieHeader
 {
-  __int16 _movie_header_0_low_4_bits_for_bpp;
+  KKND::MovieBppFlags bpp;
   __int16 width;
   __int16 height;
   __int16 _movie_header_6;
@@ -4438,18 +4473,18 @@ struct KKND::MovieFrame
 {
   int size;
   KKND::MovieFlags flags;
-  __int16 _movie_frame_6;
-  __int16 _movie_frame_8;
+  __int16 x;                            ///< partial update position
+  __int16 y;
   __int16 _movie_frame_A;
   char _movie_frame_C[8];
-  __int16 _movie_frame_14_low_4_bits_bpp;
+  KKND::MovieBppFlags bpp;
   __int16 width;
   __int16 height;
   __int16 _movie_frame_1A;
   __int16 _movie_frame_1C;
   __int16 num_frames;
-  __int16 _movie_frame_20;
-  __unaligned __declspec(align(1)) int _movie_frame_22;
+  __int16 sound_flags;
+  __unaligned __declspec(align(1)) int sound_sample_rate;
   __int16 _movie_frame_26;
   __int16 _movie_frame_28;
   __int16 _movie_frame_2A;
@@ -4473,12 +4508,11 @@ struct __unaligned __declspec(align(1)) KKND::Movie
   int _movie_304[9];
   char _movie_328[8];
   KKND::MovieFlags frame_flags;
-  __int16 _movie_332;
+  __int16 active_decode_buffer;
   FILE *file;
-  int data_offset;
-  void *frame_front_buffer;
-  void *frame_back_buffer;
-  int _movie_344[256];
+  size_t first_frame_offset;            ///< for rewinding
+  void *decode_buffers[2];
+  int block_offset_lut[256];
   KKND::MovieFrame frame;
   char _movie_780[131016];
   char data[1];
@@ -4492,8 +4526,8 @@ struct KKND::FmvFrameImage
   int height;
   int _movie_frame_image_C;
   int _movie_frame_image_10;
-  int _movie_frame_image_14;
-  int _movie_frame_image_18;
+  BOOL interlaced;
+  void *pixels;
   int _movie_frame_image_1C;
   int _movie_frame_image_20;
   int _movie_frame_image_24;
@@ -4754,5 +4788,1480 @@ struct KKND::FactoryColorStripe
 {
   int palette_idx __dec;
   int sidebar_icon_mobd_frame;
+};
+
+/* 377 */
+enum MACRO_WM
+{
+  WM_NULL = 0x0,
+  WM_CREATE = 0x1,
+  WM_DESTROY = 0x2,
+  WM_MOVE = 0x3,
+  WM_SIZEWAIT = 0x4,
+  WM_SIZE = 0x5,
+  WM_ACTIVATE = 0x6,
+  WM_SETFOCUS = 0x7,
+  WM_KILLFOCUS = 0x8,
+  WM_SETVISIBLE = 0x9,
+  WM_ENABLE = 0xA,
+  WM_SETREDRAW = 0xB,
+  WM_SETTEXT = 0xC,
+  WM_GETTEXT = 0xD,
+  WM_GETTEXTLENGTH = 0xE,
+  WM_PAINT = 0xF,
+  WM_CLOSE = 0x10,
+  WM_QUERYENDSESSION = 0x11,
+  WM_QUIT = 0x12,
+  WM_QUERYOPEN = 0x13,
+  WM_ERASEBKGND = 0x14,
+  WM_SYSCOLORCHANGE = 0x15,
+  WM_ENDSESSION = 0x16,
+  WM_SYSTEMERROR = 0x17,
+  WM_SHOWWINDOW = 0x18,
+  WM_CTLCOLOR = 0x19,
+  WM_SETTINGCHANGE = 0x1A,
+  WM_WININICHANGE = 0x1A,
+  WM_DEVMODECHANGE = 0x1B,
+  WM_ACTIVATEAPP = 0x1C,
+  WM_FONTCHANGE = 0x1D,
+  WM_TIMECHANGE = 0x1E,
+  WM_CANCELMODE = 0x1F,
+  WM_SETCURSOR = 0x20,
+  WM_MOUSEACTIVATE = 0x21,
+  WM_CHILDACTIVATE = 0x22,
+  WM_QUEUESYNC = 0x23,
+  WM_GETMINMAXINFO = 0x24,
+  WM_LOGOFF = 0x25,
+  WM_PAINTICON = 0x26,
+  WM_ICONERASEBKGND = 0x27,
+  WM_NEXTDLGCTL = 0x28,
+  WM_ALTTABACTIVE = 0x29,
+  WM_SPOOLERSTATUS = 0x2A,
+  WM_DRAWITEM = 0x2B,
+  WM_MEASUREITEM = 0x2C,
+  WM_DELETEITEM = 0x2D,
+  WM_VKEYTOITEM = 0x2E,
+  WM_CHARTOITEM = 0x2F,
+  WM_SETFONT = 0x30,
+  WM_GETFONT = 0x31,
+  WM_SETHOTKEY = 0x32,
+  WM_GETHOTKEY = 0x33,
+  WM_FILESYSCHANGE = 0x34,
+  WM_ISACTIVEICON = 0x35,
+  WM_QUERYPARKICON = 0x36,
+  WM_QUERYDRAGICON = 0x37,
+  WM_WINHELP = 0x38,
+  WM_COMPAREITEM = 0x39,
+  WM_FULLSCREEN = 0x3A,
+  WM_CLIENTSHUTDOWN = 0x3B,
+  WM_DDEMLEVENT = 0x3C,
+  WM_GETOBJECT = 0x3D,
+  MM_CALCSCROLL = 0x3F,
+  WM_TESTING = 0x40,
+  WM_COMPACTING = 0x41,
+  WM_OTHERWINDOWCREATED = 0x42,
+  WM_OTHERWINDOWDESTROYED = 0x43,
+  WM_COMMNOTIFY = 0x44,
+  WM_MEDIASTATUSCHANGE = 0x45,
+  WM_WINDOWPOSCHANGING = 0x46,
+  WM_WINDOWPOSCHANGED = 0x47,
+  WM_POWER = 0x48,
+  WM_COPYGLOBALDATA = 0x49,
+  WM_COPYDATA = 0x4A,
+  WM_CANCELJOURNAL = 0x4B,
+  WM_LOGONNOTIFY = 0x4C,
+  WM_KEYF1 = 0x4D,
+  WM_NOTIFY = 0x4E,
+  WM_ACCESS_WINDOW = 0x4F,
+  WM_INPUTLANGCHANGEREQUEST = 0x50,
+  WM_INPUTLANGCHANGE = 0x51,
+  WM_TCARD = 0x52,
+  WM_HELP = 0x53,
+  WM_USERCHANGED = 0x54,
+  WM_NOTIFYFORMAT = 0x55,
+  WM_QM_ACTIVATE = 0x60,
+  WM_HOOK_DO_CALLBACK = 0x61,
+  WM_SYSCOPYDATA = 0x62,
+  WM_FINALDESTROY = 0x70,
+  WM_MEASUREITEM_CLIENTDATA = 0x71,
+  WM_CONTEXTMENU = 0x7B,
+  WM_STYLECHANGING = 0x7C,
+  WM_STYLECHANGED = 0x7D,
+  WM_DISPLAYCHANGE = 0x7E,
+  WM_GETICON = 0x7F,
+  WM_SETICON = 0x80,
+  WM_NCCREATE = 0x81,
+  WM_NCDESTROY = 0x82,
+  WM_NCCALCSIZE = 0x83,
+  WM_NCHITTEST = 0x84,
+  WM_NCPAINT = 0x85,
+  WM_NCACTIVATE = 0x86,
+  WM_GETDLGCODE = 0x87,
+  WM_SYNCPAINT = 0x88,
+  WM_SYNCTASK = 0x89,
+  WM_NCMOUSEMOVE = 0xA0,
+  WM_NCLBUTTONDOWN = 0xA1,
+  WM_NCLBUTTONUP = 0xA2,
+  WM_NCLBUTTONDBLCLK = 0xA3,
+  WM_NCRBUTTONDOWN = 0xA4,
+  WM_NCRBUTTONUP = 0xA5,
+  WM_NCRBUTTONDBLCLK = 0xA6,
+  WM_NCMBUTTONDOWN = 0xA7,
+  WM_NCMBUTTONUP = 0xA8,
+  WM_NCMBUTTONDBLCLK = 0xA9,
+  WM_NCXBUTTONDOWN = 0xAB,
+  WM_NCXBUTTONUP = 0xAC,
+  WM_NCXBUTTONDBLCLK = 0xAD,
+  EM_GETSEL = 0xB0,
+  EM_SETSEL = 0xB1,
+  EM_GETRECT = 0xB2,
+  EM_SETRECT = 0xB3,
+  EM_SETRECTNP = 0xB4,
+  EM_SCROLL = 0xB5,
+  EM_LINESCROLL = 0xB6,
+  EM_SCROLLCARET = 0xB7,
+  EM_GETMODIFY = 0xB8,
+  EM_SETMODIFY = 0xB9,
+  EM_GETLINECOUNT = 0xBA,
+  EM_LINEINDEX = 0xBB,
+  EM_SETHANDLE = 0xBC,
+  EM_GETHANDLE = 0xBD,
+  EM_GETTHUMB = 0xBE,
+  EM_LINELENGTH = 0xC1,
+  EM_REPLACESEL = 0xC2,
+  EM_SETFONT = 0xC3,
+  EM_GETLINE = 0xC4,
+  EM_LIMITTEXT = 0xC5,
+  EM_SETLIMITTEXT = 0xC5,
+  EM_CANUNDO = 0xC6,
+  EM_UNDO = 0xC7,
+  EM_FMTLINES = 0xC8,
+  EM_LINEFROMCHAR = 0xC9,
+  EM_SETWORDBREAK = 0xCA,
+  EM_SETTABSTOPS = 0xCB,
+  EM_SETPASSWORDCHAR = 0xCC,
+  EM_EMPTYUNDOBUFFER = 0xCD,
+  EM_GETFIRSTVISIBLELINE = 0xCE,
+  EM_SETREADONLY = 0xCF,
+  EM_SETWORDBREAKPROC = 0xD0,
+  EM_GETWORDBREAKPROC = 0xD1,
+  EM_GETPASSWORDCHAR = 0xD2,
+  EM_SETMARGINS = 0xD3,
+  EM_GETMARGINS = 0xD4,
+  EM_GETLIMITTEXT = 0xD5,
+  EM_POSFROMCHAR = 0xD6,
+  EM_CHARFROMPOS = 0xD7,
+  EM_SETIMESTATUS = 0xD8,
+  EM_GETIMESTATUS = 0xD9,
+  SBM_SETPOS = 0xE0,
+  SBM_GETPOS = 0xE1,
+  SBM_SETRANGE = 0xE2,
+  SBM_GETRANGE = 0xE3,
+  SBM_ENABLE_ARROWS = 0xE4,
+  SBM_SETRANGEREDRAW = 0xE6,
+  SBM_SETSCROLLINFO = 0xE9,
+  SBM_GETSCROLLINFO = 0xEA,
+  SBM_GETSCROLLBARINFO = 0xEB,
+  BM_GETCHECK = 0xF0,
+  BM_SETCHECK = 0xF1,
+  BM_GETSTATE = 0xF2,
+  BM_SETSTATE = 0xF3,
+  BM_SETSTYLE = 0xF4,
+  BM_CLICK = 0xF5,
+  BM_GETIMAGE = 0xF6,
+  BM_SETIMAGE = 0xF7,
+  BM_SETDONTCLICK = 0xF8,
+  WM_INPUT = 0xFF,
+  WM_KEYDOWN = 0x100,
+  WM_KEYFIRST = 0x100,
+  WM_KEYUP = 0x101,
+  WM_CHAR = 0x102,
+  WM_DEADCHAR = 0x103,
+  WM_SYSKEYDOWN = 0x104,
+  WM_SYSKEYUP = 0x105,
+  WM_SYSCHAR = 0x106,
+  WM_SYSDEADCHAR = 0x107,
+  WM_KEYLAST = 0x109,
+  WM_YOMICHAR = 0x108,
+  WM_UNICHAR = 0x109,
+  WM_WNT_CONVERTREQUESTEX = 0x109,
+  WM_CONVERTREQUEST = 0x10A,
+  WM_CONVERTRESULT = 0x10B,
+  WM_INTERIM = 0x10C,
+  WM_IM_INFO = 0x10C,
+  WM_IME_STARTCOMPOSITION = 0x10D,
+  WM_IME_ENDCOMPOSITION = 0x10E,
+  WM_IME_COMPOSITION = 0x10F,
+  WM_IME_KEYLAST = 0x10F,
+  WM_INITDIALOG = 0x110,
+  WM_COMMAND = 0x111,
+  WM_SYSCOMMAND = 0x112,
+  WM_TIMER = 0x113,
+  WM_HSCROLL = 0x114,
+  WM_VSCROLL = 0x115,
+  WM_INITMENU = 0x116,
+  WM_INITMENUPOPUP = 0x117,
+  WM_SYSTIMER = 0x118,
+  WM_MENUSELECT = 0x11F,
+  WM_MENUCHAR = 0x120,
+  WM_ENTERIDLE = 0x121,
+  WM_MENURBUTTONUP = 0x122,
+  WM_MENUDRAG = 0x123,
+  WM_MENUGETOBJECT = 0x124,
+  WM_UNINITMENUPOPUP = 0x125,
+  WM_MENUCOMMAND = 0x126,
+  WM_CHANGEUISTATE = 0x127,
+  WM_UPDATEUISTATE = 0x128,
+  WM_QUERYUISTATE = 0x129,
+  WM_LBTRACKPOINT = 0x131,
+  WM_CTLCOLORMSGBOX = 0x132,
+  WM_CTLCOLOREDIT = 0x133,
+  WM_CTLCOLORLISTBOX = 0x134,
+  WM_CTLCOLORBTN = 0x135,
+  WM_CTLCOLORDLG = 0x136,
+  WM_CTLCOLORSCROLLBAR = 0x137,
+  WM_CTLCOLORSTATIC = 0x138,
+  CB_GETEDITSEL = 0x140,
+  CB_LIMITTEXT = 0x141,
+  CB_SETEDITSEL = 0x142,
+  CB_ADDSTRING = 0x143,
+  CB_DELETESTRING = 0x144,
+  CB_DIR = 0x145,
+  CB_GETCOUNT = 0x146,
+  CB_GETCURSEL = 0x147,
+  CB_GETLBTEXT = 0x148,
+  CB_GETLBTEXTLEN = 0x149,
+  CB_INSERTSTRING = 0x14A,
+  CB_RESETCONTENT = 0x14B,
+  CB_FINDSTRING = 0x14C,
+  CB_SELECTSTRING = 0x14D,
+  CB_SETCURSEL = 0x14E,
+  CB_SHOWDROPDOWN = 0x14F,
+  CB_GETITEMDATA = 0x150,
+  CB_SETITEMDATA = 0x151,
+  CB_GETDROPPEDCONTROLRECT = 0x152,
+  CB_SETITEMHEIGHT = 0x153,
+  CB_GETITEMHEIGHT = 0x154,
+  CB_SETEXTENDEDUI = 0x155,
+  CB_GETEXTENDEDUI = 0x156,
+  CB_GETDROPPEDSTATE = 0x157,
+  CB_FINDSTRINGEXACT = 0x158,
+  CB_SETLOCALE = 0x159,
+  CB_GETLOCALE = 0x15A,
+  CB_GETTOPINDEX = 0x15B,
+  CB_SETTOPINDEX = 0x15C,
+  CB_GETHORIZONTALEXTENT = 0x15D,
+  CB_SETHORIZONTALEXTENT = 0x15E,
+  CB_GETDROPPEDWIDTH = 0x15F,
+  CB_SETDROPPEDWIDTH = 0x160,
+  CB_INITSTORAGE = 0x161,
+  CB_MULTIPLEADDSTRING = 0x163,
+  CB_GETCOMBOBOXINFO = 0x164,
+  CB_SETMINVISIBLE = 0x1701,
+  CB_GETMINVISIBLE = 0x1702,
+  CB_SETCUEBANNER = 0x1703,
+  CB_GETCUEBANNER = 0x1704,
+  STM_SETICON = 0x170,
+  STM_GETICON = 0x171,
+  STM_SETIMAGE = 0x172,
+  STM_GETIMAGE = 0x173,
+  LB_ADDSTRING = 0x180,
+  LB_INSERTSTRING = 0x181,
+  LB_DELETESTRING = 0x182,
+  LB_SELITEMRANGEEX = 0x183,
+  LB_RESETCONTENT = 0x184,
+  LB_SETSEL = 0x185,
+  LB_SETCURSEL = 0x186,
+  LB_GETSEL = 0x187,
+  LB_GETCURSEL = 0x188,
+  LB_GETTEXT = 0x189,
+  LB_GETTEXTLEN = 0x18A,
+  LB_GETCOUNT = 0x18B,
+  LB_SELECTSTRING = 0x18C,
+  LB_DIR = 0x18D,
+  LB_GETTOPINDEX = 0x18E,
+  LB_FINDSTRING = 0x18F,
+  LB_GETSELCOUNT = 0x190,
+  LB_GETSELITEMS = 0x191,
+  LB_SETTABSTOPS = 0x192,
+  LB_GETHORIZONTALEXTENT = 0x193,
+  LB_SETHORIZONTALEXTENT = 0x194,
+  LB_SETCOLUMNWIDTH = 0x195,
+  LB_ADDFILE = 0x196,
+  LB_SETTOPINDEX = 0x197,
+  LB_GETITEMRECT = 0x198,
+  LB_GETITEMDATA = 0x199,
+  LB_SETITEMDATA = 0x19A,
+  LB_SELITEMRANGE = 0x19B,
+  LB_SETANCHORINDEX = 0x19C,
+  LB_GETANCHORINDEX = 0x19D,
+  LB_SETCARETINDEX = 0x19E,
+  LB_GETCARETINDEX = 0x19F,
+  LB_SETITEMHEIGHT = 0x1A0,
+  LB_GETITEMHEIGHT = 0x1A1,
+  LB_FINDSTRINGEXACT = 0x1A2,
+  LBCB_CARETON = 0x1A3,
+  LBCB_CARETOFF = 0x1A4,
+  LB_SETLOCALE = 0x1A5,
+  LB_GETLOCALE = 0x1A6,
+  LB_SETCOUNT = 0x1A7,
+  LB_INITSTORAGE = 0x1A8,
+  LB_ITEMFROMPOINT = 0x1A9,
+  LB_INSERTSTRINGUPPER = 0x1AA,
+  LB_INSERTSTRINGLOWER = 0x1AB,
+  LB_ADDSTRINGUPPER = 0x1AC,
+  LB_ADDSTRINGLOWER = 0x1AD,
+  LB_MULTIPLEADDSTRING = 0x1B1,
+  LB_GETLISTBOXINFO = 0x1B2,
+  MN_SETHMENU = 0x1E0,
+  MN_GETHMENU = 0x1E1,
+  MN_SIZEWINDOW = 0x1E2,
+  MN_OPENHIERARCHY = 0x1E3,
+  MN_CLOSEHIERARCHY = 0x1E4,
+  MN_SELECTITEM = 0x1E5,
+  MN_CANCELMENUS = 0x1E6,
+  MN_SELECTFIRSTVALIDITEM = 0x1E7,
+  MN_GETPPOPUPMENU = 0x1EA,
+  MN_FINDMENUWINDOWFROMPOINT = 0x1EB,
+  MN_SHOWPOPUPWINDOW = 0x1EC,
+  MN_BUTTONDOWN = 0x1ED,
+  MN_MOUSEMOVE = 0x1EE,
+  MN_BUTTONUP = 0x1EF,
+  MN_SETTIMERTOOPENHIERARCHY = 0x1F0,
+  MN_DBLCLK = 0x1F1,
+  WM_MOUSEFIRST = 0x200,
+  WM_MOUSEMOVE = 0x200,
+  WM_LBUTTONDOWN = 0x201,
+  WM_LBUTTONUP = 0x202,
+  WM_LBUTTONDBLCLK = 0x203,
+  WM_RBUTTONDOWN = 0x204,
+  WM_RBUTTONUP = 0x205,
+  WM_RBUTTONDBLCLK = 0x206,
+  WM_MBUTTONDOWN = 0x207,
+  WM_MBUTTONUP = 0x208,
+  WM_MBUTTONDBLCLK = 0x209,
+  WM_MOUSELAST = 0x20E,
+  WM_MOUSEWHEEL = 0x20A,
+  WM_XBUTTONDOWN = 0x20B,
+  WM_XBUTTONUP = 0x20C,
+  WM_XBUTTONDBLCLK = 0x20D,
+  WM_PARENTNOTIFY = 0x210,
+  WM_ENTERMENULOOP = 0x211,
+  WM_EXITMENULOOP = 0x212,
+  WM_NEXTMENU = 0x213,
+  WM_SIZING = 0x214,
+  WM_CAPTURECHANGED = 0x215,
+  WM_MOVING = 0x216,
+  WM_POWERBROADCAST = 0x218,
+  WM_DEVICECHANGE = 0x219,
+  WM_MDICREATE = 0x220,
+  WM_MDIDESTROY = 0x221,
+  WM_MDIACTIVATE = 0x222,
+  WM_MDIRESTORE = 0x223,
+  WM_MDINEXT = 0x224,
+  WM_MDIMAXIMIZE = 0x225,
+  WM_MDITILE = 0x226,
+  WM_MDICASCADE = 0x227,
+  WM_MDIICONARRANGE = 0x228,
+  WM_MDIGETACTIVE = 0x229,
+  WM_DROPOBJECT = 0x22A,
+  WM_QUERYDROPOBJECT = 0x22B,
+  WM_BEGINDRAG = 0x22C,
+  WM_DRAGLOOP = 0x22D,
+  WM_DRAGSELECT = 0x22E,
+  WM_DRAGMOVE = 0x22F,
+  WM_MDISETMENU = 0x230,
+  WM_ENTERSIZEMOVE = 0x231,
+  WM_EXITSIZEMOVE = 0x232,
+  WM_DROPFILES = 0x233,
+  WM_MDIREFRESHMENU = 0x234,
+  WM_IME_REPORT = 0x280,
+  WM_HANGEULFIRST = 0x280,
+  WM_KANJIFIRST = 0x280,
+  WM_IME_SETCONTEXT = 0x281,
+  WM_IME_NOTIFY = 0x282,
+  WM_IME_CONTROL = 0x283,
+  WM_IME_COMPOSITIONFULL = 0x284,
+  WM_IME_SELECT = 0x285,
+  WM_IME_CHAR = 0x286,
+  WM_IME_SYSTEM = 0x287,
+  WM_IME_REQUEST = 0x288,
+  WM_IMEKEYDOWN = 0x290,
+  WM_IME_KEYDOWN = 0x290,
+  WM_IMEKEYUP = 0x291,
+  WM_IME_KEYUP = 0x291,
+  WM_HANGEULLAST = 0x29F,
+  WM_KANJILAST = 0x29F,
+  WM_NCMOUSEHOVER = 0x2A0,
+  WM_MOUSEHOVER = 0x2A1,
+  WM_NCMOUSELEAVE = 0x2A2,
+  WM_MOUSELEAVE = 0x2A3,
+  WM_TRACKMOUSEEVENT_LAST = 0x2AF,
+  WM_WTSSESSION_CHANGE = 0x2B1,
+  WM_TABLET_FIRST = 0x2C0,
+  WM_TABLET_LAST = 0x2DF,
+  WM_CUT = 0x300,
+  WM_COPY = 0x301,
+  WM_PASTE = 0x302,
+  WM_CLEAR = 0x303,
+  WM_UNDO = 0x304,
+  WM_RENDERFORMAT = 0x305,
+  WM_RENDERALLFORMATS = 0x306,
+  WM_DESTROYCLIPBOARD = 0x307,
+  WM_DRAWCLIPBOARD = 0x308,
+  WM_PAINTCLIPBOARD = 0x309,
+  WM_VSCROLLCLIPBOARD = 0x30A,
+  WM_SIZECLIPBOARD = 0x30B,
+  WM_ASKCBFORMATNAME = 0x30C,
+  WM_CHANGECBCHAIN = 0x30D,
+  WM_HSCROLLCLIPBOARD = 0x30E,
+  WM_QUERYNEWPALETTE = 0x30F,
+  WM_PALETTEISCHANGING = 0x310,
+  WM_PALETTECHANGED = 0x311,
+  WM_HOTKEY = 0x312,
+  WM_SYSMENU = 0x313,
+  WM_HOOKMSG = 0x314,
+  WM_EXITPROCESS = 0x315,
+  WM_WAKETHREAD = 0x316,
+  WM_PRINT = 0x317,
+  WM_PRINTCLIENT = 0x318,
+  WM_APPCOMMAND = 0x319,
+  WM_THEMECHANGED = 0x31A,
+  WM_HANDHELDFIRST = 0x358,
+  WM_HANDHELDLAST = 0x35F,
+  WM_AFXFIRST = 0x360,
+  WM_AFXLAST = 0x37F,
+  WM_PENWINFIRST = 0x380,
+  WM_RCRESULT = 0x381,
+  WM_HOOKRCRESULT = 0x382,
+  WM_GLOBALRCCHANGE = 0x383,
+  WM_PENMISCINFO = 0x383,
+  WM_SKB = 0x384,
+  WM_HEDITCTL = 0x385,
+  WM_PENCTL = 0x385,
+  WM_PENMISC = 0x386,
+  WM_CTLINIT = 0x387,
+  WM_PENEVENT = 0x388,
+  WM_PENWINLAST = 0x38F,
+  WM_INTERNAL_COALESCE_FIRST = 0x390,
+  WM_COALESCE_FIRST = 0x390,
+  WM_COALESCE_LAST = 0x39F,
+  WM_MM_RESERVED_FIRST = 0x3A0,
+  WM_INTERNAL_COALESCE_LAST = 0x3B0,
+  WM_MM_RESERVED_LAST = 0x3DF,
+  WM_DDE_INITIATE = 0x3E0,
+  WM_DDE_TERMINATE = 0x3E1,
+  WM_DDE_ADVISE = 0x3E2,
+  WM_DDE_UNADVISE = 0x3E3,
+  WM_DDE_ACK = 0x3E4,
+  WM_DDE_DATA = 0x3E5,
+  WM_DDE_REQUEST = 0x3E6,
+  WM_DDE_POKE = 0x3E7,
+  WM_DDE_EXECUTE = 0x3E8,
+  WM_DBNOTIFICATION = 0x3FD,
+  WM_NETCONNECT = 0x3FE,
+  WM_HIBERNATE = 0x3FF,
+  WM_USER = 0x400,
+  DDM_SETFMT = 0x400,
+  DDM_DRAW = 0x401,
+  DDM_CLOSE = 0x402,
+  DDM_BEGIN = 0x403,
+  DDM_END = 0x404,
+  DM_GETDEFID = 0x400,
+  DM_SETDEFID = 0x401,
+  DM_REPOSITION = 0x402,
+  NIN_SELECT = 0x400,
+  NIN_KEYSELECT = 0x401,
+  NIN_BALLOONSHOW = 0x402,
+  NIN_BALLOONHIDE = 0x403,
+  NIN_BALLOONTIMEOUT = 0x404,
+  NIN_BALLOONUSERCLICK = 0x405,
+  NIN_POPUPOPEN = 0x406,
+  NIN_POPUPCLOSE = 0x407,
+  TBM_GETPOS = 0x400,
+  TBM_GETRANGEMIN = 0x401,
+  TBM_GETRANGEMAX = 0x402,
+  TBM_GETTIC = 0x403,
+  TBM_SETTIC = 0x404,
+  TBM_SETPOS = 0x405,
+  TBM_SETRANGE = 0x406,
+  TBM_SETRANGEMIN = 0x407,
+  TBM_SETRANGEMAX = 0x408,
+  TBM_CLEARTICS = 0x409,
+  TBM_SETSEL = 0x40A,
+  TBM_SETSELSTART = 0x40B,
+  TBM_SETSELEND = 0x40C,
+  TBM_GETPTICS = 0x40E,
+  TBM_GETTICPOS = 0x40F,
+  TBM_GETNUMTICS = 0x410,
+  TBM_GETSELSTART = 0x411,
+  TBM_GETSELEND = 0x412,
+  TBM_CLEARSEL = 0x413,
+  TBM_SETTICFREQ = 0x414,
+  TBM_SETPAGESIZE = 0x415,
+  TBM_GETPAGESIZE = 0x416,
+  TBM_SETLINESIZE = 0x417,
+  TBM_GETLINESIZE = 0x418,
+  TBM_GETTHUMBRECT = 0x419,
+  TBM_GETCHANNELRECT = 0x41A,
+  TBM_SETTHUMBLENGTH = 0x41B,
+  TBM_GETTHUMBLENGTH = 0x41C,
+  TBM_SETTOOLTIPS = 0x41D,
+  TBM_GETTOOLTIPS = 0x41E,
+  TBM_SETTIPSIDE = 0x41F,
+  TBM_SETBUDDY = 0x420,
+  TBM_GETBUDDY = 0x421,
+  TBM_SETPOSNOTIFY = 0x422,
+  WM_PSD_PAGESETUPDLG = 0x400,
+  WM_PSD_FULLPAGERECT = 0x401,
+  WM_PSD_MINMARGINRECT = 0x402,
+  WM_PSD_MARGINRECT = 0x403,
+  WM_PSD_GREEKTEXTRECT = 0x404,
+  WM_PSD_ENVSTAMPRECT = 0x405,
+  WM_PSD_YAFULLPAGERECT = 0x406,
+  WM_CHOOSEFONT_GETLOGFONT = 0x401,
+  WM_CHOOSEFONT_SETLOGFONT = 0x465,
+  WM_CHOOSEFONT_SETFLAGS = 0x466,
+  HKM_SETHOTKEY = 0x401,
+  HKM_GETHOTKEY = 0x402,
+  HKM_SETRULES = 0x403,
+  PBM_SETRANGE = 0x401,
+  PBM_SETPOS = 0x402,
+  PBM_DELTAPOS = 0x403,
+  PBM_SETSTEP = 0x404,
+  PBM_STEPIT = 0x405,
+  PBM_SETRANGE32 = 0x406,
+  PBM_GETRANGE = 0x407,
+  PBM_GETPOS = 0x408,
+  PBM_SETBARCOLOR = 0x409,
+  PBM_SETMARQUEE = 0x40A,
+  PBM_GETSTEP = 0x40D,
+  PBM_GETBKCOLOR = 0x40E,
+  PBM_GETBARCOLOR = 0x40F,
+  PBM_SETSTATE = 0x410,
+  PBM_GETSTATE = 0x411,
+  RB_INSERTBANDA = 0x401,
+  RB_DELETEBAND = 0x402,
+  RB_GETBARINFO = 0x403,
+  RB_SETBARINFO = 0x404,
+  RB_SETBANDINFOA = 0x406,
+  RB_SETPARENT = 0x407,
+  RB_HITTEST = 0x408,
+  RB_GETRECT = 0x409,
+  RB_INSERTBANDW = 0x40A,
+  RB_SETBANDINFOW = 0x40B,
+  RB_GETBANDCOUNT = 0x40C,
+  RB_GETROWCOUNT = 0x40D,
+  RB_GETROWHEIGHT = 0x40E,
+  RB_IDTOINDEX = 0x410,
+  RB_GETTOOLTIPS = 0x411,
+  RB_SETTOOLTIPS = 0x412,
+  RB_SETBKCOLOR = 0x413,
+  RB_GETBKCOLOR = 0x414,
+  RB_SETTEXTCOLOR = 0x415,
+  RB_GETTEXTCOLOR = 0x416,
+  RB_SIZETORECT = 0x417,
+  RB_BEGINDRAG = 0x418,
+  RB_ENDDRAG = 0x419,
+  RB_DRAGMOVE = 0x41A,
+  RB_GETBARHEIGHT = 0x41B,
+  RB_GETBANDINFOW = 0x41C,
+  RB_GETBANDINFOA = 0x41D,
+  RB_MINIMIZEBAND = 0x41E,
+  RB_MAXIMIZEBAND = 0x41F,
+  RB_GETBANDBORDERS = 0x422,
+  RB_SHOWBAND = 0x423,
+  RB_SETPALETTE = 0x425,
+  RB_GETPALETTE = 0x426,
+  RB_MOVEBAND = 0x427,
+  RB_PUSHCHEVRON = 0x42B,
+  RB_GETBANDMARGINS = 0x428,
+  RB_SETEXTENDEDSTYLE = 0x429,
+  RB_GETEXTENDEDSTYLE = 0x42A,
+  RB_SETBANDWIDTH = 0x42C,
+  RB_SETWINDOWTHEME = 0x200B,
+  CBEM_INSERTITEMA = 0x401,
+  CBEM_SETIMAGELIST = 0x402,
+  CBEM_GETIMAGELIST = 0x403,
+  CBEM_GETITEMA = 0x404,
+  CBEM_SETITEMA = 0x405,
+  CBEM_GETCOMBOCONTROL = 0x406,
+  CBEM_GETEDITCONTROL = 0x407,
+  CBEM_SETEXSTYLE = 0x408,
+  CBEM_GETEXSTYLE = 0x409,
+  CBEM_GETEXTENDEDSTYLE = 0x409,
+  CBEM_HASEDITCHANGED = 0x40A,
+  CBEM_INSERTITEMW = 0x40B,
+  CBEM_SETITEMW = 0x40C,
+  CBEM_GETITEMW = 0x40D,
+  CBEM_SETEXTENDEDSTYLE = 0x40E,
+  SB_SETTEXTA = 0x401,
+  SB_GETTEXTA = 0x402,
+  SB_GETTEXTLENGTHA = 0x403,
+  SB_SETPARTS = 0x404,
+  SB_GETPARTS = 0x406,
+  SB_GETBORDERS = 0x407,
+  SB_SETMINHEIGHT = 0x408,
+  SB_SIMPLE = 0x409,
+  SB_GETRECT = 0x40A,
+  SB_SETTEXTW = 0x40B,
+  SB_GETTEXTLENGTHW = 0x40C,
+  SB_GETTEXTW = 0x40D,
+  SB_ISSIMPLE = 0x40E,
+  SB_SETICON = 0x40F,
+  SB_SETTIPTEXTA = 0x410,
+  SB_SETTIPTEXTW = 0x411,
+  SB_GETTIPTEXTA = 0x412,
+  SB_GETTIPTEXTW = 0x413,
+  SB_GETICON = 0x414,
+  TTM_ACTIVATE = 0x401,
+  TTM_SETDELAYTIME = 0x403,
+  TTM_ADDTOOLA = 0x404,
+  TTM_DELTOOLA = 0x405,
+  TTM_NEWTOOLRECTA = 0x406,
+  TTM_RELAYEVENT = 0x407,
+  TTM_GETTOOLINFOA = 0x408,
+  TTM_SETTOOLINFOA = 0x409,
+  TTM_HITTESTA = 0x40A,
+  TTM_GETTEXTA = 0x40B,
+  TTM_UPDATETIPTEXTA = 0x40C,
+  TTM_GETTOOLCOUNT = 0x40D,
+  TTM_ENUMTOOLSA = 0x40E,
+  TTM_GETCURRENTTOOLA = 0x40F,
+  TTM_WINDOWFROMPOINT = 0x410,
+  TTM_TRACKACTIVATE = 0x411,
+  TTM_TRACKPOSITION = 0x412,
+  TTM_SETTIPBKCOLOR = 0x413,
+  TTM_SETTIPTEXTCOLOR = 0x414,
+  TTM_GETDELAYTIME = 0x415,
+  TTM_GETTIPBKCOLOR = 0x416,
+  TTM_GETTIPTEXTCOLOR = 0x417,
+  TTM_SETMAXTIPWIDTH = 0x418,
+  TTM_GETMAXTIPWIDTH = 0x419,
+  TTM_SETMARGIN = 0x41A,
+  TTM_GETMARGIN = 0x41B,
+  TTM_POP = 0x41C,
+  TTM_UPDATE = 0x41D,
+  TTM_GETBUBBLESIZE = 0x41E,
+  TTM_ADJUSTRECT = 0x41F,
+  TTM_SETTITLEA = 0x420,
+  TTM_SETTITLEW = 0x421,
+  TTM_ADDTOOLW = 0x432,
+  TTM_DELTOOLW = 0x433,
+  TTM_NEWTOOLRECTW = 0x434,
+  TTM_GETTOOLINFOW = 0x435,
+  TTM_SETTOOLINFOW = 0x436,
+  TTM_HITTESTW = 0x437,
+  TTM_GETTEXTW = 0x438,
+  TTM_UPDATETIPTEXTW = 0x439,
+  TTM_ENUMTOOLSW = 0x43A,
+  TTM_GETCURRENTTOOLW = 0x43B,
+  WIZ_QUERYNUMPAGES = 0x40A,
+  WIZ_NEXT = 0x40B,
+  WIZ_PREV = 0x40C,
+  MSG_FTS_JUMP_VA = 0x421,
+  MSG_FTS_JUMP_QWORD = 0x423,
+  MSG_REINDEX_REQUEST = 0x424,
+  MSG_FTS_WHERE_IS_IT = 0x425,
+  MSG_GET_DEFFONT = 0x42D,
+  TB_ENABLEBUTTON = 0x401,
+  TB_CHECKBUTTON = 0x402,
+  TB_PRESSBUTTON = 0x403,
+  TB_HIDEBUTTON = 0x404,
+  TB_INDETERMINATE = 0x405,
+  TB_MARKBUTTON = 0x406,
+  TB_ISBUTTONENABLED = 0x409,
+  TB_ISBUTTONCHECKED = 0x40A,
+  TB_ISBUTTONPRESSED = 0x40B,
+  TB_ISBUTTONHIDDEN = 0x40C,
+  TB_ISBUTTONINDETERMINATE = 0x40D,
+  TB_ISBUTTONHIGHLIGHTED = 0x40E,
+  TB_SETSTATE = 0x411,
+  TB_GETSTATE = 0x412,
+  TB_ADDBITMAP = 0x413,
+  TB_ADDBUTTONSA = 0x414,
+  TB_INSERTBUTTONA = 0x415,
+  TB_DELETEBUTTON = 0x416,
+  TB_GETBUTTON = 0x417,
+  TB_BUTTONCOUNT = 0x418,
+  TB_COMMANDTOINDEX = 0x419,
+  TB_SAVERESTOREA = 0x41A,
+  TB_CUSTOMIZE = 0x41B,
+  TB_ADDSTRINGA = 0x41C,
+  TB_GETITEMRECT = 0x41D,
+  TB_BUTTONSTRUCTSIZE = 0x41E,
+  TB_SETBUTTONSIZE = 0x41F,
+  TB_SETBITMAPSIZE = 0x420,
+  TB_AUTOSIZE = 0x421,
+  TB_GETTOOLTIPS = 0x423,
+  TB_SETTOOLTIPS = 0x424,
+  TB_SETPARENT = 0x425,
+  TB_SETROWS = 0x427,
+  TB_GETROWS = 0x428,
+  TB_GETBITMAPFLAGS = 0x429,
+  TB_SETCMDID = 0x42A,
+  TB_CHANGEBITMAP = 0x42B,
+  TB_GETBITMAP = 0x42C,
+  TB_GETBUTTONTEXTA = 0x42D,
+  TB_REPLACEBITMAP = 0x42E,
+  TB_SETINDENT = 0x42F,
+  TB_SETIMAGELIST = 0x430,
+  TB_GETIMAGELIST = 0x431,
+  TB_LOADIMAGES = 0x432,
+  TB_GETRECT = 0x433,
+  TB_SETHOTIMAGELIST = 0x434,
+  TB_GETHOTIMAGELIST = 0x435,
+  TB_SETDISABLEDIMAGELIST = 0x436,
+  TB_GETDISABLEDIMAGELIST = 0x437,
+  TB_SETSTYLE = 0x438,
+  TB_GETSTYLE = 0x439,
+  TB_GETBUTTONSIZE = 0x43A,
+  TB_SETBUTTONWIDTH = 0x43B,
+  TB_SETMAXTEXTROWS = 0x43C,
+  TB_GETTEXTROWS = 0x43D,
+  TB_GETOBJECT = 0x43E,
+  TB_GETBUTTONINFOW = 0x43F,
+  TB_SETBUTTONINFOW = 0x440,
+  TB_GETBUTTONINFOA = 0x441,
+  TB_SETBUTTONINFOA = 0x442,
+  TB_INSERTBUTTONW = 0x443,
+  TB_ADDBUTTONSW = 0x444,
+  TB_HITTEST = 0x445,
+  TB_SETDRAWTEXTFLAGS = 0x446,
+  TB_GETHOTITEM = 0x447,
+  TB_SETHOTITEM = 0x448,
+  TB_SETANCHORHIGHLIGHT = 0x449,
+  TB_GETANCHORHIGHLIGHT = 0x44A,
+  TB_GETBUTTONTEXTW = 0x44B,
+  TB_SAVERESTOREW = 0x44C,
+  TB_ADDSTRINGW = 0x44D,
+  TB_MAPACCELERATORA = 0x44E,
+  TB_GETINSERTMARK = 0x44F,
+  TB_SETINSERTMARK = 0x450,
+  TB_INSERTMARKHITTEST = 0x451,
+  TB_MOVEBUTTON = 0x452,
+  TB_GETMAXSIZE = 0x453,
+  TB_SETEXTENDEDSTYLE = 0x454,
+  TB_GETEXTENDEDSTYLE = 0x455,
+  TB_GETPADDING = 0x456,
+  TB_SETPADDING = 0x457,
+  TB_SETINSERTMARKCOLOR = 0x458,
+  TB_GETINSERTMARKCOLOR = 0x459,
+  TB_MAPACCELERATORW = 0x45A,
+  TB_GETSTRINGW = 0x45B,
+  TB_GETSTRINGA = 0x45C,
+  TB_SETBOUNDINGSIZE = 0x45D,
+  TB_SETHOTITEM2 = 0x45E,
+  TB_HASACCELERATOR = 0x45F,
+  TB_SETLISTGAP = 0x460,
+  TB_GETIMAGELISTCOUNT = 0x462,
+  TB_GETIDEALSIZE = 0x463,
+  TB_GETMETRICS = 0x465,
+  TB_SETMETRICS = 0x466,
+  TB_GETITEMDROPDOWNRECT = 0x467,
+  TB_SETPRESSEDIMAGELIST = 0x468,
+  TB_GETPRESSEDIMAGELIST = 0x469,
+  TB_SETWINDOWTHEME = 0x200B,
+  EM_CANPASTE = 0x432,
+  EM_DISPLAYBAND = 0x433,
+  EM_EXGETSEL = 0x434,
+  EM_EXLIMITTEXT = 0x435,
+  EM_EXLINEFROMCHAR = 0x436,
+  EM_EXSETSEL = 0x437,
+  EM_FINDTEXT = 0x438,
+  EM_FORMATRANGE = 0x439,
+  EM_GETCHARFORMAT = 0x43A,
+  EM_GETEVENTMASK = 0x43B,
+  EM_GETOLEINTERFACE = 0x43C,
+  EM_GETPARAFORMAT = 0x43D,
+  EM_GETSELTEXT = 0x43E,
+  EM_HIDESELECTION = 0x43F,
+  EM_PASTESPECIAL = 0x440,
+  EM_REQUESTRESIZE = 0x441,
+  EM_SELECTIONTYPE = 0x442,
+  EM_SETBKGNDCOLOR = 0x443,
+  EM_SETCHARFORMAT = 0x444,
+  EM_SETEVENTMASK = 0x445,
+  EM_SETOLECALLBACK = 0x446,
+  EM_SETPARAFORMAT = 0x447,
+  EM_SETTARGETDEVICE = 0x448,
+  EM_STREAMIN = 0x449,
+  EM_STREAMOUT = 0x44A,
+  EM_GETTEXTRANGE = 0x44B,
+  EM_FINDWORDBREAK = 0x44C,
+  EM_SETOPTIONS = 0x44D,
+  EM_GETOPTIONS = 0x44E,
+  EM_FINDTEXTEX = 0x44F,
+  EM_GETWORDBREAKPROCEX = 0x450,
+  EM_SETWORDBREAKPROCEX = 0x451,
+  EM_SETUNDOLIMIT = 0x452,
+  EM_REDO = 0x454,
+  EM_CANREDO = 0x455,
+  EM_GETUNDONAME = 0x456,
+  EM_GETREDONAME = 0x457,
+  EM_STOPGROUPTYPING = 0x458,
+  EM_SETTEXTMODE = 0x459,
+  EM_GETTEXTMODE = 0x45A,
+  EM_AUTOURLDETECT = 0x45B,
+  EM_GETAUTOURLDETECT = 0x45C,
+  EM_SETPALETTE = 0x45D,
+  EM_GETTEXTEX = 0x45E,
+  EM_GETTEXTLENGTHEX = 0x45F,
+  EM_SHOWSCROLLBAR = 0x460,
+  EM_SETTEXTEX = 0x461,
+  EM_SETPUNCTUATION = 0x464,
+  EM_GETPUNCTUATION = 0x465,
+  EM_SETWORDWRAPMODE = 0x466,
+  EM_GETWORDWRAPMODE = 0x467,
+  EM_SETIMECOLOR = 0x468,
+  EM_GETIMECOLOR = 0x469,
+  EM_SETIMEOPTIONS = 0x46A,
+  EM_GETIMEOPTIONS = 0x46B,
+  EM_CONVPOSITION = 0x46C,
+  EM_SETLANGOPTIONS = 0x478,
+  EM_GETLANGOPTIONS = 0x479,
+  EM_GETIMECOMPMODE = 0x47A,
+  EM_FINDTEXTW = 0x47B,
+  EM_FINDTEXTEXW = 0x47C,
+  EM_RECONVERSION = 0x47D,
+  EM_SETIMEMODEBIAS = 0x47E,
+  EM_GETIMEMODEBIAS = 0x47F,
+  EM_SETBIDIOPTIONS = 0x4C8,
+  EM_GETBIDIOPTIONS = 0x4C9,
+  EM_SETTYPOGRAPHYOPTIONS = 0x4CA,
+  EM_GETTYPOGRAPHYOPTIONS = 0x4CB,
+  EM_SETEDITSTYLE = 0x4CC,
+  EM_GETEDITSTYLE = 0x4CD,
+  EM_OUTLINE = 0x4DC,
+  EM_GETSCROLLPOS = 0x4DD,
+  EM_SETSCROLLPOS = 0x4DE,
+  EM_SETFONTSIZE = 0x4DF,
+  EM_GETZOOM = 0x4E0,
+  EM_SETZOOM = 0x4E1,
+  EM_GETVIEWKIND = 0x4E2,
+  EM_SETVIEWKIND = 0x4E3,
+  EM_GETPAGE = 0x4E4,
+  EM_SETPAGE = 0x4E5,
+  EM_GETHYPHENATEINFO = 0x4E6,
+  EM_SETHYPHENATEINFO = 0x4E7,
+  EM_INSERTTABLE = 0x4E8,
+  EM_GETAUTOCORRECTPROC = 0x4E9,
+  EM_SETAUTOCORRECTPROC = 0x4EA,
+  EM_GETPAGEROTATE = 0x4EB,
+  EM_SETPAGEROTATE = 0x4EC,
+  EM_GETCTFMODEBIAS = 0x4ED,
+  EM_SETCTFMODEBIAS = 0x4EE,
+  EM_GETCTFOPENSTATUS = 0x4F0,
+  EM_SETCTFOPENSTATUS = 0x4F1,
+  EM_GETIMECOMPTEXT = 0x4F2,
+  EM_ISIME = 0x4F3,
+  EM_GETIMEPROPERTY = 0x4F4,
+  EM_CALLAUTOCORRECTPROC = 0x4FF,
+  EM_GETTABLEPARMS = 0x509,
+  EM_GETQUERYRTFOBJ = 0x50D,
+  EM_SETQUERYRTFOBJ = 0x50E,
+  EM_SETEDITSTYLEEX = 0x513,
+  EM_GETEDITSTYLEEX = 0x514,
+  EM_GETSTORYTYPE = 0x522,
+  EM_SETSTORYTYPE = 0x523,
+  EM_GETELLIPSISMODE = 0x531,
+  EM_SETELLIPSISMODE = 0x532,
+  EM_SETTABLEPARMS = 0x533,
+  EM_GETTOUCHOPTIONS = 0x536,
+  EM_SETTOUCHOPTIONS = 0x537,
+  EM_INSERTIMAGE = 0x53A,
+  EM_SETUIANAME = 0x540,
+  EM_GETELLIPSISSTATE = 0x542,
+  TAPI_REPLY = 0x463,
+  IPM_CLEARADDRESS = 0x464,
+  IPM_SETADDRESS = 0x465,
+  IPM_GETADDRESS = 0x466,
+  IPM_SETRANGE = 0x467,
+  IPM_SETFOCUS = 0x468,
+  IPM_ISBLANK = 0x469,
+  CDM_FIRST = 0x464,
+  CDM_GETSPEC = 0x464,
+  CDM_GETFILEPATH = 0x465,
+  CDM_GETFOLDERPATH = 0x466,
+  CDM_GETFOLDERIDLIST = 0x467,
+  CDM_SETCONTROLTEXT = 0x468,
+  CDM_HIDECONTROL = 0x469,
+  CDM_SETDEFEXT = 0x46A,
+  CDM_LAST = 0x4C8,
+  BFFM_SETSTATUSTEXTA = 0x464,
+  BFFM_ENABLEOK = 0x465,
+  BFFM_SETSELECTIONA = 0x466,
+  BFFM_SETSELECTIONW = 0x467,
+  BFFM_SETSTATUSTEXTW = 0x468,
+  BFFM_SETOKTEXT = 0x469,
+  BFFM_SETEXPANDED = 0x46A,
+  ACM_OPENA = 0x464,
+  ACM_PLAY = 0x465,
+  ACM_STOP = 0x466,
+  ACM_OPENW = 0x467,
+  ACM_ISPLAYING = 0x468,
+  WM_CAP_UNICODE_START = 0x464,
+  WM_CAP_SET_CALLBACK_ERRORW = 0x466,
+  WM_CAP_SET_CALLBACK_STATUSW = 0x467,
+  WM_CAP_DRIVER_GET_NAMEW = 0x470,
+  WM_CAP_DRIVER_GET_VERSIONW = 0x471,
+  WM_CAP_FILE_SET_CAPTURE_FILEW = 0x478,
+  WM_CAP_FILE_GET_CAPTURE_FILEW = 0x479,
+  WM_CAP_FILE_SAVEASW = 0x47B,
+  WM_CAP_FILE_SAVEDIBW = 0x47D,
+  WM_CAP_SET_MCI_DEVICEW = 0x4A6,
+  WM_CAP_GET_MCI_DEVICEW = 0x4A7,
+  WM_CAP_PAL_OPENW = 0x4B4,
+  WM_CAP_PAL_SAVEW = 0x4B5,
+  PSM_SETCURSEL = 0x465,
+  PSM_REMOVEPAGE = 0x466,
+  PSM_ADDPAGE = 0x467,
+  PSM_CHANGED = 0x468,
+  PSM_RESTARTWINDOWS = 0x469,
+  PSM_REBOOTSYSTEM = 0x46A,
+  PSM_CANCELTOCLOSE = 0x46B,
+  PSM_QUERYSIBLINGS = 0x46C,
+  PSM_UNCHANGED = 0x46D,
+  PSM_APPLY = 0x46E,
+  PSM_SETTITLEA = 0x46F,
+  PSM_SETWIZBUTTONS = 0x470,
+  PSM_PRESSBUTTON = 0x471,
+  PSM_SETCURSELID = 0x472,
+  PSM_SETFINISHTEXTA = 0x473,
+  PSM_GETTABCONTROL = 0x474,
+  PSM_ISDIALOGMESSAGE = 0x475,
+  PSM_GETCURRENTPAGEHWND = 0x476,
+  PSM_INSERTPAGE = 0x477,
+  PSM_SETTITLEW = 0x478,
+  PSM_SETFINISHTEXTW = 0x479,
+  PSM_SETHEADERTITLEA = 0x47D,
+  PSM_SETHEADERTITLEW = 0x47E,
+  PSM_SETHEADERSUBTITLEA = 0x47F,
+  PSM_SETHEADERSUBTITLEW = 0x480,
+  PSM_HWNDTOINDEX = 0x481,
+  PSM_INDEXTOHWND = 0x482,
+  PSM_PAGETOINDEX = 0x483,
+  PSM_INDEXTOPAGE = 0x484,
+  PSM_IDTOINDEX = 0x485,
+  PSM_INDEXTOID = 0x486,
+  PSM_GETRESULT = 0x487,
+  PSM_RECALCPAGESIZES = 0x488,
+  PSM_SETNEXTTEXTW = 0x489,
+  PSM_SHOWWIZBUTTONS = 0x48A,
+  PSM_ENABLEWIZBUTTONS = 0x48B,
+  PSM_SETBUTTONTEXTW = 0x48C,
+  UDM_SETRANGE = 0x465,
+  UDM_GETRANGE = 0x466,
+  UDM_SETPOS = 0x467,
+  UDM_GETPOS = 0x468,
+  UDM_SETBUDDY = 0x469,
+  UDM_GETBUDDY = 0x46A,
+  UDM_SETACCEL = 0x46B,
+  UDM_GETACCEL = 0x46C,
+  UDM_SETBASE = 0x46D,
+  UDM_GETBASE = 0x46E,
+  UDM_SETRANGE32 = 0x46F,
+  UDM_GETRANGE32 = 0x470,
+  UDM_SETPOS32 = 0x471,
+  UDM_GETPOS32 = 0x472,
+  MCIWNDM_GETZOOM = 0x46D,
+  MCIWNDM_REALIZE = 0x476,
+  MCIWNDM_SETTIMEFORMATA = 0x477,
+  MCIWNDM_GETTIMEFORMATA = 0x478,
+  MCIWNDM_VALIDATEMEDIA = 0x479,
+  MCIWNDM_PLAYTO = 0x47B,
+  MCIWNDM_GETFILENAMEA = 0x47C,
+  MCIWNDM_GETDEVICEA = 0x47D,
+  MCIWNDM_GETPALETTE = 0x47E,
+  MCIWNDM_SETPALETTE = 0x47F,
+  MCIWNDM_GETERRORA = 0x480,
+  MCIWNDM_SETINACTIVETIMER = 0x483,
+  MCIWNDM_GETINACTIVETIMER = 0x485,
+  MCIWNDM_GET_SOURCE = 0x48C,
+  MCIWNDM_PUT_SOURCE = 0x48D,
+  MCIWNDM_GET_DEST = 0x48E,
+  MCIWNDM_PUT_DEST = 0x48F,
+  MCIWNDM_CAN_PLAY = 0x490,
+  MCIWNDM_CAN_WINDOW = 0x491,
+  MCIWNDM_CAN_RECORD = 0x492,
+  MCIWNDM_CAN_SAVE = 0x493,
+  MCIWNDM_CAN_EJECT = 0x494,
+  MCIWNDM_CAN_CONFIG = 0x495,
+  MCIWNDM_PALETTEKICK = 0x496,
+  MCIWNDM_NOTIFYMODE = 0x4C8,
+  MCIWNDM_NOTIFYMEDIA = 0x4CB,
+  MCIWNDM_NOTIFYERROR = 0x4CD,
+  MCIWNDM_SETTIMEFORMATW = 0x4DB,
+  MCIWNDM_GETTIMEFORMATW = 0x4DC,
+  MCIWNDM_GETFILENAMEW = 0x4E0,
+  MCIWNDM_GETDEVICEW = 0x4E1,
+  MCIWNDM_GETERRORW = 0x4E4,
+  DL_BEGINDRAG = 0x485,
+  DL_DRAGGING = 0x486,
+  DL_DROPPED = 0x487,
+  DL_CANCELDRAG = 0x488,
+  IE_GETINK = 0x496,
+  IE_MSGFIRST = 0x496,
+  IE_SETINK = 0x497,
+  IE_GETPENTIP = 0x498,
+  IE_SETPENTIP = 0x499,
+  IE_GETERASERTIP = 0x49A,
+  IE_SETERASERTIP = 0x49B,
+  IE_GETBKGND = 0x49C,
+  IE_SETBKGND = 0x49D,
+  IE_GETGRIDORIGIN = 0x49E,
+  IE_SETGRIDORIGIN = 0x49F,
+  IE_GETGRIDPEN = 0x4A0,
+  IE_SETGRIDPEN = 0x4A1,
+  IE_GETGRIDSIZE = 0x4A2,
+  IE_SETGRIDSIZE = 0x4A3,
+  IE_GETMODE = 0x4A4,
+  IE_SETMODE = 0x4A5,
+  IE_GETINKRECT = 0x4A6,
+  IE_GETAPPDATA = 0x4B8,
+  IE_SETAPPDATA = 0x4B9,
+  IE_GETDRAWOPTS = 0x4BA,
+  IE_SETDRAWOPTS = 0x4BB,
+  IE_GETFORMAT = 0x4BC,
+  IE_SETFORMAT = 0x4BD,
+  IE_GETINKINPUT = 0x4BE,
+  IE_SETINKINPUT = 0x4BF,
+  IE_GETNOTIFY = 0x4C0,
+  IE_SETNOTIFY = 0x4C1,
+  IE_GETRECOG = 0x4C2,
+  IE_SETRECOG = 0x4C3,
+  IE_GETSECURITY = 0x4C4,
+  IE_SETSECURITY = 0x4C5,
+  IE_GETSEL = 0x4C6,
+  IE_SETSEL = 0x4C7,
+  IE_DOCOMMAND = 0x4C8,
+  IE_GETCOMMAND = 0x4C9,
+  IE_GETCOUNT = 0x4CA,
+  IE_GETGESTURE = 0x4CB,
+  IE_GETMENU = 0x4CC,
+  IE_GETPAINTDC = 0x4CD,
+  IE_GETPDEVENT = 0x4CE,
+  IE_GETSELCOUNT = 0x4CF,
+  IE_GETSELITEMS = 0x4D0,
+  IE_GETSTYLE = 0x4D1,
+  FM_GETFOCUS = 0x600,
+  FM_GETDRIVEINFOA = 0x601,
+  FM_GETSELCOUNT = 0x602,
+  FM_GETSELCOUNTLFN = 0x603,
+  FM_GETFILESELA = 0x604,
+  FM_GETFILESELLFNA = 0x605,
+  FM_REFRESH_WINDOWS = 0x606,
+  FM_RELOAD_EXTENSIONS = 0x607,
+  FM_GETDRIVEINFOW = 0x611,
+  FM_GETFILESELW = 0x614,
+  FM_GETFILESELLFNW = 0x615,
+  WLX_WM_SAS = 0x659,
+  SM_GETSELCOUNT = 0x7E8,
+  SM_GETSERVERSELA = 0x7E9,
+  SM_GETSERVERSELW = 0x7EA,
+  SM_GETCURFOCUSA = 0x7EB,
+  SM_GETCURFOCUSW = 0x7EC,
+  SM_GETOPTIONS = 0x7ED,
+  WM_CPL_LAUNCH = 0x7E8,
+  WM_CPL_LAUNCHED = 0x7E9,
+  UM_GETSELCOUNT = 0x7E8,
+  UM_GETUSERSELA = 0x7E9,
+  UM_GETUSERSELW = 0x7EA,
+  UM_GETGROUPSELA = 0x7EB,
+  UM_GETGROUPSELW = 0x7EC,
+  UM_GETCURFOCUSA = 0x7ED,
+  UM_GETCURFOCUSW = 0x7EE,
+  UM_GETOPTIONS = 0x7EF,
+  UM_GETOPTIONS2 = 0x7F0,
+  LVM_FIRST = 0x1000,
+  LVM_GETBKCOLOR = 0x1000,
+  LVM_SETBKCOLOR = 0x1001,
+  LVM_GETIMAGELIST = 0x1002,
+  LVM_SETIMAGELIST = 0x1003,
+  LVM_GETITEMCOUNT = 0x1004,
+  LVM_GETITEMA = 0x1005,
+  LVM_SETITEMA = 0x1006,
+  LVM_INSERTITEMA = 0x1007,
+  LVM_DELETEITEM = 0x1008,
+  LVM_DELETEALLITEMS = 0x1009,
+  LVM_GETCALLBACKMASK = 0x100A,
+  LVM_SETCALLBACKMASK = 0x100B,
+  LVM_GETNEXTITEM = 0x100C,
+  LVM_FINDITEMA = 0x100D,
+  LVM_GETITEMRECT = 0x100E,
+  LVM_SETITEMPOSITION = 0x100F,
+  LVM_GETITEMPOSITION = 0x1010,
+  LVM_GETSTRINGWIDTHA = 0x1011,
+  LVM_HITTEST = 0x1012,
+  LVM_ENSUREVISIBLE = 0x1013,
+  LVM_SCROLL = 0x1014,
+  LVM_REDRAWITEMS = 0x1015,
+  LVM_ARRANGE = 0x1016,
+  LVM_EDITLABELA = 0x1017,
+  LVM_GETEDITCONTROL = 0x1018,
+  LVM_GETCOLUMNA = 0x1019,
+  LVM_SETCOLUMNA = 0x101A,
+  LVM_INSERTCOLUMNA = 0x101B,
+  LVM_DELETECOLUMN = 0x101C,
+  LVM_GETCOLUMNWIDTH = 0x101D,
+  LVM_SETCOLUMNWIDTH = 0x101E,
+  LVM_GETHEADER = 0x101F,
+  LVM_CREATEDRAGIMAGE = 0x1021,
+  LVM_GETVIEWRECT = 0x1022,
+  LVM_GETTEXTCOLOR = 0x1023,
+  LVM_SETTEXTCOLOR = 0x1024,
+  LVM_GETTEXTBKCOLOR = 0x1025,
+  LVM_SETTEXTBKCOLOR = 0x1026,
+  LVM_GETTOPINDEX = 0x1027,
+  LVM_GETCOUNTPERPAGE = 0x1028,
+  LVM_GETORIGIN = 0x1029,
+  LVM_UPDATE = 0x102A,
+  LVM_SETITEMSTATE = 0x102B,
+  LVM_GETITEMSTATE = 0x102C,
+  LVM_GETITEMTEXTA = 0x102D,
+  LVM_SETITEMTEXTA = 0x102E,
+  LVM_SETITEMCOUNT = 0x102F,
+  LVM_SORTITEMS = 0x1030,
+  LVM_SETITEMPOSITION32 = 0x1031,
+  LVM_GETSELECTEDCOUNT = 0x1032,
+  LVM_GETITEMSPACING = 0x1033,
+  LVM_GETISEARCHSTRINGA = 0x1034,
+  LVM_SETICONSPACING = 0x1035,
+  LVM_SETEXTENDEDLISTVIEWSTYLE = 0x1036,
+  LVM_GETEXTENDEDLISTVIEWSTYLE = 0x1037,
+  LVM_GETSUBITEMRECT = 0x1038,
+  LVM_SUBITEMHITTEST = 0x1039,
+  LVM_SETCOLUMNORDERARRAY = 0x103A,
+  LVM_GETCOLUMNORDERARRAY = 0x103B,
+  LVM_SETHOTITEM = 0x103C,
+  LVM_GETHOTITEM = 0x103D,
+  LVM_SETHOTCURSOR = 0x103E,
+  LVM_GETHOTCURSOR = 0x103F,
+  LVM_APPROXIMATEVIEWRECT = 0x1040,
+  LVM_SETWORKAREAS = 0x1041,
+  LVM_GETSELECTIONMARK = 0x1042,
+  LVM_SETSELECTIONMARK = 0x1043,
+  LVM_SETBKIMAGEA = 0x1044,
+  LVM_GETBKIMAGEA = 0x1045,
+  LVM_GETWORKAREAS = 0x1046,
+  LVM_SETHOVERTIME = 0x1047,
+  LVM_GETHOVERTIME = 0x1048,
+  LVM_GETNUMBEROFWORKAREAS = 0x1049,
+  LVM_SETTOOLTIPS = 0x104A,
+  LVM_GETITEMW = 0x104B,
+  LVM_SETITEMW = 0x104C,
+  LVM_INSERTITEMW = 0x104D,
+  LVM_GETTOOLTIPS = 0x104E,
+  LVM_SORTITEMSEX = 0x1051,
+  LVM_FINDITEMW = 0x1053,
+  LVM_GETSTRINGWIDTHW = 0x1057,
+  LVM_GETGROUPSTATE = 0x105C,
+  LVM_GETFOCUSEDGROUP = 0x105D,
+  LVM_GETCOLUMNW = 0x105F,
+  LVM_SETCOLUMNW = 0x1060,
+  LVM_INSERTCOLUMNW = 0x1061,
+  LVM_GETGROUPRECT = 0x1062,
+  LVM_GETITEMTEXTW = 0x1073,
+  LVM_SETITEMTEXTW = 0x1074,
+  LVM_GETISEARCHSTRINGW = 0x1075,
+  LVM_EDITLABELW = 0x1076,
+  LVM_GETBKIMAGEW = 0x108B,
+  LVM_SETSELECTEDCOLUMN = 0x108C,
+  LVM_SETTILEWIDTH = 0x108D,
+  LVM_SETVIEW = 0x108E,
+  LVM_GETVIEW = 0x108F,
+  LVM_INSERTGROUP = 0x1091,
+  LVM_SETGROUPINFO = 0x1093,
+  LVM_GETGROUPINFO = 0x1095,
+  LVM_REMOVEGROUP = 0x1096,
+  LVM_MOVEGROUP = 0x1097,
+  LVM_GETGROUPCOUNT = 0x1098,
+  LVM_GETGROUPINFOBYINDEX = 0x1099,
+  LVM_MOVEITEMTOGROUP = 0x109A,
+  LVM_SETGROUPMETRICS = 0x109B,
+  LVM_GETGROUPMETRICS = 0x109C,
+  LVM_ENABLEGROUPVIEW = 0x109D,
+  LVM_SORTGROUPS = 0x109E,
+  LVM_INSERTGROUPSORTED = 0x109F,
+  LVM_REMOVEALLGROUPS = 0x10A0,
+  LVM_HASGROUP = 0x10A1,
+  LVM_SETTILEVIEWINFO = 0x10A2,
+  LVM_GETTILEVIEWINFO = 0x10A3,
+  LVM_SETTILEINFO = 0x10A4,
+  LVM_GETTILEINFO = 0x10A5,
+  LVM_SETINSERTMARK = 0x10A6,
+  LVM_GETINSERTMARK = 0x10A7,
+  LVM_INSERTMARKHITTEST = 0x10A8,
+  LVM_GETINSERTMARKRECT = 0x10A9,
+  LVM_SETINSERTMARKCOLOR = 0x10AA,
+  LVM_GETINSERTMARKCOLOR = 0x10AB,
+  LVM_SETINFOTIP = 0x10AD,
+  LVM_GETSELECTEDCOLUMN = 0x10AE,
+  LVM_ISGROUPVIEWENABLED = 0x10AF,
+  LVM_GETOUTLINECOLOR = 0x10B0,
+  LVM_SETOUTLINECOLOR = 0x10B1,
+  LVM_CANCELEDITLABEL = 0x10B3,
+  LVM_MAPINDEXTOID = 0x10B4,
+  LVM_MAPIDTOINDEX = 0x10B5,
+  LVM_ISITEMVISIBLE = 0x10B6,
+  LVM_GETEMPTYTEXT = 0x10CC,
+  LVM_GETFOOTERRECT = 0x10CD,
+  LVM_GETFOOTERINFO = 0x10CE,
+  LVM_GETFOOTERITEMRECT = 0x10CF,
+  LVM_GETFOOTERITEM = 0x10D0,
+  LVM_GETITEMINDEXRECT = 0x10D1,
+  LVM_SETITEMINDEXSTATE = 0x10D2,
+  LVM_GETNEXTITEMINDEX = 0x10D3,
+  LVM_SETUNICODEFORMAT = 0x2005,
+  LVM_GETUNICODEFORMAT = 0x2006,
+  OCM__BASE = 0x2000,
+  OCM_CTLCOLOR = 0x2019,
+  OCM_DRAWITEM = 0x202B,
+  OCM_MEASUREITEM = 0x202C,
+  OCM_DELETEITEM = 0x202D,
+  OCM_VKEYTOITEM = 0x202E,
+  OCM_CHARTOITEM = 0x202F,
+  OCM_COMPAREITEM = 0x2039,
+  OCM_NOTIFY = 0x204E,
+  OCM_COMMAND = 0x2111,
+  OCM_HSCROLL = 0x2114,
+  OCM_VSCROLL = 0x2115,
+  OCM_CTLCOLORMSGBOX = 0x2132,
+  OCM_CTLCOLOREDIT = 0x2133,
+  OCM_CTLCOLORLISTBOX = 0x2134,
+  OCM_CTLCOLORBTN = 0x2135,
+  OCM_CTLCOLORDLG = 0x2136,
+  OCM_CTLCOLORSCROLLBAR = 0x2137,
+  OCM_CTLCOLORSTATIC = 0x2138,
+  OCM_PARENTNOTIFY = 0x2210,
+  WM_APP = 0x8000,
+  WM_RASDIALEVENT = 0xCCCD,
+  CBEM_DELETEITEM = 0x144,
+  CBEM_SETUNICODEFORMAT = 0x2005,
+  CBEM_GETUNICODEFORMAT = 0x2006,
+  IE_GETMODIFY = 0xB8,
+  IE_SETMODIFY = 0xB9,
+  IE_CANUNDO = 0xC6,
+  IE_UNDO = 0xC7,
+  IE_EMPTYUNDOBUFFER = 0xCD,
+  LVM_SETBKIMAGEW = 0x108A,
+  MCIWNDM_GETDEVICEID = 0x464,
+  MCIWNDM_GETSTART = 0x467,
+  MCIWNDM_GETLENGTH = 0x468,
+  MCIWNDM_GETEND = 0x469,
+  MCIWNDM_EJECT = 0x46B,
+  MCIWNDM_SETZOOM = 0x46C,
+  MCIWNDM_SETVOLUME = 0x46E,
+  MCIWNDM_GETVOLUME = 0x46F,
+  MCIWNDM_SETSPEED = 0x470,
+  MCIWNDM_GETSPEED = 0x471,
+  MCIWNDM_SETREPEAT = 0x472,
+  MCIWNDM_GETREPEAT = 0x473,
+  MCIWNDM_PLAYFROM = 0x47A,
+  MCIWNDM_SETTIMERS = 0x481,
+  MCIWNDM_SETACTIVETIMER = 0x482,
+  MCIWNDM_GETACTIVETIMER = 0x484,
+  MCIWNDM_CHANGESTYLES = 0x487,
+  MCIWNDM_GETSTYLES = 0x488,
+  MCIWNDM_GETALIAS = 0x489,
+  MCIWNDM_PLAYREVERSE = 0x48B,
+  MCIWNDM_OPENINTERFACE = 0x497,
+  MCIWNDM_SETOWNER = 0x498,
+  MCIWNDM_SENDSTRINGA = 0x465,
+  MCIWNDM_GETPOSITIONA = 0x466,
+  MCIWNDM_GETMODEA = 0x46A,
+  MCIWNDM_NEWA = 0x486,
+  MCIWNDM_RETURNSTRINGA = 0x48A,
+  MCIWNDM_OPENA = 0x499,
+  MCIWNDM_SENDSTRINGW = 0x4C9,
+  MCIWNDM_GETPOSITIONW = 0x4CA,
+  MCIWNDM_GETMODEW = 0x4CE,
+  MCIWNDM_NEWW = 0x4EA,
+  MCIWNDM_RETURNSTRINGW = 0x4EE,
+  MCIWNDM_OPENW = 0x4FC,
+  MCIWNDM_NOTIFYPOS = 0x4C9,
+  MCIWNDM_NOTIFYSIZE = 0x4CA,
+  MSG_FTS_JUMP_HASH = 0x420,
+  MSG_FTS_GET_TITLE = 0x422,
+  PBM_SETBKCOLOR = 0x2001,
+  RB_SETCOLORSCHEME = 0x2002,
+  RB_GETCOLORSCHEME = 0x2003,
+  RB_GETDROPTARGET = 0x2004,
+  RB_SETUNICODEFORMAT = 0x2005,
+  RB_GETUNICODEFORMAT = 0x2006,
+  SB_SETUNICODEFORMAT = 0x2005,
+  SB_GETUNICODEFORMAT = 0x2006,
+  SB_SETBKCOLOR = 0x2001,
+  STM_MSGMAX = 0x174,
+  TBM_SETUNICODEFORMAT = 0x2005,
+  TBM_GETUNICODEFORMAT = 0x2006,
+  TB_SETCOLORSCHEME = 0x2002,
+  TB_GETCOLORSCHEME = 0x2003,
+  TB_SETUNICODEFORMAT = 0x2005,
+  TB_GETUNICODEFORMAT = 0x2006,
+  UDM_SETUNICODEFORMAT = 0x2005,
+  UDM_GETUNICODEFORMAT = 0x2006,
+  WM_CAP_START = 0x400,
+  WM_CAP_GET_CAPSTREAMPTR = 0x401,
+  WM_CAP_SET_CALLBACK_ERRORA = 0x402,
+  WM_CAP_SET_CALLBACK_STATUSA = 0x403,
+  WM_CAP_SET_CALLBACK_YIELD = 0x404,
+  WM_CAP_SET_CALLBACK_FRAME = 0x405,
+  WM_CAP_SET_CALLBACK_VIDEOSTREAM = 0x406,
+  WM_CAP_SET_CALLBACK_WAVESTREAM = 0x407,
+  WM_CAP_GET_USER_DATA = 0x408,
+  WM_CAP_SET_USER_DATA = 0x409,
+  WM_CAP_DRIVER_CONNECT = 0x40A,
+  WM_CAP_DRIVER_DISCONNECT = 0x40B,
+  WM_CAP_DRIVER_GET_NAMEA = 0x40C,
+  WM_CAP_DRIVER_GET_VERSIONA = 0x40D,
+  WM_CAP_DRIVER_GET_CAPS = 0x40E,
+  WM_CAP_FILE_SET_CAPTURE_FILEA = 0x414,
+  WM_CAP_FILE_GET_CAPTURE_FILEA = 0x415,
+  WM_CAP_FILE_SAVEASA = 0x417,
+  WM_CAP_FILE_SAVEDIBA = 0x419,
+  WM_CAP_FILE_ALLOCATE = 0x416,
+  WM_CAP_FILE_SET_INFOCHUNK = 0x418,
+  WM_CAP_EDIT_COPY = 0x41E,
+  WM_CAP_SET_AUDIOFORMAT = 0x423,
+  WM_CAP_GET_AUDIOFORMAT = 0x424,
+  WM_CAP_DLG_VIDEOFORMAT = 0x429,
+  WM_CAP_DLG_VIDEOSOURCE = 0x42A,
+  WM_CAP_DLG_VIDEODISPLAY = 0x42B,
+  WM_CAP_GET_VIDEOFORMAT = 0x42C,
+  WM_CAP_SET_VIDEOFORMAT = 0x42D,
+  WM_CAP_DLG_VIDEOCOMPRESSION = 0x42E,
+  WM_CAP_SET_PREVIEW = 0x432,
+  WM_CAP_SET_OVERLAY = 0x433,
+  WM_CAP_SET_PREVIEWRATE = 0x434,
+  WM_CAP_SET_SCALE = 0x435,
+  WM_CAP_GET_STATUS = 0x436,
+  WM_CAP_SET_SCROLL = 0x437,
+  WM_CAP_GRAB_FRAME = 0x43C,
+  WM_CAP_GRAB_FRAME_NOSTOP = 0x43D,
+  WM_CAP_SEQUENCE = 0x43E,
+  WM_CAP_SEQUENCE_NOFILE = 0x43F,
+  WM_CAP_SET_SEQUENCE_SETUP = 0x440,
+  WM_CAP_GET_SEQUENCE_SETUP = 0x441,
+  WM_CAP_SET_MCI_DEVICEA = 0x442,
+  WM_CAP_GET_MCI_DEVICEA = 0x443,
+  WM_CAP_STOP = 0x444,
+  WM_CAP_ABORT = 0x445,
+  WM_CAP_SINGLE_FRAME_OPEN = 0x446,
+  WM_CAP_SINGLE_FRAME_CLOSE = 0x447,
+  WM_CAP_SINGLE_FRAME = 0x448,
+  WM_CAP_PAL_OPENA = 0x450,
+  WM_CAP_PAL_SAVEA = 0x451,
+  WM_CAP_PAL_PASTE = 0x452,
+  WM_CAP_PAL_AUTOCREATE = 0x453,
+  WM_CAP_PAL_MANUALCREATE = 0x454,
+  WM_CAP_SET_CALLBACK_CAPCONTROL = 0x455,
+  WM_CAP_UNICODE_END = 0x4B5,
+  WM_CAP_END = 0x4B5,
+  WM_DDE_FIRST = 0x3E0,
+  WM_DDE_LAST = 0x3E8,
+  WM_DLGBORDER = 0x11EF,
+  WM_DLGSUBCLASS = 0x11F0,
+  WM_ADSPROP_NOTIFY_PAGEINIT = 0x84D,
+  WM_ADSPROP_NOTIFY_PAGEHWND = 0x84E,
+  WM_ADSPROP_NOTIFY_CHANGE = 0x84F,
+  WM_ADSPROP_NOTIFY_APPLY = 0x850,
+  WM_ADSPROP_NOTIFY_SETFOCUS = 0x851,
+  WM_ADSPROP_NOTIFY_FOREGROUND = 0x852,
+  WM_ADSPROP_NOTIFY_EXIT = 0x853,
+  WM_ADSPROP_NOTIFY_ERROR = 0x856,
+  WM_TOUCH = 0x240,
+  WM_TOUCHHITTESTING = 0x24D,
+  WM_DPICHANGED = 0x2E0,
+  WM_DPICHANGED_BEFOREPARENT = 0x2E2,
+  WM_DPICHANGED_AFTERPARENT = 0x2E3,
+  WM_CLIPBOARDUPDATE = 0x31D,
+  WM_DWMCOMPOSITIONCHANGED = 0x31E,
+  WM_DWMNCRENDERINGCHANGED = 0x31F,
+  WM_DWMCOLORIZATIONCOLORCHANGED = 0x320,
+  WM_DWMWINDOWMAXIMIZEDCHANGE = 0x321,
+  WM_DWMSENDICONICTHUMBNAIL = 0x323,
+  WM_DWMSENDICONICLIVEPREVIEWBITMAP = 0x326,
+  WM_INPUT_DEVICE_CHANGE = 0xFE,
+  WM_GESTURE = 0x119,
+  WM_GESTURENOTIFY = 0x11A,
+  WM_MOUSEHWHEEL = 0x20E,
+  WM_POINTERDEVICECHANGE = 0x238,
+  WM_POINTERDEVICEINRANGE = 0x239,
+  WM_POINTERDEVICEOUTOFRANGE = 0x23A,
+  WM_NCPOINTERUPDATE = 0x241,
+  WM_NCPOINTERDOWN = 0x242,
+  WM_NCPOINTERUP = 0x243,
+  WM_POINTERUPDATE = 0x245,
+  WM_POINTERDOWN = 0x246,
+  WM_POINTERUP = 0x247,
+  WM_POINTERENTER = 0x249,
+  WM_POINTERLEAVE = 0x24A,
+  WM_POINTERACTIVATE = 0x24B,
+  WM_POINTERCAPTURECHANGED = 0x24C,
+  WM_POINTERWHEEL = 0x24E,
+  WM_POINTERHWHEEL = 0x24F,
+  WM_POINTERROUTEDTO = 0x251,
+  WM_POINTERROUTEDAWAY = 0x252,
+  WM_POINTERROUTEDRELEASED = 0x253,
+  WM_TABLET_ADDED = 0x2C8,
+  WM_TABLET_DELETED = 0x2C9,
+  WM_TABLET_FLICK = 0x2CB,
+  WM_TABLET_QUERYSYSTEMGESTURESTATUS = 0x2CC,
+  WM_GETDPISCALEDSIZE = 0x2E4,
+  WM_GETTITLEBARINFOEX = 0x33F,
+};
+
+/* 378 */
+enum MACRO_SC
+{
+  SC_SIZE = 0xF000,
+  SC_MOVE = 0xF010,
+  SC_MINIMIZE = 0xF020,
+  SC_MAXIMIZE = 0xF030,
+  SC_NEXTWINDOW = 0xF040,
+  SC_PREVWINDOW = 0xF050,
+  SC_CLOSE = 0xF060,
+  SC_VSCROLL = 0xF070,
+  SC_HSCROLL = 0xF080,
+  SC_MOUSEMENU = 0xF090,
+  SC_KEYMENU = 0xF100,
+  SC_ARRANGE = 0xF110,
+  SC_RESTORE = 0xF120,
+  SC_TASKLIST = 0xF130,
+  SC_SCREENSAVE = 0xF140,
+  SC_HOTKEY = 0xF150,
+  SC_DEFAULT = 0xF160,
+  SC_MONITORPOWER = 0xF170,
+  SC_CONTEXTHELP = 0xF180,
+  SC_SEPARATOR = 0xF00F,
+};
+
+/* 379 */
+enum __dec MACRO_SW
+{
+  SW_HIDE = 0,
+  SW_SHOWNORMAL = 1,
+  SW_NORMAL = 1,
+  SW_SHOWMINIMIZED = 2,
+  SW_SHOWMAXIMIZED = 3,
+  SW_MAXIMIZE = 3,
+  SW_SHOWNOACTIVATE = 4,
+  SW_SHOW = 5,
+  SW_MINIMIZE = 6,
+  SW_SHOWMINNOACTIVE = 7,
+  SW_SHOWNA = 8,
+  SW_RESTORE = 9,
+  SW_SHOWDEFAULT = 10,
+  SW_FORCEMINIMIZE = 11,
+  SW_MAX = 11,
+};
+
+/* 383 */
+struct KKND::GuardAreaOrderPayload
+{
+  int player_num;
+  int dst_x;
+  int dst_y;
 };
 
