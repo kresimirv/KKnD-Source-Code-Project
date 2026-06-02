@@ -393,7 +393,7 @@ struct KKND::Entity
   int y_speed_limit;
   int z_speed_limit;
   int x_drag;                           ///< x/y/z_drag is friction/drag. It decelerates x_speed toward zero regardless of direction:
-                                        ///< 
+                                        ///<
                                         ///< If moving right (x_speed > 0): x_speed -= x_drag, clamped to 0
                                         ///< If moving left (x_speed < 0): x_speed += x_drag, clamped to 0
   int y_drag;
@@ -670,21 +670,21 @@ struct KKND::BoxdCollisionHandler
 {
   int collides_with_categories;         ///< The collision only proceeds if there is any bit in common between the mover's collides_with_categories (outgoing) and the target shape's category (incoming).
   int category;
-  BOOL (__fastcall *mover_response)(KKND::Entity *, KKND::Entity *, KKND::BoxdCollisionAxis, KKND::BoxdAabb *, KKND::BoxdAabb *); ///< 
+  BOOL (__fastcall *mover_response)(KKND::Entity *, KKND::Entity *, KKND::BoxdCollisionAxis, KKND::BoxdAabb *, KKND::BoxdAabb *); ///<
                                                                                                                                   ///< Two handlers enable asymmetric collision pairs where one side is authoritative:
-                                                                                                                                  ///< 
+                                                                                                                                  ///<
                                                                                                                                   ///< Obstacle-driven (terrain/buildings): Mover has primary=NULL at its root shape. Each obstacle sub-shape defines its own geometry response in secondary. A unit walking into a ramp gets ramp behavior; walking into a wall gets solid push-out — all without the mover knowing what it hit.
-                                                                                                                                  ///< 
+                                                                                                                                  ///<
                                                                                                                                   ///< Mover-driven (cursor/projectile): The mover has primary set. It doesn't matter what the obstacle's secondary says — the mover overrides. The cursor fires a hover event regardless of what kind of entity it's over.
-                                                                                                                                  ///< 
+                                                                                                                                  ///<
                                                                                                                                   ///< Hypothetical dual-response (never used): If both were set, the mover's primary would always win. The obstacle never gets a say. You could imagine a scenario where a special unit type overrides terrain collision (e.g., a flying unit with a custom primary that ignores slopes) — the architecture supports it, but no entry uses both slots simultaneously.
-                                                                                                                                  ///< 
+                                                                                                                                  ///<
                                                                                                                                   ///< The system was clearly designed for a third case — mover-specific override of terrain response. Imagine:
-                                                                                                                                  ///< 
+                                                                                                                                  ///<
                                                                                                                                   ///< - A hovercraft that slides over ramps instead of climbing (override primary to skip Y clamping)
                                                                                                                                   ///< - An ethereal unit that passes through walls but still triggers hover events
                                                                                                                                   ///< - Different weight classes that get pushed differently by the same obstacle
-                                                                                                                                  ///< 
+                                                                                                                                  ///<
                                                                                                                                   ///< None of these shipped, so every game entity uses index 0 (root) with primary=NULL, deferring entirely to the obstacle's secondary. The cursor is the sole example of a mover-driven response. The two-slot design is architectural foresight that simplified to a one-sided dispatch in practice.
   BOOL (__fastcall *obstacle_response)(KKND::Entity *, KKND::Entity *, KKND::BoxdCollisionAxis, KKND::BoxdAabb *, KKND::BoxdAabb *);
 };
@@ -1012,11 +1012,10 @@ struct KKND::UnitScanPhaseNav
 };
 
 /* 350 */
-enum KKND::BlitterMode : unsigned __int32
-{
-  BlitterMode_Render = 0x0,
-  BlitterMode_GetWidth = 0x1,
-  BlitterMode_GetHeight = 0x2,
+enum KKND::BlitterMode : unsigned __int32 {
+  BlitterMode_Render = 0,
+  BlitterMode_GetWidth = 1,
+  BlitterMode_GetHeight = 2,
 };
 
 /* 192 */
@@ -1105,34 +1104,34 @@ struct KKND::Unit
                                         ///<     Decremented each frame in entity_mode_417FC0, entity_mode_4181B0
                                         ///<     When reaches 0 → give up waiting, repath
                                         ///<     Meaning: blocked_wait_timer or obstacle_patience_counter
-                                        ///< 
+                                        ///<
                                         ///< 2. Infantry/Vehicle — Pathfinding step counter (value: 0, incremented)
                                         ///<     Set to 0 at start of obstacle-scan movement (Infantry.cpp:3193)
                                         ///<     Incremented each step in entity_mode_417A20 — compared against base_anim_speed
                                         ///<     Meaning: path_scan_step_count — how many scan steps taken around obstacle
-                                        ///< 
+                                        ///<
                                         ///< 3. Repair bay — Docking animation countdown (value: 100)
                                         ///<     Set to 100 when entering/leaving repair bay (Infantry.cpp:4263)
                                         ///<     Decremented in entity_mode_419180_in_repairbay / entity_mode_418E90_leaving_repair_bay
                                         ///<     When ≤ 0 → done moving into/out of bay
                                         ///<     Meaning: repair_bay_move_timer
-                                        ///< 
+                                        ///<
                                         ///< 4. Repair sprite — Active repair script count (value: 1, incremented)
                                         ///<     In script_4188F0 (repair coroutine): incremented when repair sprite spawned, decremented on terminate
                                         ///<     Used as refcount for repair overlay sprites
                                         ///<     Meaning: repair_sprite_refcount
-                                        ///< 
+                                        ///<
                                         ///< 5. Aircraft — Bomb run pass counter (value: 2, decremented)
                                         ///<     Set to 2 for bomber on spawn (Aircraft.cpp:165)
                                         ///<     Decremented per bombing pass; -1 = return to base, -2 = wait
                                         ///<     Meaning: bombing_passes_remaining
-                                        ///< 
+                                        ///<
                                         ///< 6. Tech bunker / Hut — Detection radius (value: 24576)
                                         ///<     Set to 24576 (= 3 tiles × 8192) on creation (Detenshn.cpp:438)
                                         ///<     Passed to entity_find_any_entity_in_radius() as distance parameter
                                         ///<     Then overwritten with player_side of found entity
                                         ///<     Meaning: detect_radius → then captured_by_side
-                                        ///< 
+                                        ///<
                                         ///< 7. Scout — Detection radius (value: 76800)
                                         ///<     Set to 76800 in UNIT_Handler_Scout (Mission.cpp:936)
                                         ///<     Same pattern as tech bunker — passed to entity_find_player_entity_in_radius()
@@ -1142,46 +1141,46 @@ struct KKND::Unit
                                         ///<     Decremented per spawn; when 0 → done spawning
                                         ///<     Also: index into surv_prison_spawns_table[] / mute_prison_spawns_table[] (counts down from 10)
                                         ///<     Meaning: spawn_queue_remaining
-                                        ///< 
+                                        ///<
                                         ///< 2. Tech bunker — Spawn type / loot table index (value: 0–10, 9 = random)
                                         ///<     Set from level data (param_1C) or 9 (= pick random) in entity_407690_techbunker_spawn
                                         ///<     Values 0–3: unit from techbunker_spawns_table[], 4: tanker, 5: +5000 resources, 6: +1000 resources
                                         ///<     Value 10: special — spawn El Presidente then set to 5
                                         ///<     Meaning: techbunker_spawn_type
-                                        ///< 
+                                        ///<
                                         ///< 3. Hut — Variant / orientation selector (value: 0–4)
                                         ///<     Read on creation in UNIT_Handler_Hut, used in switch to pick anim frame (0/16/32/48/64)
                                         ///<     Comes from level data. Never modified after init.
                                         ///<     Meaning: hut_variant
-                                        ///< 
+                                        ///<
                                         ///< 4. Aircraft — Fire cooldown timer (value: 15, decremented)
                                         ///<     Set to 15 after firing projectile in aircraft attack mode (Aircraft.cpp:341)
                                         ///<     Decremented each tick; when 0 → can fire again
                                         ///<     Also set to 0 when bombing pass ends (Aircraft.cpp:395)
                                         ///<     Meaning: fire_cooldown
-                                        ///< 
+                                        ///<
                                         ///< 5. Building/DrillRig/Tanker — "Under attack" voice line cooldown (value: 1000–2000)
                                         ///<     Set to 1500 (drillrig), 2000 (building), 1000 (tanker) when attacked
                                         ///<     Decremented in unit handler each tick
                                         ///<     When 0 → can play "under attack" sound again
                                         ///<     Prevents voice line spam
                                         ///<     Meaning: attacked_voice_cooldown
-                                        ///< 
+                                        ///<
                                         ///< 6. AI Wanderer — Wanderer tracking timer (value: 2, decremented)
                                         ///<     Set to 2 when unit added to AI wanderer list (EnemyAI.cpp:3968)
                                         ///<     Decremented in AI tick; odd values trigger distance check; when 0 → remove from wanderer list
                                         ///<     Meaning: ai_wanderer_ttl
-                                        ///< 
+                                        ///<
                                         ///< 7. Entity spawn — "Spawned from building" flag (value: from level data or 2)
                                         ///<     On creation via EntityFactory::Create: set from param_1C or hardcoded 2
                                         ///<     If nonzero → path_flags |= PATHFIND_SPAWNED_FROM_BUILDING
                                         ///<     Meaning: spawn_source_param (how many tiles to walk out of building)
-                                        ///< 
+                                        ///<
                                         ///< 8. Scout — Discovery delay multiplier (value: 60)
                                         ///<     Set to 60 in UNIT_Handler_Scout (Mission.cpp:935)
                                         ///<     Stored into _134 on discovery: _134 = _12C
                                         ///<     Meaning: scout_discovery_delay
-                                        ///< 
+                                        ///<
                                         ///< 9. Mission objective — Building alive flag (value: 0 or nonzero)
                                         ///<     Checked == 0 to mean "building destroyed" in mission win/fail conditions (Mission.cpp:1084)
                                         ///<     Meaning: is_destroyed (0 = dead, nonzero = alive/cooldown active)
@@ -1191,31 +1190,31 @@ struct KKND::Unit
                                         ///<     If plant fails → unit_type = _134 to restore original
                                         ///<     After plant succeeds → unit_type = _134 in entity_427C30 to spawn mobile unit as building
                                         ///<     Meaning: saved_unit_id
-                                        ///< 
+                                        ///<
                                         ///< 2. Infantry/Vehicle/General — "New order" immunity timer (value: 600, decremented)
                                         ///<     Set to 600 whenever unit receives a new order (move, attack, escort, guard area, repair, etc.)
                                         ///<     Decremented each tick in unit handler
                                         ///<     While nonzero → blocks opportunity fire (!_134 && can_fire_on_entity check in Infantry.cpp:412)
                                         ///<     Also blocks entity_mode_405690 tanker convoy idle transition
                                         ///<     Meaning: order_cooldown — prevents unit from immediately re-engaging opportunity targets after receiving new orders. Gives time to start executing order before getting distracted.
-                                        ///< 
+                                        ///<
                                         ///< 3. Aircraft — Ammo / shots remaining (value: 1, decremented)
                                         ///<     Set to 1 when bomber starts attack pass (Aircraft.cpp:396)
                                         ///<     Checked nonzero → fire projectile + decrement (Aircraft.cpp:311-342)
                                         ///<     When 0 → stop firing, transition to next mode
                                         ///<     Meaning: ammo_remaining
-                                        ///< 
+                                        ///<
                                         ///< 4. Tech bunker — Spawn delay timer (value: ~28800–54000 or 5)
                                         ///<     In multiplayer: _134 = rand() % 25200 + 28800 (~48–90 second delay at 10fps) (Detenshn.cpp:409)
                                         ///<     In singleplayer: _134 = 5 (almost instant)
                                         ///<     Decremented in entity_mode_407950_techbunker_spawn_generic; when ≤ 0 → show turret, enable detection
                                         ///<     Meaning: techbunker_activation_delay
-                                        ///< 
+                                        ///<
                                         ///< 5. Scout — Discovery delay countdown (value: copied from _12C, e.g. 60)
                                         ///<     In entity_mode_425920_scout: _134 = _12C (scout discovery delay)
                                         ///<     While nonzero → scout stays dormant, waiting to be discovered
                                         ///<     Meaning: scout_dormant_timer
-                                        ///< 
+                                        ///<
                                         ///< 6. Loaded unit — Reset to 0 on load
                                         ///<     When loading saved game entity, if entity has no cplc meta: _134 = 0; veterancy = 0; — initialization for "fresh" spawn from save
                                         ///<     Meaning: just zeroed out as part of init
@@ -1237,10 +1236,10 @@ struct KKND::Unit
   KKND::UnitScanPhaseNav scan_pathing;  ///< Pathing works in two phases:
                                         ///<     1. Raycast phase (0041B970 BOXD_pathing_bresenham_raycast) — Cast Bresenham ray from unit to target. Records obstacle boundaries into ray_exit_* / ray_obstacle_* / ray_terrain_* arrays, indexed by ray_stack.
                                         ///<     2. Obstacle-scan phase (e.g unit_mode_416060, unit_mode_attack_move) — fine-grained local navigation: for each waypoint, run CW + CCW wall-following scans around the obstacle. Two scan probes advance independently, each tracking its current tile position.
-                                        ///< 
+                                        ///<
                                         ///< This is actually a union and some of these fields are used for
                                         ///< different purposes e.g to save x/y speed values depending on context
-                                        ///< 
+                                        ///<
   KKND::Unit *nav_obstacle;             ///< Pointer to blocking/obstructing entity found during pathfinding tile checks.
   int nav_obstacle_id;
   KKND::MobdSprtImage overlay_sprt;     ///< Overlay sprite (selection, healthbar)
@@ -1353,13 +1352,13 @@ struct KKND::UnitStats
   KKND::UnitAttachment *attachment;
   KKND::UnitProjectileType *projectile;
   KKND::UnitSize size;                  ///< map tile size
-                                        ///< 
+                                        ///<
                                         ///< 4096: XL (2x2 tiles)
                                         ///< autocannon, missile crab, mobile outposts, gort, plasma tank
-                                        ///< 
+                                        ///<
                                         ///< 512: 1/5th of a tile
                                         ///< infantry
-                                        ///< 
+                                        ///<
                                         ///< 128: exactly 1 tile
                                         ///< vehicles, buildings,
                                         ///< tech bunker, sentinel droid
@@ -1879,7 +1878,7 @@ enum KKND::GameEventType : unsigned __int8
 /// Game Events are primitives that should be synched during the multiplayer game
 /// (during the local game they're just dequeued locally).
 /// One event is dequeued per tick
-/// 
+///
 /// Verified NOT KKND::NetzGameEvent
 struct KKND::GameEvent
 {
@@ -1978,7 +1977,7 @@ struct KKND::BuildingBlueprint
   int _building_blueprint_field_C_unused; ///< Values: 25–1000. Never accessed in the code — cost is taken from unit stats table instead. Vestigial data, possibly original dev cost or HP table.
   int _building_blueprint_field_10_unused; ///< Values: 5 (towers), 10–15 (utility), 25 (production). Pattern = construction duration. Also never accessed in the code.
   unsigned __int32 collision_mask;       ///< So bit=1 means solid tile, bit=0 means passable tile in building footprint.
-                                         ///< 
+                                         ///<
                                          ///< Examples:
                                          ///<     Guard Tower (2×2): 0xC0000000 = 11 00 → top row solid, bottom row passable (entrance)
                                          ///<     Drill Rig (3×2): 0xE0000000 = 111 000 → top row solid, bottom passable
@@ -3751,3 +3750,23 @@ struct KKND::NetzMobemPhonebook
   int baud_index;
 };
 
+
+
+#define MAX_VETERANCY_LEVELS 3
+
+#define END(x) ((void*)&x)
+
+
+static inline void TECHLVL_reset(KKND::TechLevels *tech) {
+  memset(tech, 0, sizeof(KKND::TechLevels));
+  tech->max_level = 1;
+}
+
+static inline int GAME_ai_players_num() {
+  int num = 0;
+  for (int i = 0; i < PLAYERS_MAX; ++i) {
+    if (g_is_player_num_ai[i])
+      num += 1;
+  }
+  return num;
+}

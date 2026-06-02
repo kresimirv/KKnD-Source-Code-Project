@@ -1,9 +1,6 @@
 #include "kknd.h"
 
 
-//-------------------------------------------------------------------------
-// Function declarations
-
 BOOL UNIT_bomber_init();
 void UNIT_bomber_cleanup();
 void __fastcall UNIT_bomber_add(KKND::Unit *unit);
@@ -240,7 +237,7 @@ void __fastcall PAL_apply(KKND::PaletteEntry *pal);
 void __fastcall PAL_adjust_brightness(unsigned int brightness);
 void REND_clear_screen();
 KKND::PaletteEntry *PAL_get_selected();
-BOOL PAL_save_system_colors();
+void PAL_save_system_colors();
 void PAL_restore_system_colors();
 BOOL LVL_terrain_init();
 void GAME_opportunity_timer_update();
@@ -805,14 +802,6 @@ void __fastcall SOUND_set_streaming_volume(int volume);
 void __fastcall SOUND_slot_cleanup(KKND::SoundStream *sound);
 void __cdecl REND_decode_rle(unsigned __int8 *src, __int16 src_x, __int16 src_y, __int16 width, __int16 height, __int16 ds, unsigned __int8 *dst, __int16 dst_x, __int16 dst_y, __int16 dst_stride);
 void __cdecl REND_decode_rle_mirrored(unsigned __int8 *src, __int16 src_x, __int16 src_y, __int16 width, __int16 height, __int16 ds, unsigned __int8 *dst, __int16 dst_x, __int16 dst_y, __int16 dst_stride);
-// int __usercall _43AAD2_unused@<eax>(unsigned int a1@<ebx>, _BYTE *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, unsigned __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
-// int __usercall _43ABDE_unused@<eax>(unsigned int a1@<ebx>, _BYTE *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, unsigned __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
-// int __usercall _43ACF6_unused@<eax>(unsigned int a1@<ebx>, _BYTE *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, unsigned __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
-// int __usercall _43AE53_unused@<eax>(unsigned int a1@<ebx>, unsigned __int8 *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, unsigned __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
-// int __usercall _43AFAA_unused@<eax>(unsigned int a1@<ebx>, _BYTE *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
-// int __usercall _43B0BF_unused@<eax>(unsigned int a1@<ebx>, _BYTE *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
-// int __usercall _43B1E0_unused@<eax>(unsigned int a1@<ebx>, _BYTE *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
-// int __usercall _43B346_unused@<eax>(unsigned int a1@<ebx>, unsigned __int8 *a2, unsigned __int16 a3, unsigned __int16 a4, unsigned __int16 a5, unsigned __int16 a6, __int16 a7, int a8, __int16 a9, unsigned __int16 a10, unsigned __int16 a11, unsigned __int16 a12, unsigned __int16 a13);
 void __cdecl REND_decode_rle_remapped(unsigned __int8 *src, __int16 src_x, __int16 src_y, __int16 width, __int16 height, unsigned __int8 *palette, __int16 ds, unsigned __int8 *dst, __int16 dst_x, __int16 dst_y, __int16 dst_stride);
 void __cdecl REND_decode_rle_remapped_mirrored(unsigned __int8 *src, __int16 src_x, __int16 src_y, __int16 width, __int16 height, unsigned __int8 *palette, __int16 ds, unsigned __int8 *dst, __int16 dst_x, __int16 dst_y, __int16 dst_stride);
 BOOL REND_lists_init();
@@ -1096,64 +1085,13 @@ void __fastcall BOXD_wall_trace_step_simple(int *scan_x, int *scan_y, BOOL cw, K
 BOOL __fastcall BOXD_wall_trace_step_advanced(int *scan_x, int *scan_y, BOOL cw, KKND::Unit *unit, KKND::Direction *heading);
 void OS_message_pump();
 int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
-// void *__cdecl malloc(size_t Size);
-// void __cdecl free(void *Block);
-// int sprintf(char *const Buffer, const char *const Format, ...);
-// int __cdecl fclose(FILE *Stream);
-// int fscanf(FILE *const Stream, const char *const Format, ...);
-// FILE *__cdecl fopen(const char *FileName, const char *Mode);
-// size_t __cdecl fread(void *Buffer, size_t ElementSize, size_t ElementCount, FILE *Stream);
-// size_t __cdecl fwrite(const void *Buffer, size_t ElementSize, size_t ElementCount, FILE *Stream);
-// int __cdecl fseek(FILE *Stream, int Offset, int Origin);
-// void *__cdecl memcpy(void *, const void *Src, size_t Size);
-// char *__cdecl strchr(const char *Str, int Val);
-// int __cdecl strncmp(const char *Str1, const char *Str2, size_t MaxCount);
-// void __cdecl __noreturn exit(int Code);
-// int printf(const char *const Format, ...);
-// void __cdecl srand(unsigned int Seed);
-// int __cdecl rand();
-// int __cdecl isalpha(int C);
-// int __cdecl isdigit(int C);
-// int fprintf(FILE *Stream, const char *a2, ...);
-// int __cdecl atoi(const char *String);
-// char *__cdecl strtok(char *String, const char *Delimiter);
-// char *__cdecl fgets(char *Buffer, int MaxCount, FILE *Stream);
-// clock_t __cdecl clock();
-// char *__cdecl strncpy(char *Destination, const char *Source, size_t Count);
-// uintptr_t __cdecl _beginthread(_beginthread_proc_type StartAddress, unsigned int StackSize, void *ArgList);
-// void __cdecl _endthread();
-// char *__cdecl _cropzeros(char *a1);
-// char *__cdecl _itoa(int Value, char *Buffer, int Radix);
-// int __cdecl _strcmpi(const char *String1, const char *String2);
-// HRESULT __stdcall DirectDrawCreate(GUID *lpGUID, LPDIRECTDRAW *lplpDD, IUnknown *pUnkOuter);
-// HRESULT __stdcall DirectSoundCreate(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter);
-// int __stdcall DirectPlayCreate(GUID *, IUnknown *, IUnknown *);
-// HRESULT __stdcall DirectPlayEnumerateA(LPDPENUMDPCALLBACKA cb, LPVOID userdata);
-// BOOL __stdcall VerQueryValueA(LPCVOID pBlock, LPCSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen);
-// BOOL __stdcall GetFileVersionInfoA(LPCSTR lptstrFilename, DWORD dwHandle, DWORD dwLen, LPVOID lpData);
-// DWORD __stdcall GetFileVersionInfoSizeA(LPCSTR lptstrFilename, LPDWORD lpdwHandle);
 KKND::Movie *__cdecl MOVIE_read_file(const char *filename);
 void __cdecl MOVIE_free_buffers(KKND::Movie *movie);
 __int16 __cdecl VBC_decode_next_frame(KKND::Movie *movie);
 KKND::MovieFlags __cdecl VBC_parse_frame_chunks(KKND::Movie *movie, KKND::MovieFrame *frame);
-FILE *__cdecl j_fopen(const char *filename);
-int __cdecl j_fclose(FILE *Stream);
-size_t __cdecl j_fread(void *Buffer, size_t ElementSize, size_t ElementCount, FILE *Stream);
-size_t __cdecl j_fwrite(const void *Buffer, size_t ElementSize, size_t ElementCount, FILE *Stream);
-int __cdecl j_fseek(FILE *Stream, int Offset, int Origin);
-int __cdecl j_ftell(FILE *Stream);
-// int __usercall VBC8_block_decoder_1@<eax>(int a1@<ecx>, _DWORD *a2@<esi>);
-// int __usercall VBC8_block_decoder_2@<eax>(int a1@<ecx>, _BYTE *a2@<ebx>, _DWORD *a3@<esi>);
-// __int16 __usercall VBC8_block_decoder_3@<ax>(int a1@<eax>, int a2@<ecx>, _BYTE *a3@<ebx>, _DWORD *a4@<esi>);
 unsigned __int8 *__cdecl VBC_decode_8bpp(unsigned __int16 a1, __int16 a2, unsigned __int8 *a3, int a4, int a5, int a6, int a7, int a8);
-// int __usercall VBC16_block_decoder_1@<eax>(int a1@<ecx>, _DWORD *a2@<esi>);
-// int __usercall VBC16_block_decoder_2@<eax>(int a1@<ecx>, _BYTE *a2@<ebx>, _DWORD *a3@<esi>);
-// __int16 __usercall VBC16_block_decoder_3@<ax>(int a1@<eax>, int a2@<ecx>, _WORD *a3@<ebx>, _DWORD *a4@<esi>);
 void VBC16_block_decoder_3_remap();
 void VBC16_block_decoder_3_palette();
-// __int16 __usercall VBC16_block_decoder_4@<ax>(int@<edx>, int@<ecx>, unsigned __int8 *@<ebx>, char *@<edi>, _DWORD *@<esi>);
-// __int16 __usercall VBC16_block_decoder_4_remap@<ax>(int a1@<edx>, int a2@<ecx>, unsigned __int8 *a3@<ebx>, char *a4@<edi>, _DWORD *a5@<esi>);
-// __int16 __usercall VBC16_block_decoder_4_palette@<ax>(int a1@<edx>, int a2@<ecx>, unsigned __int8 *a3@<ebx>, char *a4@<edi>, _DWORD *a5@<esi>);
 unsigned __int8 *__cdecl VBC_decode_16bpp(unsigned __int16 a1, __int16 a2, unsigned __int8 *a3, int a4, int a5, int a6, int a7, int a8, int a9);
 
 //-------------------------------------------------------------------------
@@ -1393,111 +1331,8 @@ const char *g_credits[117] =
   "%  ",
   "%  ",
   "%  ",
-  "%  "
+  "%  ",
 };
-char *off_464ACC[100] =
-{
-  "Brian Post",
-  "Hien Tran",
-  "%Opponent AI Programming",
-  "Paul Baulch",
-  "%Network Programming",
-  "Louis Solomon",
-  "%Design",
-  "Shane Collier",
-  "David Giles",
-  "%Sprite Artist",
-  "Daniel Tonkin",
-  "%Background Artist",
-  "John Tsiglev",
-  "%Superstructure Artist",
-  "Damian Borg",
-  "Russell Murchie",
-  "%Cinema Artists",
-  "Daniel Tonkin",
-  "Damian Borg",
-  "%Additional Artwork",
-  "Toby Charlton",
-  "Craig Duturbure",
-  "Paul Baulch",
-  "Adam Ryan",
-  "Justin Halliday",
-  "%Mission Designers",
-  "Justin Halliday",
-  "Brian Uniacke",
-  "Ian Malcolm",
-  "Daniel Walker",
-  "%Script Writer",
-  "Craig Duturbure",
-  "%Lead Testers",
-  "Shane Collier",
-  "Andrew Buttery",
-  "%Quality Assurance",
-  "Leigh Reynolds",
-  "Toby Couchman",
-  "Alex McNeilly",
-  "Ashley Parker",
-  "Mike Cody",
-  "Brian Pulliam",
-  "Karen Tarantino",
-  "Rodd Karp",
-  "Joel Skirvin",
-  "Michael Alsept",
-  "Christopher Mason",
-  "Zac Evans",
-  "Rhys Quinert",
-  "Daniel Walters",
-  "Damon Fredrickson",
-  "%Manual Writer",
-  "Craig Duturbure",
-  "%Manual Illustrator",
-  "Daniel Tonkin",
-  "%Localisation Coordinator",
-  "Ben Palmer",
-  "%Technical Assistance",
-  "Adrian Thewlis",
-  "Brian Post",
-  "%Music and Sound",
-  "Marshall Parker",
-  "Gavin Parker",
-  "    and",
-  "Cameron Brown",
-  "%On-line Editing",
-  "Digiline",
-  "%Cast",
-  "Matthew King",
-  "Kirk Alexander",
-  "Christopher Schlusser",
-  "Linda Ross",
-  "%December Films",
-  "Stuart Menzies",
-  "David Stevens",
-  "Georgina Campbell",
-  "Andrew Butt",
-  "Jimmy Hunt",
-  "Nic Dorning",
-  "Rose Chong",
-  "Anne Maree Holley",
-  "Fiona Munday",
-  "Georgia Cordukes",
-  "%Set Construction by Illusions",
-  "%Casting by Chameleon",
-  "%Electronic Arts Team",
-  "Darren MacBeth",
-  "Michael DePlater",
-  "George Fidler",
-  "%Additional Thanks To",
-  "Kevin 'Zaph ' Burfitt",
-  "Cameron Brown",
-  "Simon Hart",
-  "Tim Bos",
-  "%  ",
-  "%  ",
-  "%  ",
-  "%  ",
-  "%  ",
-  "%  "
-}; // weak
 KKND::UnitType g_mute_prisoners[10] =
 {
   UnitType_Mute_Berserker,
@@ -1605,7 +1440,6 @@ KKND::CreatureIdToUnitId g_creature_id_to_unit_id[47] =
   { 149, UnitType_Surv_AtvFlamethrower },
   { -1, UnitType_Invalid }
 };
-const char aWb[] = "wb";
 void *g_script_handlers[352] =
 {
   NULL,
@@ -2713,9 +2547,7 @@ const char *g_sound_bank_per_race[2] = { "surv.slv", "mute.slv" };
 KKND::LevelDesc g_lvl_desc[68] =
 {
   {
-    "surv_01.lvl",
-    "surv2.wav",
-    "heads01.vbc",
+    "surv_01.lvl", "surv2.wav", "heads01.vbc",
     1000,
     5000,
     0,
@@ -2728,9 +2560,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_02.lvl",
-    "surv1.wav",
-    "heads02.vbc",
+    "surv_02.lvl", "surv1.wav", "heads02.vbc",
     4500,
     5000,
     0,
@@ -2743,9 +2573,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_03.lvl",
-    "surv2.wav",
-    "heads03.vbc",
+    "surv_03.lvl", "surv2.wav", "heads03.vbc",
     1000,
     5000,
     0,
@@ -2758,9 +2586,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_04.lvl",
-    "surv1.wav",
-    "heads04.vbc",
+    "surv_04.lvl", "surv1.wav", "heads04.vbc",
     0,
     5000,
     0,
@@ -2773,9 +2599,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_05.lvl",
-    "surv2.wav",
-    "heads05.vbc",
+    "surv_05.lvl", "surv2.wav", "heads05.vbc",
     5000,
     100,
     0,
@@ -2788,9 +2612,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_06.lvl",
-    "surv1.wav",
-    "heads06.vbc",
+    "surv_06.lvl", "surv1.wav", "heads06.vbc",
     0,
     50,
     0,
@@ -2803,9 +2625,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_07.lvl",
-    "surv2.wav",
-    "heads07.vbc",
+    "surv_07.lvl", "surv2.wav", "heads07.vbc",
     4000,
     5000,
     0,
@@ -2818,9 +2638,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_08.lvl",
-    "surv1.wav",
-    "heads08.vbc",
+    "surv_08.lvl", "surv1.wav", "heads08.vbc",
     5000,
     1000,
     0,
@@ -2833,9 +2651,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_09.lvl",
-    "surv2.wav",
-    "heads09.vbc",
+    "surv_09.lvl", "surv2.wav", "heads09.vbc",
     1000,
     100,
     0,
@@ -2848,9 +2664,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_10.lvl",
-    "surv1.wav",
-    "heads10.vbc",
+    "surv_10.lvl", "surv1.wav", "heads10.vbc",
     6500,
     1000,
     0,
@@ -2863,9 +2677,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_11.lvl",
-    "surv2.wav",
-    "heads11.vbc",
+    "surv_11.lvl", "surv2.wav", "heads11.vbc",
     5000,
     1000,
     0,
@@ -2878,9 +2690,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_12.lvl",
-    "surv1.wav",
-    "heads12.vbc",
+    "surv_12.lvl", "surv1.wav", "heads12.vbc",
     0,
     50,
     0,
@@ -2893,9 +2703,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_13.lvl",
-    "surv2.wav",
-    "heads13.vbc",
+    "surv_13.lvl", "surv2.wav", "heads13.vbc",
     4000,
     100,
     0,
@@ -2908,9 +2716,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_14.lvl",
-    "surv1.wav",
-    "heads14.vbc",
+    "surv_14.lvl", "surv1.wav", "heads14.vbc",
     5000,
     5000,
     0,
@@ -2923,9 +2729,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_15.lvl",
-    "surv2.wav",
-    "heads15.vbc",
+    "surv_15.lvl", "surv2.wav", "heads15.vbc",
     6000,
     1000,
     0,
@@ -2938,9 +2742,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_01.lvl",
-    "mute1.wav",
-    "headm01.vbc",
+    "mute_01.lvl", "mute1.wav", "headm01.vbc",
     5000,
     5000,
     0,
@@ -2953,9 +2755,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_02.lvl",
-    "mute2.wav",
-    "headm02.vbc",
+    "mute_02.lvl", "mute2.wav", "headm02.vbc",
     2600,
     1000,
     0,
@@ -2968,9 +2768,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_03.lvl",
-    "mute1.wav",
-    "headm03.vbc",
+    "mute_03.lvl", "mute1.wav", "headm03.vbc",
     2500,
     500,
     0,
@@ -2983,9 +2781,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_04.lvl",
-    "mute2.wav",
-    "headm04.vbc",
+    "mute_04.lvl", "mute2.wav", "headm04.vbc",
     5000,
     500,
     0,
@@ -2998,9 +2794,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_05.lvl",
-    "mute1.wav",
-    "headm05.vbc",
+    "mute_05.lvl", "mute1.wav", "headm05.vbc",
     5000,
     5000,
     0,
@@ -3013,9 +2807,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_06.lvl",
-    "mute2.wav",
-    "headm06.vbc",
+    "mute_06.lvl", "mute2.wav", "headm06.vbc",
     2500,
     100,
     0,
@@ -3028,9 +2820,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_07.lvl",
-    "mute1.wav",
-    "headm07.vbc",
+    "mute_07.lvl", "mute1.wav", "headm07.vbc",
     5000,
     100,
     0,
@@ -3043,9 +2833,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_08.lvl",
-    "mute2.wav",
-    "headm08.vbc",
+    "mute_08.lvl", "mute2.wav", "headm08.vbc",
     5000,
     5000,
     0,
@@ -3058,9 +2846,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_09.lvl",
-    "mute1.wav",
-    "headm09.vbc",
+    "mute_09.lvl", "mute1.wav", "headm09.vbc",
     5000,
     100,
     0,
@@ -3073,9 +2859,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_10.lvl",
-    "mute2.wav",
-    "headm10.vbc",
+    "mute_10.lvl", "mute2.wav", "headm10.vbc",
     5000,
     100,
     0,
@@ -3088,9 +2872,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_11.lvl",
-    "mute1.wav",
-    "headm11.vbc",
+    "mute_11.lvl", "mute1.wav", "headm11.vbc",
     6500,
     100,
     0,
@@ -3103,9 +2885,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_12.lvl",
-    "mute2.wav",
-    "headm12.vbc",
+    "mute_12.lvl", "mute2.wav", "headm12.vbc",
     5000,
     100,
     0,
@@ -3118,9 +2898,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_13.lvl",
-    "mute1.wav",
-    "headm13.vbc",
+    "mute_13.lvl", "mute1.wav", "headm13.vbc",
     6000,
     800,
     0,
@@ -3133,9 +2911,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_14.lvl",
-    "mute2.wav",
-    "headm14.vbc",
+    "mute_14.lvl", "mute2.wav", "headm14.vbc",
     4000,
     5000,
     0,
@@ -3148,9 +2924,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_15.lvl",
-    "mute1.wav",
-    "headm15.vbc",
+    "mute_15.lvl", "mute1.wav", "headm15.vbc",
     7000,
     100,
     0,
@@ -3163,9 +2937,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_01.lvl",
-    "surv1.wav",
-    NULL,
+    "mlti_01.lvl", "surv1.wav", NULL,
     5000,
     5000,
     0,
@@ -3178,9 +2950,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_02.lvl",
-    "surv2.wav",
-    NULL,
+    "mlti_02.lvl", "surv2.wav", NULL,
     5000,
     5000,
     0,
@@ -3193,9 +2963,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_03.lvl",
-    "surv3.wav",
-    NULL,
+    "mlti_03.lvl", "surv3.wav", NULL,
     5000,
     5000,
     0,
@@ -3208,9 +2976,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_04.lvl",
-    "surv4.wav",
-    NULL,
+    "mlti_04.lvl", "surv4.wav", NULL,
     5000,
     5000,
     0,
@@ -3223,9 +2989,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_05.lvl",
-    "mute1.wav",
-    NULL,
+    "mlti_05.lvl", "mute1.wav", NULL,
     5000,
     5000,
     0,
@@ -3238,9 +3002,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_06.lvl",
-    "mute2.wav",
-    NULL,
+    "mlti_06.lvl", "mute2.wav", NULL,
     5000,
     5000,
     0,
@@ -3253,9 +3015,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_07.lvl",
-    "mute3.wav",
-    NULL,
+    "mlti_07.lvl", "mute3.wav", NULL,
     5000,
     5000,
     0,
@@ -3268,9 +3028,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_08.lvl",
-    "mute4.wav",
-    NULL,
+    "mlti_08.lvl", "mute4.wav", NULL,
     5000,
     5000,
     0,
@@ -3283,9 +3041,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_09.lvl",
-    "surv1.wav",
-    NULL,
+    "mlti_09.lvl", "surv1.wav", NULL,
     5000,
     5000,
     0,
@@ -3298,9 +3054,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_10.lvl",
-    "surv2.wav",
-    NULL,
+    "mlti_10.lvl", "surv2.wav", NULL,
     5000,
     5000,
     0,
@@ -3313,9 +3067,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_11.lvl",
-    "surv3.wav",
-    NULL,
+    "mlti_11.lvl", "surv3.wav", NULL,
     5000,
     5000,
     0,
@@ -3328,9 +3080,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_12.lvl",
-    "surv4.wav",
-    NULL,
+    "mlti_12.lvl", "surv4.wav", NULL,
     5000,
     5000,
     0,
@@ -3343,9 +3093,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_13.lvl",
-    "mute1.wav",
-    NULL,
+    "mlti_13.lvl", "mute1.wav", NULL,
     5000,
     5000,
     0,
@@ -3358,9 +3106,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_14.lvl",
-    "mute2.wav",
-    NULL,
+    "mlti_14.lvl", "mute2.wav", NULL,
     5000,
     5000,
     0,
@@ -3373,9 +3119,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_15.lvl",
-    "mute4.wav",
-    NULL,
+    "mlti_15.lvl", "mute4.wav", NULL,
     5000,
     5000,
     0,
@@ -3388,9 +3132,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_10.lvl",
-    "mute3.wav",
-    NULL,
+    "mlti_10.lvl", "mute3.wav", NULL,
     5000,
     5000,
     0,
@@ -3403,9 +3145,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_10.lvl",
-    "surv1.wav",
-    NULL,
+    "mlti_10.lvl", "surv1.wav", NULL,
     5000,
     5000,
     0,
@@ -3418,9 +3158,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mlti_10.lvl",
-    "surv1.wav",
-    NULL,
+    "mlti_10.lvl", "surv1.wav", NULL,
     5000,
     5000,
     0,
@@ -3433,9 +3171,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_16.lvl",
-    "surv4.wav",
-    NULL,
+    "surv_16.lvl", "surv4.wav", NULL,
     3000,
     50,
     0,
@@ -3448,9 +3184,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_17.lvl",
-    "surv1.wav",
-    NULL,
+    "surv_17.lvl", "surv1.wav", NULL,
     3000,
     50,
     0,
@@ -3463,9 +3197,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_18.lvl",
-    "surv4.wav",
-    NULL,
+    "surv_18.lvl", "surv4.wav", NULL,
     0,
     50,
     0,
@@ -3478,9 +3210,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_19.lvl",
-    "surv2.wav",
-    NULL,
+    "surv_19.lvl", "surv2.wav", NULL,
     0,
     50,
     0,
@@ -3493,9 +3223,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_20.lvl",
-    "surv4.wav",
-    NULL,
+    "surv_20.lvl", "surv4.wav", NULL,
     0,
     50,
     0,
@@ -3508,9 +3236,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_21.lvl",
-    "surv3.wav",
-    NULL,
+    "surv_21.lvl", "surv3.wav", NULL,
     5000,
     50,
     0,
@@ -3523,9 +3249,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_22.lvl",
-    "surv4.wav",
-    NULL,
+    "surv_22.lvl", "surv4.wav", NULL,
     0,
     50,
     0,
@@ -3538,9 +3262,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_23.lvl",
-    "surv1.wav",
-    NULL,
+    "surv_23.lvl", "surv1.wav", NULL,
     0,
     50,
     0,
@@ -3553,9 +3275,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_24.lvl",
-    "surv4.wav",
-    NULL,
+    "surv_24.lvl", "surv4.wav", NULL,
     5000,
     50,
     0,
@@ -3568,9 +3288,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "surv_25.lvl",
-    "surv4.wav",
-    NULL,
+    "surv_25.lvl", "surv4.wav", NULL,
     6500,
     50,
     0,
@@ -3583,9 +3301,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_16.lvl",
-    "mute4.wav",
-    NULL,
+    "mute_16.lvl", "mute4.wav", NULL,
     4500,
     50,
     0,
@@ -3598,9 +3314,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_17.lvl",
-    "mute1.wav",
-    NULL,
+    "mute_17.lvl", "mute1.wav", NULL,
     2600,
     50,
     0,
@@ -3613,9 +3327,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_18.lvl",
-    "mute4.wav",
-    NULL,
+    "mute_18.lvl", "mute4.wav", NULL,
     4500,
     50,
     0,
@@ -3628,9 +3340,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_19.lvl",
-    "mute2.wav",
-    NULL,
+    "mute_19.lvl", "mute2.wav", NULL,
     5000,
     50,
     0,
@@ -3643,9 +3353,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_20.lvl",
-    "mute4.wav",
-    NULL,
+    "mute_20.lvl", "mute4.wav", NULL,
     5000,
     50,
     0,
@@ -3658,9 +3366,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_21.lvl",
-    "mute3.wav",
-    NULL,
+    "mute_21.lvl", "mute3.wav", NULL,
     4500,
     50,
     0,
@@ -3673,9 +3379,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_22.lvl",
-    "mute4.wav",
-    NULL,
+    "mute_22.lvl", "mute4.wav", NULL,
     5500,
     0,
     0,
@@ -3688,9 +3392,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_23.lvl",
-    "mute1.wav",
-    NULL,
+    "mute_23.lvl", "mute1.wav", NULL,
     5000,
     50,
     0,
@@ -3703,9 +3405,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_24.lvl",
-    "mute4.wav",
-    NULL,
+    "mute_24.lvl", "mute4.wav", NULL,
     6000,
     50,
     0,
@@ -3718,9 +3418,7 @@ KKND::LevelDesc g_lvl_desc[68] =
     { 0, 0, 0u, 0u }
   },
   {
-    "mute_25.lvl",
-    "mute4.wav",
-    NULL,
+    "mute_25.lvl", "mute4.wav", NULL,
     5000,
     50,
     0,
@@ -4521,2409 +4219,95 @@ KKND::BoxdCollisionShape g_minimap_shape_static = { &g_minimap_aabb };
 KKND::MobdAnimFrame g_minimap_anim_frame = { 0, 0, 0, &MINI_render_fn, NULL, SoundId_Surv_GenericRookie_Move_1,  };
 KKND::UnitStats g_unit_stats[89] =
 {
-  {
-    MobdId_Surv_Rifleman,
-    &UNIT_infantry_tick,
-    "Rifleman",
-    50,
-    400,
-    30,
-    60,
-    64,
-    160,
-    96,
-    65,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Survivors,
-    10,
-    10,
-    UnitType_Surv_Outpost,
-    2
-  },
-  {
-    MobdId_Mute_Berserker,
-    &UNIT_infantry_tick,
-    "Berserker",
-    40,
-    320,
-    30,
-    60,
-    64,
-    160,
-    96,
-    60,
-    0,
-    1,
-    1600,
-    1664,
-    1536,
-    -1,
-    NULL,
-    &g_proj_bow,
-    UnitSize_Small,
-    Race_Evolved,
-    12,
-    12,
-    UnitType_Mute_Clanhall,
-    3
-  },
-  {
-    MobdId_Surv_Flamer,
-    &UNIT_infantry_tick,
-    "Flamer",
-    75,
-    400,
-    30,
-    120,
-    64,
-    128,
-    80,
-    50,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_flamethrower,
-    UnitSize_Small,
-    Race_Survivors,
-    15,
-    15,
-    UnitType_Surv_Outpost,
-    5
-  },
-  {
-    MobdId_Mute_Pyromaniac,
-    &UNIT_infantry_tick,
-    "Pyromaniac",
-    75,
-    400,
-    30,
-    120,
-    64,
-    128,
-    80,
-    50,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_flamethrower,
-    UnitSize_Small,
-    Race_Evolved,
-    15,
-    15,
-    UnitType_Mute_Clanhall,
-    5
-  },
-  {
-    MobdId_Surv_Swat,
-    &UNIT_infantry_tick,
-    "SWAT",
-    75,
-    500,
-    30,
-    60,
-    64,
-    192,
-    128,
-    70,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun_swat,
-    UnitSize_Small,
-    Race_Survivors,
-    15,
-    15,
-    UnitType_Surv_Outpost,
-    5
-  },
-  {
-    MobdId_Mute_Shotgunner,
-    &UNIT_infantry_tick,
-    "Shotgunner",
-    75,
-    500,
-    30,
-    90,
-    64,
-    160,
-    128,
-    90,
-    0,
-    1,
-    1472,
-    1536,
-    1408,
-    -1,
-    NULL,
-    &g_proj_shotgun,
-    UnitSize_Small,
-    Race_Evolved,
-    15,
-    15,
-    UnitType_Mute_Clanhall,
-    5
-  },
-  {
-    MobdId_Surv_Sapper,
-    &UNIT_infantry_tick,
-    "Sapper",
-    125,
-    500,
-    30,
-    120,
-    64,
-    160,
-    96,
-    90,
-    0,
-    1,
-    2176,
-    2240,
-    2112,
-    -1,
-    NULL,
-    &g_proj_grenade,
-    UnitSize_Small,
-    Race_Survivors,
-    20,
-    20,
-    UnitType_Surv_Outpost,
-    7
-  },
-  {
-    MobdId_Mute_Rioter,
-    &UNIT_infantry_tick,
-    "Rioter",
-    125,
-    500,
-    30,
-    120,
-    64,
-    160,
-    96,
-    90,
-    0,
-    1,
-    1536,
-    1600,
-    1472,
-    -1,
-    NULL,
-    &g_proj_grenade,
-    UnitSize_Small,
-    Race_Evolved,
-    20,
-    20,
-    UnitType_Mute_Clanhall,
-    7
-  },
-  {
-    MobdId_Surv_General,
-    &UNIT_infantry_tick,
-    "El Presidente",
-    450,
-    600,
-    30,
-    90,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Survivors,
-    10,
-    100,
-    UnitType_Surv_Outpost,
-    10
-  },
-  {
-    MobdId_Mute_Chieftan,
-    &UNIT_infantry_tick,
-    "King Zog",
-    450,
-    600,
-    30,
-    90,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Evolved,
-    10,
-    100,
-    UnitType_Mute_Clanhall,
-    10
-  },
-  {
-    MobdId_Surv_Saboteur,
-    &UNIT_infantry_tick,
-    "Saboteur",
-    100,
-    600,
-    35,
-    120,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Survivors,
-    10,
-    100,
-    UnitType_Surv_Outpost,
-    8
-  },
-  {
-    MobdId_Mute_Vandal,
-    &UNIT_infantry_tick,
-    "Vandal",
-    100,
-    600,
-    35,
-    120,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Evolved,
-    10,
-    100,
-    UnitType_Mute_Clanhall,
-    8
-  },
-  {
-    MobdId_Surv_Technician,
-    &UNIT_infantry_tick,
-    "Technician",
-    150,
-    500,
-    35,
-    10,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    -1,
-    1088,
-    960,
-    -1,
-    NULL,
-    NULL,
-    UnitSize_Small,
-    Race_Survivors,
-    0,
-    20,
-    UnitType_Surv_Outpost,
-    9
-  },
-  {
-    MobdId_Mute_Mekanik,
-    &UNIT_infantry_tick,
-    "Mekanik",
-    150,
-    500,
-    35,
-    10,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    -1,
-    1088,
-    960,
-    -1,
-    NULL,
-    NULL,
-    UnitSize_Small,
-    Race_Evolved,
-    0,
-    20,
-    UnitType_Mute_Clanhall,
-    9
-  },
-  {
-    MobdId_Surv_RpgLauncher,
-    &UNIT_infantry_tick,
-    "RPG Launcher",
-    150,
-    400,
-    30,
-    150,
-    64,
-    224,
-    160,
-    75,
-    0,
-    1,
-    1472,
-    1536,
-    1408,
-    -1,
-    NULL,
-    &g_proj_rocket_rpg,
-    UnitSize_Small,
-    Race_Survivors,
-    30,
-    30,
-    UnitType_Surv_Outpost,
-    8
-  },
-  {
-    MobdId_Mute_Bazooka,
-    &UNIT_infantry_tick,
-    "Bazooka",
-    150,
-    400,
-    30,
-    150,
-    64,
-    224,
-    160,
-    75,
-    0,
-    1,
-    1728,
-    1792,
-    1664,
-    -1,
-    NULL,
-    &g_proj_rocket_rpg,
-    UnitSize_Small,
-    Race_Evolved,
-    30,
-    30,
-    UnitType_Mute_Clanhall,
-    8
-  },
-  {
-    MobdId_Surv_Sniper,
-    &UNIT_infantry_tick,
-    "Sniper",
-    200,
-    600,
-    35,
-    90,
-    64,
-    288,
-    224,
-    90,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_sniper,
-    UnitSize_Small,
-    Race_Survivors,
-    40,
-    40,
-    UnitType_Surv_Outpost,
-    10
-  },
-  {
-    MobdId_Mute_CrazyHarry,
-    &UNIT_infantry_tick,
-    "Crazy Harry",
-    200,
-    500,
-    30,
-    30,
-    64,
-    256,
-    192,
-    50,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_sniper,
-    UnitSize_Small,
-    Race_Evolved,
-    40,
-    40,
-    UnitType_Mute_Clanhall,
-    10
-  },
-  {
-    MobdId_Surv_General,
-    &UNIT_default_tick,
-    "General",
-    100,
-    400,
-    30,
-    60,
-    64,
-    160,
-    96,
-    50,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Survivors,
-    10,
-    100,
-    UnitType_Surv_Outpost,
-    10
-  },
-  {
-    MobdId_Mute_Chieftan,
-    &UNIT_infantry_tick,
-    "Warlord",
-    450,
-    400,
-    30,
-    90,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Evolved,
-    10,
-    100,
-    UnitType_Mute_Clanhall,
-    10
-  },
-  {
-    MobdId_Surv_Rifleman,
-    &UNIT_infantry_tick,
-    "Scout",
-    100,
-    400,
-    35,
-    60,
-    64,
-    160,
-    96,
-    50,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Survivors,
-    15,
-    15,
-    UnitType_Surv_Outpost,
-    4
-  },
-  {
-    MobdId_Surv_MobileDerrick,
-    &UNIT_mobile_derrick_tick,
-    "Derrick",
-    1000,
-    4000,
-    30,
-    12,
-    3,
-    0,
-    0,
-    0,
-    1,
-    0,
-    -1,
-    860,
-    732,
-    -1,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    500,
-    UnitType_Surv_MachineShop,
-    15
-  },
-  {
-    MobdId_Mute_MobileDerrick,
-    &UNIT_mobile_derrick_tick,
-    "Derrick",
-    1000,
-    4000,
-    30,
-    12,
-    3,
-    0,
-    0,
-    0,
-    1,
-    0,
-    -1,
-    832,
-    704,
-    -1,
-    &g_attach_mobile_derrick_mute,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    500,
-    UnitType_Mute_Blacksmith,
-    15
-  },
-  {
-    MobdId_Surv_OilTanker,
-    &UNIT_tanker_tick,
-    "Oil Tanker",
-    600,
-    3000,
-    35,
-    35,
-    3,
-    0,
-    0,
-    0,
-    1,
-    0,
-    -1,
-    832,
-    704,
-    -1,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    200,
-    UnitType_Surv_MachineShop,
-    10
-  },
-  {
-    MobdId_Mute_OilTanker,
-    &UNIT_tanker_tick,
-    "Oil Tanker",
-    600,
-    3000,
-    35,
-    35,
-    3,
-    0,
-    0,
-    0,
-    1,
-    0,
-    -1,
-    832,
-    704,
-    -1,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    200,
-    UnitType_Mute_Blacksmith,
-    10
-  },
-  {
-    MobdId_Surv_OilTanker,
-    &UNIT_tanker_convoy_tick,
-    "Convoy Tanker",
-    600,
-    2000,
-    18,
-    10,
-    3,
-    0,
-    0,
-    0,
-    1,
-    0,
-    -1,
-    832,
-    704,
-    -1,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    200,
-    UnitType_Surv_MachineShop,
-    10
-  },
-  {
-    MobdId_Surv_DirkBike,
-    &UNIT_vehicle_tick,
-    "Dirt Bike",
-    250,
-    500,
-    80,
-    60,
-    3,
-    224,
-    128,
-    70,
-    0,
-    0,
-    960,
-    1024,
-    896,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Regular,
-    Race_Survivors,
-    10,
-    10,
-    UnitType_Surv_MachineShop,
-    4
-  },
-  {
-    MobdId_Mute_DirewWolf,
-    &UNIT_vehicle_tick,
-    "Dire Wolf",
-    250,
-    600,
-    75,
-    60,
-    16,
-    224,
-    128,
-    70,
-    0,
-    0,
-    1712,
-    1776,
-    1648,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Regular,
-    Race_Evolved,
-    20,
-    20,
-    UnitType_Mute_BeastEnclosure,
-    4
-  },
-  {
-    MobdId_Surv_4x4Pickup,
-    &UNIT_vehicle_tick,
-    "4x4 Pickup",
-    350,
-    800,
-    70,
-    60,
-    3,
-    224,
-    128,
-    70,
-    0,
-    0,
-    -1,
-    1024,
-    896,
-    -1,
-    &g_turret_4x4_pickup,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    20,
-    20,
-    UnitType_Surv_MachineShop,
-    6
-  },
-  {
-    MobdId_Mute_BikeAndSidecar,
-    &UNIT_vehicle_tick,
-    "Bike & Sidecar",
-    300,
-    700,
-    70,
-    60,
-    3,
-    224,
-    128,
-    70,
-    0,
-    0,
-    -1,
-    1024,
-    896,
-    -1,
-    &g_turret_bike_and_sidecar,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    20,
-    20,
-    UnitType_Mute_Blacksmith,
-    6
-  },
-  {
-    MobdId_Surv_Atv,
-    &UNIT_vehicle_tick,
-    "All terrain Vehicle",
-    500,
-    1200,
-    60,
-    30,
-    3,
-    256,
-    160,
-    70,
-    1,
-    0,
-    -1,
-    1024,
-    896,
-    -1,
-    &g_turret_atv,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    30,
-    30,
-    UnitType_Surv_MachineShop,
-    7
-  },
-  {
-    MobdId_Mute_MonsterTruck,
-    &UNIT_vehicle_tick,
-    "Monster Truck",
-    450,
-    1000,
-    55,
-    30,
-    3,
-    256,
-    160,
-    70,
-    1,
-    0,
-    -1,
-    1024,
-    896,
-    -1,
-    &g_turret_monster_truck,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    30,
-    30,
-    UnitType_Mute_Blacksmith,
-    7
-  },
-  {
-    MobdId_Surv_AtvFlamethrower,
-    &UNIT_vehicle_tick,
-    "ATV Flamethrower",
-    550,
-    1200,
-    55,
-    90,
-    3,
-    256,
-    96,
-    50,
-    1,
-    0,
-    -1,
-    1024,
-    896,
-    -1,
-    &g_turret_atv_flamethrower,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    70,
-    70,
-    UnitType_Surv_MachineShop,
-    10
-  },
-  {
-    MobdId_Mute_GiantScorpion,
-    &UNIT_vehicle_tick,
-    "Giant Scorpion",
-    600,
-    1000,
-    45,
-    120,
-    3,
-    224,
-    160,
-    70,
-    1,
-    0,
-    1536,
-    1600,
-    1472,
-    -1,
-    NULL,
-    &g_proj_scorpion,
-    UnitSize_Regular,
-    Race_Evolved,
-    50,
-    50,
-    UnitType_Mute_BeastEnclosure,
-    8
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    &UNIT_vehicle_tick,
-    "Anaconda Tank",
-    850,
-    1600,
-    45,
-    150,
-    3,
-    256,
-    192,
-    75,
-    1,
-    0,
-    -1,
-    1216,
-    1088,
-    -1,
-    &g_turret_anaconda_cannon,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    60,
-    60,
-    UnitType_Surv_MachineShop,
-    10
-  },
-  {
-    MobdId_Mute_WarMastadont,
-    &UNIT_vehicle_tick,
-    "War Mastodon",
-    800,
-    1600,
-    35,
-    140,
-    3,
-    256,
-    192,
-    80,
-    1,
-    0,
-    -1,
-    1728,
-    1600,
-    -1,
-    &g_turret_war_mastadont,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    80,
-    80,
-    UnitType_Mute_BeastEnclosure,
-    12
-  },
-  {
-    MobdId_Surv_BarrageCraft,
-    &UNIT_vehicle_tick,
-    "Barrage Craft",
-    1000,
-    1800,
-    30,
-    60,
-    3,
-    304,
-    240,
-    80,
-    1,
-    0,
-    -1,
-    832,
-    832,
-    -1,
-    &g_turret_barrage_craft,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    80,
-    80,
-    UnitType_Surv_MachineShop,
-    12
-  },
-  {
-    MobdId_Mute_GiantBeetle,
-    &UNIT_vehicle_tick,
-    "Giant Beetle",
-    900,
-    1200,
-    30,
-    150,
-    3,
-    256,
-    192,
-    85,
-    1,
-    0,
-    2488,
-    2552,
-    2424,
-    -1,
-    NULL,
-    &g_proj_giant_beetle,
-    UnitSize_Regular,
-    Race_Evolved,
-    90,
-    90,
-    UnitType_Mute_BeastEnclosure,
-    13
-  },
-  {
-    MobdId_Surv_AutocannonTank,
-    &UNIT_vehicle_tick,
-    "Autocannon Tank",
-    1200,
-    1700,
-    30,
-    3,
-    3,
-    288,
-    224,
-    70,
-    1,
-    0,
-    -1,
-    1408,
-    1280,
-    -1,
-    &g_turret_autocannon_tank,
-    NULL,
-    UnitSize_XL,
-    Race_Survivors,
-    120,
-    100,
-    UnitType_Surv_MachineShop,
-    15
-  },
-  {
-    MobdId_Mute_MissileCrab,
-    &UNIT_vehicle_tick,
-    "Missile Crab",
-    1100,
-    1800,
-    30,
-    60,
-    3,
-    320,
-    256,
-    93,
-    1,
-    0,
-    -1,
-    1728,
-    1600,
-    -1,
-    &g_turret_missile_crab,
-    NULL,
-    UnitSize_XL,
-    Race_Evolved,
-    120,
-    100,
-    UnitType_Mute_BeastEnclosure,
-    15
-  },
-  {
-    MobdId_Surv_MobileOutpost,
-    &UNIT_mobile_base_tick,
-    "Mobile Outpost",
-    300,
-    6000,
-    20,
-    60,
-    3,
-    160,
-    96,
-    70,
-    1,
-    0,
-    -1,
-    960,
-    832,
-    768,
-    NULL,
-    NULL,
-    UnitSize_XL,
-    Race_Survivors,
-    0,
-    200,
-    UnitType_Surv_MachineShop,
-    30
-  },
-  {
-    MobdId_Mute_ClanhallWagon,
-    &UNIT_mobile_base_tick,
-    "Clanhall Wagon",
-    300,
-    6000,
-    20,
-    60,
-    3,
-    160,
-    96,
-    70,
-    1,
-    0,
-    -1,
-    832,
-    704,
-    640,
-    NULL,
-    NULL,
-    UnitSize_XL,
-    Race_Evolved,
-    0,
-    200,
-    UnitType_Mute_Blacksmith,
-    30
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Orville ultralight",
-    1500,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Mute_Wasp,
-    &UNIT_bomber_tick,
-    "Wasp",
-    2000,
-    750,
-    120,
-    60,
-    1,
-    160,
-    96,
-    70,
-    0,
-    0,
-    832,
-    896,
-    768,
-    704,
-    &g_attach_wasp,
-    &g_proj_nuke,
-    UnitSize_Regular,
-    Race_Evolved,
-    120,
-    100,
-    UnitType_Invalid,
-    300
-  },
-  {
-    MobdId_Surv_Bomber,
-    &UNIT_bomber_tick,
-    "Bomber",
-    2000,
-    750,
-    120,
-    60,
-    1,
-    160,
-    96,
-    70,
-    0,
-    0,
-    764,
-    828,
-    700,
-    636,
-    &g_attach_bomber,
-    &g_proj_nuke,
-    UnitSize_Regular,
-    Race_Survivors,
-    120,
-    100,
-    UnitType_Invalid,
-    300
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Kamikaze Rocket",
-    2000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_Drillrig,
-    &UNIT_drillrig_tick,
-    "Drill Rig",
-    1000,
-    4000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    428,
-    -1,
-    364,
-    300,
-    &g_attach_drillrig_surv,
-    &g_proj_building,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    500,
-    UnitType_Surv_MachineShop,
-    0
-  },
-  {
-    MobdId_Mute_Drillrig,
-    &UNIT_drillrig_tick,
-    "Drill Rig",
-    1000,
-    4000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    392,
-    -1,
-    328,
-    264,
-    &g_attach_drillrig_mute,
-    &g_proj_building,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    500,
-    UnitType_Mute_Blacksmith,
-    0
-  },
-  {
-    MobdId_Surv_PowerStation,
-    &UNIT_power_plant_tick,
-    "Power Station",
-    1300,
-    4000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    452,
-    516,
-    388,
-    324,
-    &g_attach_power_station_surv,
-    &g_proj_building,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    120,
-    UnitType_Invalid,
-    15
-  },
-  {
-    MobdId_Mute_PowerStation,
-    &UNIT_power_plant_tick,
-    "Power Station",
-    1300,
-    4000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    452,
-    516,
-    388,
-    324,
-    &g_attach_power_station_mute,
-    &g_proj_building,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    120,
-    UnitType_Invalid,
-    15
-  },
-  {
-    MobdId_Surv_DetentionCenter,
-    &UNIT_prison_tick,
-    "Detention Center",
-    250,
-    2000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    344,
-    408,
-    280,
-    216,
-    NULL,
-    &g_proj_building,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    100,
-    UnitType_Invalid,
-    15
-  },
-  {
-    MobdId_Mute_HoldingPen,
-    &UNIT_prison_tick,
-    "Holding Pen",
-    250,
-    2000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    344,
-    408,
-    280,
-    216,
-    NULL,
-    &g_proj_building,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    100,
-    UnitType_Invalid,
-    15
-  },
-  {
-    MobdId_Surv_GuardTower,
-    &UNIT_tower_tick,
-    "Guard Tower",
-    500,
-    1200,
-    0,
-    0,
-    0,
-    208,
-    192,
-    90,
-    0,
-    0,
-    608,
-    672,
-    544,
-    544,
-    &g_turret_guard_tower,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    100,
-    100,
-    UnitType_Invalid,
-    15
-  },
-  {
-    MobdId_Mute_MachinegunNest,
-    &UNIT_tower_tick,
-    "Machinegun Nest",
-    500,
-    1200,
-    0,
-    0,
-    0,
-    208,
-    192,
-    90,
-    0,
-    0,
-    572,
-    636,
-    508,
-    508,
-    &g_turret_machinegun_nest,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    100,
-    100,
-    UnitType_Invalid,
-    15
-  },
-  {
-    MobdId_Surv_CannonTower,
-    &UNIT_tower_tick,
-    "Cannon Tower",
-    2500,
-    2400,
-    0,
-    0,
-    0,
-    320,
-    256,
-    90,
-    0,
-    0,
-    892,
-    956,
-    828,
-    764,
-    &g_turret_cannon_tower,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    80,
-    80,
-    UnitType_Invalid,
-    45
-  },
-  {
-    MobdId_Mute_GrapeshotTower,
-    &UNIT_tower_tick,
-    "GrapeShot Cannon",
-    1500,
-    1800,
-    0,
-    0,
-    0,
-    320,
-    256,
-    50,
-    0,
-    0,
-    764,
-    828,
-    700,
-    636,
-    &g_turrent_grapeshot_cannon,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    80,
-    80,
-    UnitType_Invalid,
-    30
-  },
-  {
-    MobdId_Surv_MissileBattery,
-    &UNIT_tower_tick,
-    "Missile Battery",
-    1500,
-    1800,
-    0,
-    0,
-    0,
-    320,
-    256,
-    90,
-    0,
-    0,
-    628,
-    692,
-    564,
-    500,
-    &g_turret_missile_battery,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    80,
-    80,
-    UnitType_Invalid,
-    30
-  },
-  {
-    MobdId_Mute_RotaryCannon,
-    &UNIT_tower_tick,
-    "Rotary Cannon",
-    2500,
-    2500,
-    0,
-    0,
-    0,
-    324,
-    260,
-    75,
-    0,
-    0,
-    956,
-    1020,
-    892,
-    892,
-    &g_turret_rotary_cannon,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    100,
-    100,
-    UnitType_Invalid,
-    45
-  },
-  {
-    MobdId_Surv_Outpost,
-    &UNIT_outpost_tick,
-    "Outpost",
-    1000,
-    6000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1232,
-    1296,
-    1168,
-    1104,
-    &g_attach_outpost,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    300,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_Mute_Clanhall,
-    &UNIT_clanhall_tick,
-    "Clanhall",
-    1000,
-    6000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    968,
-    1032,
-    904,
-    840,
-    &g_attach_clanhall,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    300,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_Surv_MachineShop,
-    &UNIT_machine_shop_tick,
-    "Machine Shop",
-    1000,
-    4000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    452,
-    516,
-    388,
-    324,
-    &g_attach_machine_shop,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    200,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_Mute_Blacksmith,
-    &UNIT_blacksmith_tick,
-    "Blacksmith",
-    550,
-    3200,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    416,
-    480,
-    352,
-    288,
-    &g_attach_blacksmith,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    150,
-    UnitType_Invalid,
-    20
-  },
-  {
-    MobdId_Mute_BeastEnclosure,
-    &UNIT_beast_enclosure_tick,
-    "Beast Enclosure",
-    550,
-    3200,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    452,
-    516,
-    388,
-    324,
-    &g_attach_beast_enclosure,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    200,
-    UnitType_Invalid,
-    20
-  },
-  {
-    MobdId_Surv_RepairBay,
-    &UNIT_repair_bay_tick,
-    "Repair Bay",
-    1000,
-    3000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    512,
-    576,
-    448,
-    384,
-    &g_attach_repair_bay,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    100,
-    UnitType_Invalid,
-    30
-  },
-  {
-    MobdId_Mute_Menagerie,
-    &UNIT_repair_bay_tick,
-    "Menagerie",
-    1000,
-    3000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    428,
-    492,
-    364,
-    300,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    100,
-    UnitType_Invalid,
-    30
-  },
-  {
-    MobdId_Surv_ResearchLab,
-    &UNIT_research_lab_tick,
-    "Research Lab",
-    700,
-    3000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    416,
-    480,
-    352,
-    288,
-    &g_attach_research_lab,
-    NULL,
-    UnitSize_Regular,
-    Race_Survivors,
-    0,
-    10,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_Mute_AlchemyHall,
-    &UNIT_research_lab_tick,
-    "Alchemy Hall",
-    700,
-    3000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    416,
-    480,
-    352,
-    288,
-    &g_attach_tech_alchemy_hall,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    10,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_TechBunker,
-    &UNIT_tech_bunker_tick,
-    "Tech Bunker",
-    700,
-    3000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    412,
-    476,
-    348,
-    -1,
-    &g_attach_tech_bunker,
-    NULL,
-    UnitSize_Regular,
-    0u,
-    0,
-    10,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_Hut,
-    &UNIT_hut_tick,
-    "Hut",
-    700,
-    300,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    -1,
-    528,
-    400,
-    336,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    10,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Wall",
-    50,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Wall",
-    50,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Wall",
-    150,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Wall",
-    150,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "U.F.O.",
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Gort,
-    &UNIT_vehicle_tick,
-    "Gort The Robot",
-    50,
-    3500,
-    40,
-    35,
-    64,
-    192,
-    128,
-    80,
-    1,
-    0,
-    2684,
-    2748,
-    2620,
-    -1,
-    NULL,
-    &g_proj_gort,
-    UnitSize_XL,
-    0u,
-    100,
-    100,
-    UnitType_Invalid,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    &UNIT_vehicle_tick,
-    "G.O.R.N.",
-    50,
-    3600,
-    40,
-    120,
-    3,
-    224,
-    160,
-    80,
-    1,
-    0,
-    -1,
-    1216,
-    1088,
-    -1,
-    &g_turret_anaconda_cannon,
-    NULL,
-    UnitSize_Regular,
-    0u,
-    100,
-    100,
-    UnitType_Invalid,
-    0
-  },
-  {
-    MobdId_PlasmaTank,
-    &UNIT_vehicle_tick,
-    "Plasma Tank",
-    50,
-    3600,
-    40,
-    120,
-    3,
-    288,
-    224,
-    85,
-    1,
-    0,
-    -1,
-    1176,
-    1048,
-    -1,
-    &g_turret_plasma_cannon,
-    NULL,
-    UnitSize_XL,
-    0u,
-    80,
-    80,
-    UnitType_Invalid,
-    0
-  },
-  {
-    MobdId_SentinelDroid,
-    &UNIT_vehicle_tick,
-    "Sentinel Droid",
-    50,
-    3600,
-    40,
-    90,
-    3,
-    288,
-    224,
-    95,
-    1,
-    0,
-    -1,
-    1920,
-    1792,
-    -1,
-    &g_turret_sentinel_droid,
-    NULL,
-    UnitSize_Regular,
-    0u,
-    70,
-    70,
-    UnitType_Invalid,
-    0
-  },
-  {
-    MobdId_Mech,
-    &UNIT_vehicle_tick,
-    "Mech",
-    50,
-    3600,
-    40,
-    120,
-    3,
-    256,
-    192,
-    95,
-    1,
-    0,
-    -1,
-    1560,
-    1432,
-    -1,
-    &g_turret_mech,
-    NULL,
-    UnitSize_Regular,
-    0u,
-    50,
-    50,
-    UnitType_Invalid,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Satellite radar",
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "F.O.B.S.system",
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Micro fusion reactor",
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Hut,
-    &UNIT_hut_tick,
-    "Hut",
-    700,
-    300,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    464,
-    528,
-    400,
-    -1,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    Race_Evolved,
-    0,
-    10,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_TechBunker,
-    &UNIT_tech_bunker_tick,
-    "Tech Bunker",
-    700,
-    3000,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    412,
-    476,
-    348,
-    -1,
-    &g_attach_tech_bunker,
-    NULL,
-    UnitSize_Regular,
-    0u,
-    0,
-    10,
-    UnitType_Invalid,
-    25
-  },
-  {
-    MobdId_Mute_Chieftan,
-    &UNIT_infantry_tick,
-    "Infiltrator",
-    450,
-    400,
-    30,
-    90,
-    64,
-    160,
-    96,
-    75,
-    0,
-    1,
-    1408,
-    1472,
-    1344,
-    -1,
-    NULL,
-    &g_proj_machinegun,
-    UnitSize_Small,
-    Race_Survivors,
-    10,
-    100,
-    UnitType_Surv_Outpost,
-    10
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "Timebomb",
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_Drillrig,
-    NULL,
-    "Tree",
-    0,
-    100,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    -1,
-    -1,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_Regular,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Surv_AnacondaTank,
-    NULL,
-    "AirStrike",
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  },
-  {
-    MobdId_Invalid,
-    NULL,
-    "No unit here massa...",
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    NULL,
-    NULL,
-    UnitSize_None,
-    0u,
-    0,
-    0,
-    UnitType_Surv_Rifleman,
-    0
-  }
+  { MobdId_Surv_Rifleman,        &UNIT_infantry_tick,        "Rifleman",               50,  400, 30, 60, 64, 160, 96, 65, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Survivors, 10, 10, UnitType_Surv_Outpost, 2 },
+  { MobdId_Mute_Berserker,       &UNIT_infantry_tick,        "Berserker",              40,  320, 30, 60, 64, 160, 96, 60, 0, 1, 1600, 1664, 1536, -1, NULL, &g_proj_bow, UnitSize_Small, Race_Evolved, 12, 12, UnitType_Mute_Clanhall, 3 },
+  { MobdId_Surv_Flamer,          &UNIT_infantry_tick,        "Flamer",                 75,  400, 30, 120, 64, 128, 80, 50, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_flamethrower, UnitSize_Small, Race_Survivors, 15, 15, UnitType_Surv_Outpost, 5 },
+  { MobdId_Mute_Pyromaniac,      &UNIT_infantry_tick,        "Pyromaniac",             75,  400, 30, 120, 64, 128, 80, 50, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_flamethrower, UnitSize_Small, Race_Evolved, 15, 15, UnitType_Mute_Clanhall, 5 },
+  { MobdId_Surv_Swat,            &UNIT_infantry_tick,        "SWAT",                   75,  500, 30, 60, 64, 192, 128, 70, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun_swat, UnitSize_Small, Race_Survivors, 15, 15, UnitType_Surv_Outpost, 5 },
+  { MobdId_Mute_Shotgunner,      &UNIT_infantry_tick,        "Shotgunner",             75,  500, 30, 90, 64, 160, 128, 90, 0, 1, 1472, 1536, 1408, -1, NULL, &g_proj_shotgun, UnitSize_Small, Race_Evolved, 15, 15, UnitType_Mute_Clanhall, 5 },
+  { MobdId_Surv_Sapper,          &UNIT_infantry_tick,        "Sapper",                125,  500, 30, 120, 64, 160, 96, 90, 0, 1, 2176, 2240, 2112, -1, NULL, &g_proj_grenade, UnitSize_Small, Race_Survivors, 20, 20, UnitType_Surv_Outpost, 7 },
+  { MobdId_Mute_Rioter,          &UNIT_infantry_tick,        "Rioter",                125,  500, 30, 120, 64, 160, 96, 90, 0, 1, 1536, 1600, 1472, -1, NULL, &g_proj_grenade, UnitSize_Small, Race_Evolved, 20, 20, UnitType_Mute_Clanhall, 7 },
+  { MobdId_Surv_General,         &UNIT_infantry_tick,        "El Presidente",         450,  600, 30, 90, 64, 160, 96, 75, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Survivors, 10, 100, UnitType_Surv_Outpost, 10 },
+  { MobdId_Mute_Chieftan,        &UNIT_infantry_tick,        "King Zog",              450,  600, 30, 90, 64, 160, 96, 75, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Evolved, 10, 100, UnitType_Mute_Clanhall, 10 },
+  { MobdId_Surv_Saboteur,        &UNIT_infantry_tick,        "Saboteur",              100,  600, 35, 120, 64, 160, 96, 75, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Survivors, 10, 100, UnitType_Surv_Outpost, 8 },
+  { MobdId_Mute_Vandal,          &UNIT_infantry_tick,        "Vandal",                100,  600, 35, 120, 64, 160, 96, 75, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Evolved, 10, 100, UnitType_Mute_Clanhall, 8 },
+  { MobdId_Surv_Technician,      &UNIT_infantry_tick,        "Technician",            150,  500, 35, 10, 64, 160, 96, 75, 0, 1, -1, 1088, 960, -1, NULL, NULL, UnitSize_Small, Race_Survivors, 0, 20, UnitType_Surv_Outpost, 9 },
+  { MobdId_Mute_Mekanik,         &UNIT_infantry_tick,        "Mekanik",               150,  500, 35, 10, 64, 160, 96, 75, 0, 1, -1, 1088, 960, -1, NULL, NULL, UnitSize_Small, Race_Evolved, 0, 20, UnitType_Mute_Clanhall, 9 },
+  { MobdId_Surv_RpgLauncher,     &UNIT_infantry_tick,        "RPG Launcher",          150,  400, 30, 150, 64, 224, 160, 75, 0, 1, 1472, 1536, 1408, -1, NULL, &g_proj_rocket_rpg, UnitSize_Small, Race_Survivors, 30, 30, UnitType_Surv_Outpost, 8 },
+  { MobdId_Mute_Bazooka,         &UNIT_infantry_tick,        "Bazooka",               150,  400, 30, 150, 64, 224, 160, 75, 0, 1, 1728, 1792, 1664, -1, NULL, &g_proj_rocket_rpg, UnitSize_Small, Race_Evolved, 30, 30, UnitType_Mute_Clanhall, 8 },
+  { MobdId_Surv_Sniper,          &UNIT_infantry_tick,        "Sniper",                200,  600, 35, 90, 64, 288, 224, 90, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_sniper, UnitSize_Small, Race_Survivors, 40, 40, UnitType_Surv_Outpost, 10 },
+  { MobdId_Mute_CrazyHarry,      &UNIT_infantry_tick,        "Crazy Harry",           200,  500, 30, 30, 64, 256, 192, 50, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_sniper, UnitSize_Small, Race_Evolved, 40, 40, UnitType_Mute_Clanhall, 10 },
+  { MobdId_Surv_General,         &UNIT_default_tick,         "General",               100,  400, 30, 60, 64, 160, 96, 50, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Survivors, 10, 100, UnitType_Surv_Outpost, 10 },
+  { MobdId_Mute_Chieftan,        &UNIT_infantry_tick,        "Warlord",               450,  400, 30, 90, 64, 160, 96, 75, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Evolved, 10, 100, UnitType_Mute_Clanhall, 10 },
+  { MobdId_Surv_Rifleman,        &UNIT_infantry_tick,        "Scout",                 100,  400, 35, 60, 64, 160, 96, 50, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Survivors, 15, 15, UnitType_Surv_Outpost, 4 },
+  { MobdId_Surv_MobileDerrick,   &UNIT_mobile_derrick_tick,  "Derrick",              1000, 4000, 30, 12, 3, 0, 0, 0, 1, 0, -1, 860, 732, -1, NULL, NULL, UnitSize_Regular, Race_Survivors, 0, 500, UnitType_Surv_MachineShop, 15 },
+  { MobdId_Mute_MobileDerrick,   &UNIT_mobile_derrick_tick,  "Derrick",              1000, 4000, 30, 12, 3, 0, 0, 0, 1, 0, -1, 832, 704, -1, &g_attach_mobile_derrick_mute, NULL, UnitSize_Regular, Race_Evolved, 0, 500, UnitType_Mute_Blacksmith, 15 },
+  { MobdId_Surv_OilTanker,       &UNIT_tanker_tick,          "Oil Tanker",            600, 3000, 35, 35, 3, 0, 0, 0, 1, 0, -1, 832, 704, -1, NULL, NULL, UnitSize_Regular, Race_Survivors, 0, 200, UnitType_Surv_MachineShop, 10 },
+  { MobdId_Mute_OilTanker,       &UNIT_tanker_tick,          "Oil Tanker",            600, 3000, 35, 35, 3, 0, 0, 0, 1, 0, -1, 832, 704, -1, NULL, NULL, UnitSize_Regular, Race_Evolved, 0, 200, UnitType_Mute_Blacksmith, 10 },
+  { MobdId_Surv_OilTanker,       &UNIT_tanker_convoy_tick,   "Convoy Tanker",         600, 2000, 18, 10, 3, 0, 0, 0, 1, 0, -1, 832, 704, -1, NULL, NULL, UnitSize_Regular, Race_Survivors, 0, 200, UnitType_Surv_MachineShop, 10 },
+  { MobdId_Surv_DirkBike,        &UNIT_vehicle_tick,         "Dirt Bike",             250,  500, 80, 60, 3, 224, 128, 70, 0, 0, 960, 1024, 896, -1, NULL, &g_proj_machinegun, UnitSize_Regular, Race_Survivors, 10, 10, UnitType_Surv_MachineShop, 4 },
+  { MobdId_Mute_DirewWolf,       &UNIT_vehicle_tick,         "Dire Wolf",             250,  600, 75, 60, 16, 224, 128, 70, 0, 0, 1712, 1776, 1648, -1, NULL, &g_proj_machinegun, UnitSize_Regular, Race_Evolved, 20, 20, UnitType_Mute_BeastEnclosure, 4 },
+  { MobdId_Surv_4x4Pickup,       &UNIT_vehicle_tick,         "4x4 Pickup",            350,  800, 70, 60, 3, 224, 128, 70, 0, 0, -1, 1024, 896, -1, &g_turret_4x4_pickup, NULL, UnitSize_Regular, Race_Survivors, 20, 20, UnitType_Surv_MachineShop, 6 },
+  { MobdId_Mute_BikeAndSidecar,  &UNIT_vehicle_tick,         "Bike & Sidecar",        300,  700, 70, 60, 3, 224, 128, 70, 0, 0, -1, 1024, 896, -1, &g_turret_bike_and_sidecar, NULL, UnitSize_Regular, Race_Evolved, 20, 20, UnitType_Mute_Blacksmith, 6 },
+  { MobdId_Surv_Atv,             &UNIT_vehicle_tick,         "All terrain Vehicle",   500, 1200, 60, 30, 3, 256, 160, 70, 1, 0, -1, 1024, 896, -1, &g_turret_atv, NULL, UnitSize_Regular, Race_Survivors, 30, 30, UnitType_Surv_MachineShop, 7 },
+  { MobdId_Mute_MonsterTruck,    &UNIT_vehicle_tick,         "Monster Truck",         450, 1000, 55, 30, 3, 256, 160, 70, 1, 0, -1, 1024, 896, -1, &g_turret_monster_truck, NULL, UnitSize_Regular, Race_Evolved, 30, 30, UnitType_Mute_Blacksmith, 7 },
+  { MobdId_Surv_AtvFlamethrower, &UNIT_vehicle_tick,         "ATV Flamethrower",      550, 1200, 55, 90, 3, 256, 96, 50, 1, 0, -1, 1024, 896, -1, &g_turret_atv_flamethrower, NULL, UnitSize_Regular, Race_Survivors, 70, 70, UnitType_Surv_MachineShop, 10 },
+  { MobdId_Mute_GiantScorpion,   &UNIT_vehicle_tick,         "Giant Scorpion",        600, 1000, 45, 120, 3, 224, 160, 70, 1, 0, 1536, 1600, 1472, -1, NULL, &g_proj_scorpion, UnitSize_Regular, Race_Evolved, 50, 50, UnitType_Mute_BeastEnclosure, 8 },
+  { MobdId_Surv_AnacondaTank,    &UNIT_vehicle_tick,         "Anaconda Tank",         850, 1600, 45, 150, 3, 256, 192, 75, 1, 0, -1, 1216, 1088, -1, &g_turret_anaconda_cannon, NULL, UnitSize_Regular, Race_Survivors, 60, 60, UnitType_Surv_MachineShop, 10 },
+  { MobdId_Mute_WarMastadont,    &UNIT_vehicle_tick,         "War Mastodon",          800, 1600, 35, 140, 3, 256, 192, 80, 1, 0, -1, 1728, 1600, -1, &g_turret_war_mastadont, NULL, UnitSize_Regular, Race_Evolved, 80, 80, UnitType_Mute_BeastEnclosure, 12 },
+  { MobdId_Surv_BarrageCraft,    &UNIT_vehicle_tick,         "Barrage Craft",        1000, 1800, 30, 60, 3, 304, 240, 80, 1, 0, -1, 832, 832, -1, &g_turret_barrage_craft, NULL, UnitSize_Regular, Race_Survivors, 80, 80, UnitType_Surv_MachineShop, 12 },
+  { MobdId_Mute_GiantBeetle,     &UNIT_vehicle_tick,         "Giant Beetle",          900, 1200, 30, 150, 3, 256, 192, 85, 1, 0, 2488, 2552, 2424, -1, NULL, &g_proj_giant_beetle, UnitSize_Regular, Race_Evolved, 90, 90, UnitType_Mute_BeastEnclosure, 13 },
+  { MobdId_Surv_AutocannonTank,  &UNIT_vehicle_tick,         "Autocannon Tank",      1200, 1700, 30, 3, 3, 288, 224, 70, 1, 0, -1, 1408, 1280, -1, &g_turret_autocannon_tank, NULL, UnitSize_XL, Race_Survivors, 120, 100, UnitType_Surv_MachineShop, 15 },
+  { MobdId_Mute_MissileCrab,     &UNIT_vehicle_tick,         "Missile Crab",         1100, 1800, 30, 60, 3, 320, 256, 93, 1, 0, -1, 1728, 1600, -1, &g_turret_missile_crab, NULL, UnitSize_XL, Race_Evolved, 120, 100, UnitType_Mute_BeastEnclosure, 15 },
+  { MobdId_Surv_MobileOutpost,   &UNIT_mobile_base_tick,     "Mobile Outpost",        300, 6000, 20, 60, 3, 160, 96, 70, 1, 0, -1, 960, 832, 768, NULL, NULL, UnitSize_XL, Race_Survivors, 0, 200, UnitType_Surv_MachineShop, 30 },
+  { MobdId_Mute_ClanhallWagon,   &UNIT_mobile_base_tick,     "Clanhall Wagon",        300, 6000, 20, 60, 3, 160, 96, 70, 1, 0, -1, 832, 704, 640, NULL, NULL, UnitSize_XL, Race_Evolved, 0, 200, UnitType_Mute_Blacksmith, 30 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Orville ultralight",   1500,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Mute_Wasp,            &UNIT_bomber_tick,          "Wasp",                 2000,  750, 120, 60, 1, 160, 96, 70, 0, 0, 832, 896, 768, 704, &g_attach_wasp, &g_proj_nuke, UnitSize_Regular, Race_Evolved, 120, 100, UnitType_Invalid, 300 },
+  { MobdId_Surv_Bomber,          &UNIT_bomber_tick,          "Bomber",               2000,  750, 120, 60, 1, 160, 96, 70, 0, 0, 764, 828, 700, 636, &g_attach_bomber, &g_proj_nuke, UnitSize_Regular, Race_Survivors, 120, 100, UnitType_Invalid, 300 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Kamikaze Rocket",      2000,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_Drillrig,        &UNIT_drillrig_tick,        "Drill Rig",            1000, 4000, 0, 0, 0, 0, 0, 0, 1, 0, 428, -1, 364, 300, &g_attach_drillrig_surv, &g_proj_building, UnitSize_Regular, Race_Survivors, 0, 500, UnitType_Surv_MachineShop, 0 },
+  { MobdId_Mute_Drillrig,        &UNIT_drillrig_tick,        "Drill Rig",            1000, 4000, 0, 0, 0, 0, 0, 0, 0, 0, 392, -1, 328, 264, &g_attach_drillrig_mute, &g_proj_building, UnitSize_Regular, Race_Evolved, 0, 500, UnitType_Mute_Blacksmith, 0 },
+  { MobdId_Surv_PowerStation,    &UNIT_power_plant_tick,     "Power Station",        1300, 4000, 0, 0, 0, 0, 0, 0, 0, 0, 452, 516, 388, 324, &g_attach_power_station_surv, &g_proj_building, UnitSize_Regular, Race_Survivors, 0, 120, UnitType_Invalid, 15 },
+  { MobdId_Mute_PowerStation,    &UNIT_power_plant_tick,     "Power Station",        1300, 4000, 0, 0, 0, 0, 0, 0, 0, 0, 452, 516, 388, 324, &g_attach_power_station_mute, &g_proj_building, UnitSize_Regular, Race_Evolved, 0, 120, UnitType_Invalid, 15 },
+  { MobdId_Surv_DetentionCenter, &UNIT_prison_tick,          "Detention Center",      250, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 344, 408, 280, 216, NULL, &g_proj_building, UnitSize_Regular, Race_Survivors, 0, 100, UnitType_Invalid, 15 },
+  { MobdId_Mute_HoldingPen,      &UNIT_prison_tick,          "Holding Pen",           250, 2000, 0, 0, 0, 0, 0, 0, 0, 0, 344, 408, 280, 216, NULL, &g_proj_building, UnitSize_Regular, Race_Evolved, 0, 100, UnitType_Invalid, 15 },
+  { MobdId_Surv_GuardTower,      &UNIT_tower_tick,           "Guard Tower",           500, 1200, 0, 0, 0, 208, 192, 90, 0, 0, 608, 672, 544, 544, &g_turret_guard_tower, NULL, UnitSize_Regular, Race_Survivors, 100, 100, UnitType_Invalid, 15 },
+  { MobdId_Mute_MachinegunNest,  &UNIT_tower_tick,           "Machinegun Nest",       500, 1200, 0, 0, 0, 208, 192, 90, 0, 0, 572, 636, 508, 508, &g_turret_machinegun_nest, NULL, UnitSize_Regular, Race_Evolved, 100, 100, UnitType_Invalid, 15 },
+  { MobdId_Surv_CannonTower,     &UNIT_tower_tick,           "Cannon Tower",         2500, 2400, 0, 0, 0, 320, 256, 90, 0, 0, 892, 956, 828, 764, &g_turret_cannon_tower, NULL, UnitSize_Regular, Race_Survivors, 80, 80, UnitType_Invalid, 45 },
+  { MobdId_Mute_GrapeshotTower,  &UNIT_tower_tick,           "GrapeShot Cannon",     1500, 1800, 0, 0, 0, 320, 256, 50, 0, 0, 764, 828, 700, 636, &g_turrent_grapeshot_cannon, NULL, UnitSize_Regular, Race_Evolved, 80, 80, UnitType_Invalid, 30 },
+  { MobdId_Surv_MissileBattery,  &UNIT_tower_tick,           "Missile Battery",      1500, 1800, 0, 0, 0, 320, 256, 90, 0, 0, 628, 692, 564, 500, &g_turret_missile_battery, NULL, UnitSize_Regular, Race_Survivors, 80, 80, UnitType_Invalid, 30 },
+  { MobdId_Mute_RotaryCannon,    &UNIT_tower_tick,           "Rotary Cannon",        2500, 2500, 0, 0, 0, 324, 260, 75, 0, 0, 956, 1020, 892, 892, &g_turret_rotary_cannon, NULL, UnitSize_Regular, Race_Evolved, 100, 100, UnitType_Invalid, 45 },
+  { MobdId_Surv_Outpost,         &UNIT_outpost_tick,         "Outpost",              1000, 6000, 0, 0, 0, 0, 0, 0, 0, 0, 1232, 1296, 1168, 1104, &g_attach_outpost, NULL, UnitSize_Regular, Race_Survivors, 0, 300, UnitType_Invalid, 25 },
+  { MobdId_Mute_Clanhall,        &UNIT_clanhall_tick,        "Clanhall",             1000, 6000, 0, 0, 0, 0, 0, 0, 0, 0, 968, 1032, 904, 840, &g_attach_clanhall, NULL, UnitSize_Regular, Race_Evolved, 0, 300, UnitType_Invalid, 25 },
+  { MobdId_Surv_MachineShop,     &UNIT_machine_shop_tick,    "Machine Shop",         1000, 4000, 0, 0, 0, 0, 0, 0, 0, 0, 452, 516, 388, 324, &g_attach_machine_shop, NULL, UnitSize_Regular, Race_Survivors, 0, 200, UnitType_Invalid, 25 },
+  { MobdId_Mute_Blacksmith,      &UNIT_blacksmith_tick,      "Blacksmith",            550, 3200, 0, 0, 0, 0, 0, 0, 0, 0, 416, 480, 352, 288, &g_attach_blacksmith, NULL, UnitSize_Regular, Race_Evolved, 0, 150, UnitType_Invalid, 20 },
+  { MobdId_Mute_BeastEnclosure,  &UNIT_beast_enclosure_tick, "Beast Enclosure",       550, 3200, 0, 0, 0, 0, 0, 0, 0, 0, 452, 516, 388, 324, &g_attach_beast_enclosure, NULL, UnitSize_Regular, Race_Evolved, 0, 200, UnitType_Invalid, 20 },
+  { MobdId_Surv_RepairBay,       &UNIT_repair_bay_tick,      "Repair Bay",           1000, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 512, 576, 448, 384, &g_attach_repair_bay, NULL, UnitSize_Regular, Race_Survivors, 0, 100, UnitType_Invalid, 30 },
+  { MobdId_Mute_Menagerie,       &UNIT_repair_bay_tick,      "Menagerie",            1000, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 428, 492, 364, 300, NULL, NULL, UnitSize_Regular, Race_Evolved, 0, 100, UnitType_Invalid, 30 },
+  { MobdId_Surv_ResearchLab,     &UNIT_research_lab_tick,    "Research Lab",          700, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 416, 480, 352, 288, &g_attach_research_lab, NULL, UnitSize_Regular, Race_Survivors, 0, 10, UnitType_Invalid, 25 },
+  { MobdId_Mute_AlchemyHall,     &UNIT_research_lab_tick,    "Alchemy Hall",          700, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 416, 480, 352, 288, &g_attach_tech_alchemy_hall, NULL, UnitSize_Regular, Race_Evolved, 0, 10, UnitType_Invalid, 25 },
+  { MobdId_TechBunker,           &UNIT_tech_bunker_tick,     "Tech Bunker",           700, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 412, 476, 348, -1, &g_attach_tech_bunker, NULL, UnitSize_Regular, 0u, 0, 10, UnitType_Invalid, 25 },
+  { MobdId_Hut,                  &UNIT_hut_tick,             "Hut",                   700,  300, 0, 0, 0, 0, 0, 0, 0, 0, -1, 528, 400, 336, NULL, NULL, UnitSize_Regular, Race_Evolved, 0, 10, UnitType_Invalid, 25 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Wall",                   50,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Wall",                   50,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Wall",                  150,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Wall",                  150,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "U.F.O.",                  0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Gort,                 &UNIT_vehicle_tick,         "Gort The Robot",         50, 3500, 40, 35, 64, 192, 128, 80, 1, 0, 2684, 2748, 2620, -1, NULL, &g_proj_gort, UnitSize_XL, 0u, 100, 100, UnitType_Invalid, 0 },
+  { MobdId_Surv_AnacondaTank,    &UNIT_vehicle_tick,         "G.O.R.N.",               50, 3600, 40, 120, 3, 224, 160, 80, 1, 0, -1, 1216, 1088, -1, &g_turret_anaconda_cannon, NULL, UnitSize_Regular, 0u, 100, 100, UnitType_Invalid, 0 },
+  { MobdId_PlasmaTank,           &UNIT_vehicle_tick,         "Plasma Tank",            50, 3600, 40, 120, 3, 288, 224, 85, 1, 0, -1, 1176, 1048, -1, &g_turret_plasma_cannon, NULL, UnitSize_XL, 0u, 80, 80, UnitType_Invalid, 0 },
+  { MobdId_SentinelDroid,        &UNIT_vehicle_tick,         "Sentinel Droid",         50, 3600, 40, 90, 3, 288, 224, 95, 1, 0, -1, 1920, 1792, -1, &g_turret_sentinel_droid, NULL, UnitSize_Regular, 0u, 70, 70, UnitType_Invalid, 0 },
+  { MobdId_Mech,                 &UNIT_vehicle_tick,         "Mech",                   50, 3600, 40, 120, 3, 256, 192, 95, 1, 0, -1, 1560, 1432, -1, &g_turret_mech, NULL, UnitSize_Regular, 0u, 50, 50, UnitType_Invalid, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Satellite radar",         0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "F.O.B.S.system",          0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Micro fusion reactor",    0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Hut,                  &UNIT_hut_tick,             "Hut",                   700,  300, 0, 0, 0, 0, 0, 0, 0, 0, 464, 528, 400, -1, NULL, NULL, UnitSize_Regular, Race_Evolved, 0, 10, UnitType_Invalid, 25 },
+  { MobdId_TechBunker,           &UNIT_tech_bunker_tick,     "Tech Bunker",           700, 3000, 0, 0, 0, 0, 0, 0, 0, 0, 412, 476, 348, -1, &g_attach_tech_bunker, NULL, UnitSize_Regular, 0u, 0, 10, UnitType_Invalid, 25 },
+  { MobdId_Mute_Chieftan,        &UNIT_infantry_tick,        "Infiltrator",           450,  400, 30, 90, 64, 160, 96, 75, 0, 1, 1408, 1472, 1344, -1, NULL, &g_proj_machinegun, UnitSize_Small, Race_Survivors, 10, 100, UnitType_Surv_Outpost, 10 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "Timebomb",                0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_Drillrig,        nullptr,                    "Tree",                    0,  100, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, 0, 0, NULL, NULL, UnitSize_Regular, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Surv_AnacondaTank,    nullptr,                    "AirStrike",               0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
+  { MobdId_Invalid,              nullptr,                    "No unit here massa...",   0,    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 }
 };
 signed int g_sin_tbl[32] =
 {
@@ -7320,7 +4704,7 @@ char g_unit_hint_buf_static[64] =
   '\0',
   '\0',
   '\0',
-  
+
 };
 int g_credits_num_scrolled_lines;
 KKND::CplcEntity *g_current_lvl_cplc_layer_y_sorted_bottom;
@@ -7456,8 +4840,8 @@ KKND::RenderBlitter *g_blitter_active_tail;
 KKND::RenderBlitter *g_blitter_active_head;
 KKND::RenderBlitter *g_blitter_free_head;
 KKND::RenderBlitter *g_blitter_pool;
-KKND::MobdImageData *g_healthbar_by_veterancy_wide[3][28];
-KKND::MobdImageData *g_healthbar_by_veterancy_short[3][12];
+KKND::MobdImageData *g_healthbar_by_veterancy_wide[MAX_VETERANCY_LEVELS][28];
+KKND::MobdImageData *g_healthbar_by_veterancy_short[MAX_VETERANCY_LEVELS][12];
 struct tagRECT g_window_rect; // idb
 void *g_dd_pixels;
 _UNKNOWN unk_4797E8; // weak
@@ -7621,6 +5005,8 @@ KKND::Task *g_sidebar_tooltip;
 BOOL g_netz_sync_signal;
 char g_netz_chat_buf_static[36];
 KKND::NetzPlayer g_netz_players[7];
+#define NETZ_PLAYERS_MAX (sizeof(g_netz_players)/sizeof(*g_netz_players))
+#define PLAYERS_MAX 7
 int g_netz_game_start_signal; // weak
 BOOL g_netz_is_game_started;
 int g_netz_is_game_started_2_unused; // weak
@@ -7758,7 +5144,8 @@ KKND::Glyph *g_glyph_free_head;
 KKND::UiStr *g_string_pool;
 KKND::UiStr *g_string_free_head;
 KKND::UiStr *g_string_active_head;
-KKND::SidebarFactoryProduction g_factory_prod_head[5];
+#define MAX_PROD_TYPES 5
+KKND::SidebarFactoryProduction g_factory_prod_head[MAX_PROD_TYPES];
 KKND::Sidebar *g_sidebar;
 KKND::SidebarFactoryProduction *g_47C918_unused;
 KKND::SidebarFactoryProduction *g_47C91C_unused;
@@ -8139,13 +5526,13 @@ void __cdecl UNIT_bomber_tick(KKND::Task *task)
     }                                           // Original engine macro (reconstructed):
                                                 // #define ENT_X(ent)  ((ent)->collision_active = TRUE, (ent)->x)
                                                 // #define ENT_Y(ent)  ((ent)->collision_active = TRUE, (ent)->y)
-                                                // 
+                                                //
                                                 // // Usage in Aircraft.cpp:
                                                 // ENT_X(unit->entity) = v7;     // decompiles as: is_collidable=1; x=v7;
                                                 // ENT_Y(unit->entity) = v8;     // decompiles as: is_collidable=1; y=v8;
-                                                // 
+                                                //
                                                 // Pattern appears on BOTH reads AND writes (not just writes)
-                                                // 
+                                                //
                                                 // Ensures any entity whose coordinates are touched by game logic gets full collision response, rather than ghosting through objects on first physics tick.
     unit->entity->is_collidable = 1;            // INLINED or macro
     unit->entity->x = v7;
@@ -8711,8 +6098,6 @@ void __fastcall MSG_beast_enclosure(
   KKND::Unit *unit; // esi
   KKND::BuildingState *state; // eax
   KKND::SidebarFactoryProduction *prod; // ecx
-  int v9; // edx
-  bool v10; // sf
   int v11; // eax
   int v12; // eax
 
@@ -8766,15 +6151,11 @@ void __fastcall MSG_beast_enclosure(
       case TaskMessage_UpgradeComplete:
         state = (KKND::BuildingState *)unit->state;// inlined
         prod = state->prod;
-        v9 = state->upgrade_level + 1;
-        v10 = state->upgrade_level - 3 < 0;
-        state->upgrade_level = v9;
-        if ( !(v10 ^ __OFSUB__(v9, 4) | (v9 == 4)) )
-          state->upgrade_level = 4;
+        state->upgrade_level = min(4, state->upgrade_level + 1);
         if ( unit->player_num != g_player_num )
           goto LABEL_26;
-        --dword_477314[state->upgrade_level];   // BUG -1 indexing
-        ++g_beast_enclosure_levels.num_buildings_by_level[state->upgrade_level];
+        g_beast_enclosure_levels.num_buildings_by_level[state->upgrade_level - 1] -= 1;
+        g_beast_enclosure_levels.num_buildings_by_level[state->upgrade_level] += 1;
         if ( state->upgrade_level > g_beast_enclosure_levels.max_level )
           g_beast_enclosure_levels.max_level = state->upgrade_level;
         v11 = state->upgrade_level - 2;
@@ -8826,8 +6207,7 @@ void __fastcall UNIT_mode_beast_enclosure_refresh_levels(KKND::Unit *this)
   TSK_broadcast_message(this->task, TaskMessage_BuildingComplete, nullptr, TaskChannel_BeastEnclosure);
   if ( !state->same_building_count )
   {
-    memset(&g_beast_enclosure_levels, 0, 0x24u);
-    g_beast_enclosure_levels.max_level = 1;
+    TECHLVL_reset(&g_beast_enclosure_levels);
   }
 }
 
@@ -8850,8 +6230,7 @@ void __cdecl UNIT_beast_enclosure_tick(KKND::Task *task)
       TSK_broadcast_message(unit->task, TaskMessage_BuildingComplete, nullptr, TaskChannel_BeastEnclosure);
       if ( !state->same_building_count )
       {
-        g_beast_enclosure_levels.max_level = 1;
-        memset(&g_beast_enclosure_levels, 0, 0x24u);// BUG or inlined
+        TECHLVL_reset(&g_beast_enclosure_levels);
       }
       if ( !unit->entity->cplc_spawn_params )
       {
@@ -8883,8 +6262,7 @@ void __fastcall UNIT_mode_beast_enclosure_on_complete(KKND::Unit *unit)
       TSK_broadcast_message(unit->task, TaskMessage_BuildingComplete, nullptr, TaskChannel_BeastEnclosure);
       if ( !state->same_building_count )
       {
-        g_beast_enclosure_levels.max_level = 1; // MACRO
-        memset(&g_beast_enclosure_levels, 0, 0x24u);
+        TECHLVL_reset(&g_beast_enclosure_levels);
       }
       unit->mode_arrive = nullptr;
       unit->mode = UNIT_mode_building_idle_tick;
@@ -9019,18 +6397,12 @@ void __fastcall MSG_blacksmith_upgrades(
   KKND::Unit *unit; // esi
   KKND::BuildingState *state; // eax
   KKND::SidebarFactoryProduction *prod; // ecx
-  int v9; // edx
-  bool v10; // sf
   int v11; // eax
 
   unit = (KKND::Unit *)receiver->ctx;
   state = (KKND::BuildingState *)unit->state;
   prod = state->prod;
-  v9 = state->upgrade_level + 1;
-  v10 = state->upgrade_level - 2 < 0;
-  state->upgrade_level = v9;
-  if ( !(v10 ^ __OFSUB__(v9, 3) | (v9 == 3)) )
-    state->upgrade_level = 3;
+  state->upgrade_level = min(3, state->upgrade_level + 1);
   if ( unit->player_num == g_player_num )
   {
     v11 = state->upgrade_level - 2;
@@ -9054,8 +6426,6 @@ void __fastcall MSG_blacksmith(KKND::Task *receiver, KKND::Task *sender, KKND::T
   KKND::Unit *unit; // esi
   KKND::BuildingState *state; // eax
   KKND::SidebarFactoryProduction *prod; // ecx
-  int v9; // edx
-  bool v10; // sf
   int v11; // eax
 
   unit = (KKND::Unit *)receiver->ctx;
@@ -9091,11 +6461,7 @@ void __fastcall MSG_blacksmith(KKND::Task *receiver, KKND::Task *sender, KKND::T
       case TaskMessage_UpgradeComplete:
         state = (KKND::BuildingState *)unit->state;// inlined  MessageHandler_BlacksmithUpgrades
         prod = state->prod;
-        v9 = state->upgrade_level + 1;
-        v10 = state->upgrade_level - 2 < 0;
-        state->upgrade_level = v9;
-        if ( !(v10 ^ __OFSUB__(v9, 3) | (v9 == 3)) )
-          state->upgrade_level = 3;
+        state->upgrade_level = min(3, state->upgrade_level + 1);
         if ( unit->player_num == g_player_num )
         {
           v11 = state->upgrade_level - 2;
@@ -9310,7 +6676,7 @@ void TSK_coroutine_cleanup()
 
 //----- (00402A60) --------------------------------------------------------
 // //----- (00402A60) --------------------------------------------------------
-// __declspec(naked) int coroutine_yield_asm(Coroutine *self) 
+// __declspec(naked) int coroutine_yield_asm(Coroutine *self)
 // {
 //   __asm {
 //     push    ebp
@@ -9811,7 +7177,7 @@ void __cdecl __noreturn SCHRAP_explosion_building_task(KKND::Task *task)
   v10 = x - 0x2000;
   v11 = x + 0x2000;
   taska = x + 0x2000;
-  if ( !__OFSUB__(x - 0x2000, x + 0x2000) || x - 0x2000 == x + 0x2000 )
+  if ( v10 <= v11 )
   {
     v12 = y + 0x2000;
     do
@@ -10249,7 +7615,6 @@ void __fastcall MSG_clanhall_upgrades(
   KKND::Unit *unit; // ebx
   KKND::BuildingState *state; // eax
   KKND::SidebarFactoryProduction *prod; // edi
-  int v8; // ecx
   int v9; // esi
   KKND::LevelId v10; // eax
   KKND::LevelId v11; // eax
@@ -10257,17 +7622,12 @@ void __fastcall MSG_clanhall_upgrades(
   unit = (KKND::Unit *)receiver->ctx;
   state = (KKND::BuildingState *)unit->state;
   prod = state->prod;
-  v8 = state->upgrade_level + 1;
-  state->upgrade_level = v8;
-  if ( v8 > 5 )
-    state->upgrade_level = 5;
+  state->upgrade_level = min(5, state->upgrade_level + 1);
   if ( unit->player_num == g_player_num )
   {
     v9 = 0;
-    *(&g_build_limits_free_head + state->upgrade_level) = (KKND::BuildLimits *)((char *)*(&g_build_limits_free_head
-                                                                                        + state->upgrade_level)
-                                                                              - 1);// BUG -1 index
-    ++g_clanhall_levels.num_buildings_by_level[state->upgrade_level];
+    g_clanhall_levels.num_buildings_by_level[state->upgrade_level - 1] -= 1;
+    g_clanhall_levels.num_buildings_by_level[state->upgrade_level] += 1;
     if ( state->upgrade_level > g_clanhall_levels.max_level )
     {
       g_clanhall_levels.max_level = state->upgrade_level;
@@ -10387,8 +7747,6 @@ void __fastcall MSG_clanhall(KKND::Task *receiver, KKND::Task *sender, KKND::Tas
 void __fastcall UNIT_mode_clanhall_set_default_prod(KKND::Unit *unit)
 {
   KKND::BuildingState *state; // esi
-  KKND::LevelId v3; // eax
-  KKND::BuildingStartingProduction *__shifted(KKND::BuildingStartingProduction,8) opt; // esi
 
   if ( g_player_num == unit->player_num )
   {
@@ -10402,22 +7760,18 @@ void __fastcall UNIT_mode_clanhall_set_default_prod(KKND::Unit *unit)
       if ( !g_sidebar_tower_prod )
       {
         g_sidebar_tower_prod = UI_sidebar_prod_enable_category(unit, ProductionType_Towers);
-        v3 = g_current_lvl_id;
-        opt = (KKND::BuildingStartingProduction *__shifted(KKND::BuildingStartingProduction,8))&g_mute_default_buildings[0].mobd_lookup;
-        do
+        for (i = 0; i < sizeof(g_mute_default_buildings)/sizeof(g_mute_default_buildings[0]); ++i)
         {
-          if ( (g_lvl_desc[v3].disabled_units_mask & ADJ(opt)->mask) == 0 )
-          {
-            UI_sidebar_prod_enable_unit(g_sidebar_buildings_prod, ADJ(opt)->type, ADJ(opt)->mobd_lookup);
-            v3 = g_current_lvl_id;
+          if ( (g_lvl_desc[g_current_lvl_id].disabled_units_mask & g_mute_default_buildings[i].mask) == 0 ) {
+            UI_sidebar_prod_enable_unit(
+              g_sidebar_buildings_prod,
+              g_mute_default_buildings[i].type,
+              g_mute_default_buildings[i].mobd_lookup);
           }
-          ++opt;
         }
-        while ( (int)opt < (int)&g_mute_default_infantry[0].mobd_lookup );// BUG loop range
         if ( !g_sidebar_aircraft_prod )
           g_sidebar_aircraft_prod = UI_sidebar_prod_enable_category(unit, ProductionType_Aircraft);
-        g_clanhall_levels.max_level = 1;        // BUG - memset(0x28) first then set to 1
-        memset(&g_clanhall_levels, 0, 0x24u);
+        TECHLVL_reset(&g_clanhall_levels);
       }
     }
   }
@@ -10462,9 +7816,6 @@ void __fastcall UNIT_mode_clanhall_on_complete(KKND::Unit *unit)
 {
   int player_num; // eax
   KKND::BuildingState *state; // ebx
-  KKND::SidebarFactoryProduction *v4; // edi
-  KKND::BuildingStartingProduction *__shifted(KKND::BuildingStartingProduction,8) p_mobd_lookup; // esi
-  KKND::LevelId v6; // eax
 
   player_num = unit->player_num;
   state = (KKND::BuildingState *)unit->state;
@@ -10478,20 +7829,16 @@ void __fastcall UNIT_mode_clanhall_on_complete(KKND::Unit *unit)
     }
     if ( !unit->entity->cplc_spawn_params )
       UI_show_notification_box(nullptr, "Building completed");
-    v4 = UI_sidebar_prod_enable_category(unit, ProductionType_Infantry);
-    p_mobd_lookup = (KKND::BuildingStartingProduction *__shifted(KKND::BuildingStartingProduction,8))&g_mute_default_infantry[0].mobd_lookup;
-    state->prod = v4;
-    v6 = g_current_lvl_id;
-    do
-    {
-      if ( (g_lvl_desc[v6].disabled_units_mask & ADJ(p_mobd_lookup)->mask) == 0 )
-      {
-        UI_sidebar_prod_enable_unit(v4, ADJ(p_mobd_lookup)->type, ADJ(p_mobd_lookup)->mobd_lookup);
-        v6 = g_current_lvl_id;
+
+    state->prod = UI_sidebar_prod_enable_category(unit, ProductionType_Infantry);;
+    for (int i = 0; i < sizeof(g_mute_default_infantry)/sizeof(*g_mute_default_infantry); ++i) {
+      if ( (g_lvl_desc[v6].disabled_units_mask & g_mute_default_infantry[i].mask) == 0 ) {
+        UI_sidebar_prod_enable_unit(
+          g_current_lvl_id,
+          g_mute_default_infantry[i].type,
+          g_mute_default_infantry[i].mobd_lookup);
       }
-      ++p_mobd_lookup;
     }
-    while ( (int)p_mobd_lookup < (int)&g_unit_collision_handlers[0].category );// BUG loop range
     ++g_clanhall_levels.num_buildings_by_level[1];
   }
   else if ( !player_num )
@@ -10566,7 +7913,7 @@ LABEL_17:
         AIRCRAFT_revoke_prod_option();
         goto LABEL_17;
     }
-    v7 = *(&g_build_limits_free_head + upgrade_level--);// BUG -- g_clanhall_levels.num_buildings_by_level[upgrade_level-1]
+    v7 = g_clanhall_levels.num_buildings_by_level[upgrade_level--];
   }
   while ( !v7 && upgrade_level > 0 );
   v1 = unit;
@@ -12107,7 +9454,6 @@ void __cdecl GAME_mission_briefing_or_credits(KKND::Task *task)
 {
   int v1; // esi
   KKND::UiStr *v2; // eax
-  const char **v3; // ebx
   const char *v4; // edx
   int v5; // edi
   int v6; // ebp
@@ -12138,7 +9484,7 @@ void __cdecl GAME_mission_briefing_or_credits(KKND::Task *task)
     v1 = 480;
     v2 = UI_str_create(
            nullptr,
-           (KKND::FontMobd *)g_mobd[MobdId_Font_Menu].layers[MobdId_Mute_AlchemyHall],// just 0 not alchemy hall
+           (KKND::FontMobd *)g_mobd[MobdId_Font_Menu].layers[0],
            84,
            84,
            39,
@@ -12154,17 +9500,17 @@ void __cdecl GAME_mission_briefing_or_credits(KKND::Task *task)
       v19 = 17;
       g_work_ui_str->cursor_col = 0;
       g_work_ui_str->cursor_row = 0;
-      v3 = g_credits;
-      do
-      {
-        v4 = *v3;
+
+      for (int i = 0; i < 17; ++i) {
+        v4 = g_credits[i];
+
         v5 = 0;
-        if ( **v3 == '%' )
+        if ( *v4 == '%' )
         {
           v5 = 1;
           ++v4;
         }
-        if ( v5 && v3 != g_credits )
+        if (v5 && i != 0)
           v1 += 100;
         UISTR_set_text_multiline(g_work_ui_str, v4, 0, v1);
         UISTR_set_text_multiline(g_work_ui_str, "\n", 0, v1);
@@ -12172,15 +9518,13 @@ void __cdecl GAME_mission_briefing_or_credits(KKND::Task *task)
           v1 += 30;
         else
           v1 += 20;
-        ++v3;
       }
-      while ( (int)v3 < (int)off_464ACC );      // BUG
     }
     v6 = 16;
     v18 = v1;
     v21 = 480;
     v22 = 0;
-    while ( (TSK_yield(task, TaskWait_Any, 2) & 0x40000000) == 0 )
+    while ( (TSK_yield(task, TaskWait_Any, 2) & TaskEvent_Message) == 0 )
     {
       ++g_credits_num_scrolled_lines;
       if ( v22 )
@@ -12278,7 +9622,6 @@ void __cdecl GAME_mission_briefing_or_credits(KKND::Task *task)
     GAME_mission_briefing(task);
   }
 }
-// 464ACC: using guessed type char *off_464ACC[100];
 
 //----- (00405E60) --------------------------------------------------------
 BOOL LVL_cplc_init()
@@ -14483,7 +11826,6 @@ void PAL_multi_apply()
   char v10; // al
   int v11; // ebp
   KKND::PaletteEntry *v12; // ebx
-  KKND::NetzPlayer *__shifted(KKND::NetzPlayer,1) player; // edx
   int *v14; // eax
   int v15; // ecx
   char v16; // [esp+10h] [ebp-45Ch] BYREF
@@ -14542,23 +11884,18 @@ void PAL_multi_apply()
     v11 = 0;
     qmemcpy(g_working_pal, g_level_palette, sizeof(g_working_pal));
     v12 = g_working_pal;
-    player = (KKND::NetzPlayer *__shifted(KKND::NetzPlayer,1))&g_netz_players[1].palette_idx;
-    v14 = &g_palette_idx_per_player[1];
-    do
-    {
-      if ( ADJ(player)->connection_status )
-      {
+
+    for (int i = 1; i < NETZ_PLAYERS_MAX; ++i) {
+      if (NetzConnection_None != g_netz_players[i].connection_status) {
         v15 = ADJ(player)->palette_idx << 6;
         *v14 = v11;
         qmemcpy(v12, &v20[v15], 0x40u);
       }
       ++v14;
       ++v11;
-      ++player;
       v12 += 16;
     }
-    while ( (int)v14 < (int)&g_next_entity_id );// BUG
-  }
+
   qmemcpy(g_level_palette, g_working_pal, 0x400u);
   PAL_apply(g_working_pal);
 }
@@ -17381,8 +14718,6 @@ void __cdecl __noreturn AI_controller_tick(KKND::Task *task)
 //----- (0040B720) --------------------------------------------------------
 BOOL AI_init()
 {
-  int v0; // ecx
-  BOOL *v1; // eax
   KKND::Task **v2; // ebp
   KKND::Task *v3; // eax
   KKND::AiController *v4; // esi
@@ -17437,7 +14772,6 @@ BOOL AI_init()
   int mm; // eax
   KKND::AiWandererNode *v55; // eax
   int nn; // eax
-  BOOL *v57; // eax
   KKND::Task **v58; // ebp
   KKND::Task *v59; // eax
   KKND::AiController *ai; // esi
@@ -17463,19 +14797,10 @@ BOOL AI_init()
   int v80; // [esp+18h] [ebp-4h]
   int i; // [esp+18h] [ebp-4h]
 
-  v0 = 0;
   g_num_ai_players = 0;
   if ( g_current_lvl_id == LevelId_Mute_05_Ambush )
   {
-    v57 = &g_is_player_num_ai[1];
-    do
-    {
-      if ( *v57 )
-        ++v0;
-      ++v57;
-    }
-    while ( (int)v57 < (int)&g_is_player_num_ai[7] );// BUG
-    g_num_ai_players = v0;
+    g_num_ai_players = GAME_ai_players_num();
     v75 = 1;
     v78 = g_ai_controllers;
     v58 = &g_ai_players_tasks[1];
@@ -17610,17 +14935,10 @@ BOOL AI_init()
         return 1;
     }
   }
-  v1 = &g_is_player_num_ai[1];
+
   if ( g_current_lvl_id == LevelId_Mute_08_SmashTheConvoy )
   {
-    do
-    {
-      if ( *v1 )
-        ++v0;
-      ++v1;
-    }
-    while ( (int)v1 < (int)&g_is_player_num_ai[7] );// BUG
-    g_num_ai_players = v0;
+    g_num_ai_players = GAME_ai_players_num();
     v74 = 1;
     v77 = g_ai_controllers;
     v36 = &g_ai_players_tasks[1];
@@ -17784,14 +15102,7 @@ BOOL AI_init()
   }
   else
   {
-    do
-    {
-      if ( *v1 )
-        ++v0;
-      ++v1;
-    }
-    while ( (int)v1 < (int)&g_is_player_num_ai[7] );// BUG
-    g_num_ai_players = v0;
+    g_num_ai_players =  GAME_ai_players_num();
     v73 = 1;
     v79 = g_ai_controllers;
     v2 = &g_ai_players_tasks[1];
@@ -18022,16 +15333,14 @@ BOOL AI_init()
 //----- (0040C590) --------------------------------------------------------
 void AI_cleanup()
 {
-  KKND::Task **v0; // edi
   KKND::Task *v1; // eax
   KKND::AiController *ai_; // esi
   KKND::AiController *ai; // esi
 
   v0 = g_ai_players_tasks;
-  do
-  {
-    v1 = *v0;
-    if ( *v0 )
+  for (int i = 0; i < PLAYERS_MAX; ++i) {
+    v1 = g_ai_players_tasks[i];
+    if ( v1 )
     {
       if ( g_current_lvl_id == LevelId_Mute_05_Ambush )
       {
@@ -18067,11 +15376,9 @@ void AI_cleanup()
         free(ai_->wanderer_pool);
         free(ai_->active_wanderer_pool);
       }
-      TSK_kill(*v0);
+      TSK_kill(v1);
     }
-    ++v0;
   }
-  while ( (int)v0 < (int)&unk_4778EC );         // BUG
 }
 
 //----- (0040C700) --------------------------------------------------------
@@ -18600,10 +15907,12 @@ void __fastcall MOVIE_play_sound(KKND::Movie *movie)
   v3 = ((_BYTE)sound_flags != 8) + 1;
   if ( (sound_flags & 0x100) != 0 )
     v3 *= 2;
-  *(_DWORD *)&g_movie_waveformat.wFormatTag = 1;// BUG - writing a dword
+  g_movie_waveformat.wFormatTag = 1;
+  g_movie_waveformat.wReserved2 = 0;
   g_movie_waveformat.nSamplesPerSec = 0;
   g_movie_waveformat.nAvgBytesPerSec = 0;
-  *(_DWORD *)&g_movie_waveformat.nBlockAlign = 0;// BUG - writing a dword
+  g_movie_waveformat.nBlockAlign = 0;
+  g_movie_waveformat.wReserved4 = 0;
   g_movie_waveformat.nChannels = ((movie->header.sound_flags & 0x100) != 0) + 1;
   g_movie_waveformat.nSamplesPerSec = movie->header.sound_samples_per_sec;
   g_movie_waveformat.nBlockAlign = v3;
@@ -19856,78 +17165,46 @@ KKND::PaletteEntry *PAL_get_selected()
 // Only runs in fullscreen mode (dword_4798AC == 1).
 // This is needed because going fullscreen exclusive 8bpp steals the system palette —
 // Windows UI elements (cursors, dialog boxes for multiplayer) need sensible colors.
-BOOL PAL_save_system_colors()
+void PAL_save_system_colors()
 {
-  BOOL result; // eax
-  unsigned int i; // esi
-  unsigned int v2; // eax
-  int v3; // ebp
-  int v4; // edi
-  BYTE *p_peGreen; // esi
-  int v6; // eax
-  int v7; // ecx
-  unsigned __int16 v8; // dx
-  int v9; // [esp+4h] [ebp-78h]
-  int v10; // [esp+8h] [ebp-74h]
-  int v11; // [esp+Ch] [ebp-70h]
-  unsigned int v12; // [esp+10h] [ebp-6Ch]
-  int v13; // [esp+14h] [ebp-68h]
-  COLORREF remapped_colors[25]; // [esp+18h] [ebp-64h] BYREF
-
-  result = g_fullscreen;
-  if ( g_fullscreen )
-  {
-    g_pdd->lpVtbl->FlipToGDISurface(g_pdd);
-    if ( g_should_grab_win32_colors )
-    {
-      for ( i = 0; i < 25; ++i )
-        g_win32_sys_colors[i] = GetSysColor(g_win32_sys_colors_indices[i]);
-      g_should_grab_win32_colors = 0;
-    }
-    v2 = 0;
-    v12 = 0;
-    do
-    {
-      v3 = *((unsigned __int8 *)g_win32_sys_colors + v2 + 1);
-      v11 = 0;
-      v10 = 0x2FA03;
-      v9 = 0;
-      v13 = *((unsigned __int8 *)g_win32_sys_colors + v2);
-      v4 = (unsigned __int8)BYTE2(*(COLORREF *)((char *)g_win32_sys_colors + v2));
-      p_peGreen = &g_dd_palette[0].peGreen;
-      do
-      {
-        v6 = (v4 - p_peGreen[1]) * (v4 - p_peGreen[1])
-           + (v3 - *p_peGreen) * (v3 - *p_peGreen)
-           + (v13 - *(p_peGreen - 1)) * (v13 - *(p_peGreen - 1));
-        if ( v6 >= v10 )
-        {
-          v7 = v11;
-        }
-        else
-        {
-          v7 = v9;
-          v11 = v9;
-          if ( !v6 )
-            break;
-          v10 = (v4 - p_peGreen[1]) * (v4 - p_peGreen[1])
-              + (v3 - *p_peGreen) * (v3 - *p_peGreen)
-              + (v13 - *(p_peGreen - 1)) * (v13 - *(p_peGreen - 1));
-        }
-        p_peGreen += 4;
-        ++v9;
-      }
-      while ( (int)p_peGreen < (int)((BYTE *)&g_window_hdc + 1) );// BUG
-      LOBYTE(v8) = g_dd_palette[v7].peGreen;
-      HIBYTE(v8) = g_dd_palette[v7].peBlue;
-      *(COLORREF *)((char *)remapped_colors + v12) = g_dd_palette[v7].peRed | (v8 << 8);
-      v2 = v12 + 4;
-      v12 = v2;
-    }
-    while ( v2 < 100 );
-    return SetSysColors(25, g_win32_sys_colors_indices, remapped_colors);
+  if (g_fullscreen) {
+    return;
   }
-  return result;
+
+  g_pdd->lpVtbl->FlipToGDISurface(g_pdd);
+  if (g_should_grab_win32_colors) {
+    for (int i = 0; i < 25; ++i)
+      g_win32_sys_colors[i] = GetSysColor(g_win32_sys_colors_indices[i]);
+    g_should_grab_win32_colors = 0;
+  }
+
+  COLORREF remapped[25];
+  for (int i = 0; i < 25; ++i) {
+    BYTE r = GetRValue(g_win32_sys_colors[i]);
+    BYTE g = GetGValue(g_win32_sys_colors[i]);
+    BYTE b = GetBValue(g_win32_sys_colors[i]);
+
+    int best_dist = INT_MAX;
+    int best_idx = 0;
+    for (int j = 0; j < 256; ++j) {
+      int dr = r - g_dd_palette[j].peRed;
+      int dg = g - g_dd_palette[j].peGreen;
+      int db = b - g_dd_palette[j].peBlue;
+      int dist = dr * dr + dg * dg + db * db;
+      int (dist < best_dist) {
+        best_idx = j;
+        best_dist = dist;
+        if (0 == dist) break;
+      }
+    }
+    remapped[i] = RGB(
+      g_dd_palette[best_idx].peRed,
+      g_dd_palette[best_idx].peGreen,
+      g_dd_palette[best_idx].peBlue,
+    )
+  }
+
+  SetSysColors(25, g_win32_sys_colors_indices, remapped);
 }
 
 //----- (0040E6B0) --------------------------------------------------------
@@ -22776,35 +20053,14 @@ BOOL UNIT_status_bar_wide_sprites_init()
 //----- (004113D0) --------------------------------------------------------
 void UNIT_status_bar_sprites_cleanup()
 {
-  KKND::MobdImageData **v0; // esi
-  int v1; // edi
-  KKND::MobdImageData **v2; // esi
-  int v3; // edi
-
-  v0 = g_healthbar_by_veterancy_short[0];
-  do
-  {
-    v1 = 12;
-    do
-    {
-      free(*v0++);
-      --v1;
+  for (int i = 0; i < MAX_VETERANCY_LEVELS; ++i) {
+    for (int j = 0; j < 12; ++j) {
+      free(g_healthbar_by_veterancy_short[i][j]);
     }
-    while ( v1 );
-  }
-  while ( v0 != (KKND::MobdImageData **)&g_window_rect );// BUG
-  v2 = g_healthbar_by_veterancy_wide[0];
-  do
-  {
-    v3 = 28;
-    do
-    {
-      free(*v2++);
-      --v3;
+    for (int j = 0; j < 28; ++j) {
+      free(g_healthbar_by_veterancy_wide[i][j]);
     }
-    while ( v3 );
   }
-  while ( v2 != (KKND::MobdImageData **)g_healthbar_by_veterancy_short );// BUG
 }
 
 //----- (00411420) --------------------------------------------------------
@@ -23517,25 +20773,19 @@ void __fastcall REND_draw_batch(KKND::RenderBatch *batch)
 // 4798E4: using guessed type int g_dd_4798E4_unused;
 
 //----- (004125D0) --------------------------------------------------------
-int __fastcall REND_get_width(KKND::RenderCommand *cmd)
-{
-  KKND::RenderImage *image; // eax
-
-  image = cmd->image;
-  if ( image )
-    return ((int (*)(void))image->blitter)();   // BUG supposed to pass arguments
+int __fastcall REND_get_width(KKND::RenderCommand *cmd) {
+  KKND::RenderImage *image = cmd->image;
+  if (image)
+    return image->blitter(cmd, BlitterMode_GetWidth);
   else
     return 0;
 }
 
 //----- (004125F0) --------------------------------------------------------
-int __fastcall REND_get_height(KKND::RenderCommand *cmd)
-{
-  KKND::RenderImage *image; // eax
-
-  image = cmd->image;
-  if ( image )
-    return ((int (*)(void))image->blitter)();   // BUG supposed to pass arguments
+int __fastcall REND_get_height(KKND::RenderCommand *cmd) {
+  KKND::RenderImage *image = cmd->image;
+  if (image)
+    return image->blitter(cmd, BlitterMode_GetHeight);
   else
     return 0;
 }
@@ -23564,7 +20814,6 @@ BOOL REND_mode_sprt_setup()
 int __fastcall REND_mode_sprt_draw(KKND::RenderCommand *cmd, KKND::BlitterMode mode)
 {
   KKND::RenderViewport *viewport; // eax
-  KKND::MobdImageData *sprt; // edi
   int x; // ecx
   int width; // ebx
   int height; // ebp
@@ -23580,18 +20829,19 @@ int __fastcall REND_mode_sprt_draw(KKND::RenderCommand *cmd, KKND::BlitterMode m
   int _height; // [esp-4h] [ebp-18h]
   unsigned __int8 format; // [esp+10h] [ebp-4h]
 
+  KKND::MobdSprtImage *img = (KKND::MobdSprtImage *)cmd->image;
+  KKND::MobdImageData *sprt = img->bitmap;
   if ( mode )
   {
     if ( mode == BlitterMode_GetWidth )
-      return *(_DWORD *)cmd->image[2].blitter;
+      return sprt->width;
     if ( mode == BlitterMode_GetHeight )
-      return *((_DWORD *)cmd->image[2].blitter + 1);
+      return sprt->height;
     return 0;
   }
-  if ( (cmd->flags & (RenderNode_Skip|RenderNode_Deleted)) != 0 )
+  if (cmd->flags & (RenderNode_Skip | RenderNode_Deleted))
     return 0;
   viewport = cmd->viewport;
-  sprt = (KKND::MobdImageData *)cmd->image[2].blitter;// BUG
   format = sprt->format;
   if ( !viewport )
     viewport = g_rend_default_viewport;
@@ -23630,11 +20880,10 @@ LABEL_31:
     g_is_first_blt = 0;
     return 0;
   }
-  blitter = (char)cmd->image[1].blitter;        // BUG
   if ( (cmd->flags & RenderCommand_PaletteOverride) == RenderCommand_PaletteOverride )
   {
     v16 = sprt->height;
-    if ( (blitter & 1) != 0 )
+    if ( (img->flags & 1) != 0 )
       REND_blt_rle_override_palette_mirrored(sprt->pixels, cmd->palette_override, cmd->x, cmd->y, width_, v16);
     else
       REND_blt_rle_override_palette(sprt->pixels, cmd->palette_override, cmd->x, cmd->y, width_, v16);
@@ -23644,7 +20893,7 @@ LABEL_31:
   else
   {
     v17 = sprt->height;
-    if ( (blitter & 1) != 0 )
+    if ( (img->flags & 1) != 0 )
       REND_blt_rle_mirrored(sprt->pixels, cmd->x, cmd->y, width_, v17);
     else
       REND_blt_rle(sprt->pixels, cmd->x, cmd->y, width_, v17);
@@ -30149,7 +27398,7 @@ _BOOL2 __fastcall INPUT_text_edit(
   Block = (char *)malloc(max_len + 1);
   strcpy(Block, out_buf);
   render_mode_ = updater;
-  ((void (__thiscall *)(char *))updater)(out_buf);// BUG - second param is uint cursor_pos
+  updater(out_buf, 0);
   while ( 1 )
   {
     g_last_vk = 0;
@@ -30198,7 +27447,7 @@ LABEL_19:
       case VK_LEFT:
         if ( (_WORD)v5 )
         {
-          v5 += 0xFFFF;                         // BUG -=1
+          v5 += -1;
           render_mode_(out_buf, v5);
         }
         goto LABEL_41;
@@ -30294,9 +27543,9 @@ BOOL __fastcall BOXD_collide_ui_hover_if_waiting(
 //----- (0041B070) --------------------------------------------------------
 // Not quite sure what is it doing in the UI colliders - the entire table might not be UI-specific
 // However units/towers always use unit collision table so this function here might never hit at all
-// 
+//
 // ProjectileHit event I believe is never read anywhere and no task yields to it
-// 
+//
 // Projectile hit -> self-destruct pipeline seems like something cut kamikaze unit might've needed
 BOOL __fastcall BOXD_collide_projectile(
         KKND::Entity *mover,
@@ -33073,7 +30322,7 @@ LABEL_5:
   unit->locked_target = v4;
   creature_id = data->creature_id;
   if ( creature_id && creature_id <= g_script_handlers_num )
-    result = *(_DWORD *)&aWb[4 * creature_id];  // BUG -1 indexing
+    result = g_script_handlers[creature_id - 1];
   else
     result = 0;
   if ( result )
@@ -33083,7 +30332,7 @@ LABEL_5:
     {
       message_handler_id = data->message_handler_id;
       if ( message_handler_id && message_handler_id <= g_script_handlers_num )
-        v8 = *(_DWORD *)&aWb[4 * message_handler_id];
+        v8 = g_script_handlers[message_handler_id - 1];
       else
         v8 = 0;
       *(_DWORD *)(result + 52) = v8;
@@ -33122,7 +30371,7 @@ LABEL_5:
         *(_DWORD *)(result + 40) = unit->stats->attachment;
         turret_creature_id = data->turret_creature_id;
         if ( turret_creature_id && turret_creature_id <= g_script_handlers_num )
-          result = *(_DWORD *)&aWb[4 * turret_creature_id];// BUG -1 index
+          result = g_script_handlers[turret_creature_id - 1];
         else
           result = 0;
         if ( result )
@@ -33132,7 +30381,7 @@ LABEL_5:
           {
             turret_message_handler = data->turret_message_handler;
             if ( turret_message_handler && turret_message_handler <= g_script_handlers_num )
-              v13 = *(_DWORD *)&aWb[4 * turret_message_handler];// BUG -1 index
+              v13 = g_script_handlers[turret_message_handler - 1];
             else
               v13 = 0;
             *(_DWORD *)(result + 52) = v13;
@@ -33181,7 +30430,7 @@ LABEL_42:
         v10->target = v16;
         turret_mode = data->turret_mode;
         if ( turret_mode && turret_mode <= g_script_handlers_num )
-          result = *(_DWORD *)&aWb[4 * turret_mode];// BUG -1 index
+          result = g_script_handlers[turret_mode - 1];
         else
           result = 0;
         v10->mode = (KKND::TurretMode)result;
@@ -33201,7 +30450,7 @@ LABEL_42:
       }
       unit_mode = data->unit_mode;
       if ( unit_mode && unit_mode <= g_script_handlers_num )
-        v19 = *(void (__fastcall **)(KKND::Unit *))&aWb[4 * unit_mode];// BUG -1 index
+        v19 = g_script_handlers[unit_mode - 1];
       else
         v19 = nullptr;
       unit->mode = v19;
@@ -33209,37 +30458,37 @@ LABEL_42:
         return 0;
       unit_mode_idle = data->unit_mode_idle;
       if ( unit_mode_idle && unit_mode_idle <= g_script_handlers_num )
-        v21 = *(void (__fastcall **)(KKND::Unit *))&aWb[4 * unit_mode_idle];// BUG -1 index
+        v21 = g_script_handlers[unit_mode_idle - 1];
       else
         v21 = nullptr;
       unit->mode_idle = v21;
       unit_mode_arrive = data->unit_mode_arrive;
       if ( unit_mode_arrive && unit_mode_arrive <= g_script_handlers_num )
-        v23 = *(void (__fastcall **)(KKND::Unit *))&aWb[4 * unit_mode_arrive];// BUG -1 index
+        v23 = g_script_handlers[unit_mode_arrive - 1];
       else
         v23 = nullptr;
       unit->mode_arrive = v23;
       unit_mode_attacked = data->unit_mode_attacked;
       if ( unit_mode_attacked && unit_mode_attacked <= g_script_handlers_num )
-        v25 = *(void (__fastcall **)(KKND::Unit *))&aWb[4 * unit_mode_attacked];// BUG -1 index
+        v25 = g_script_handlers[unit_mode_attacked - 1];
       else
         v25 = nullptr;
       unit->mode_attacked = v25;
       unit_mode_return = data->unit_mode_return;
       if ( unit_mode_return && unit_mode_return <= g_script_handlers_num )
-        v27 = *(void (__fastcall **)(KKND::Unit *))&aWb[4 * unit_mode_return];// BUG -1 index
+        v27 = g_script_handlers[unit_mode_return - 1];
       else
         v27 = nullptr;
       unit->mode_return = v27;
       unit_mode_turn_return = data->unit_mode_turn_return;
       if ( unit_mode_turn_return && unit_mode_turn_return <= g_script_handlers_num )
-        v29 = *(void (__fastcall **)(KKND::Unit *))&aWb[4 * unit_mode_turn_return];// BUG -1 index
+        v29 = g_script_handlers[unit_mode_turn_return - 1];
       else
         v29 = nullptr;
       unit->mode_turn_return = v29;
       unit_message_handler = data->unit_message_handler;
       if ( unit_message_handler && unit_message_handler <= g_script_handlers_num )
-        v31 = *(void (__fastcall **)(KKND::Task *, KKND::Task *, KKND::TaskMessageType, void *))&aWb[4 * unit_message_handler];// BUG -1 index
+        v31 = g_script_handlers[unit_message_handler - 1];
       else
         v31 = nullptr;
       unit->message_handler = v31;
@@ -33613,7 +30862,7 @@ LABEL_152:
         goto LABEL_189;
       x_speed = data[1].turret.x_speed;
       if ( x_speed && x_speed <= g_script_handlers_num )
-        v68 = *(void (__cdecl **)(KKND::Task *))&aWb[4 * x_speed];// BUG -1 index
+        v68 = g_script_handlers[x_speed - 1];
       else
         v68 = nullptr;
       if ( v68 )
@@ -33623,7 +30872,7 @@ LABEL_152:
         {
           y_speed = data[1].turret.y_speed;
           if ( y_speed && y_speed <= g_script_handlers_num )
-            v72 = *(void (__fastcall **)(KKND::Task *, KKND::Task *, KKND::TaskMessageType, void *))&aWb[4 * y_speed];// BUG -1 index
+            v72 = g_script_handlers[y_speed - 1];
           else
             v72 = nullptr;
           v70->message_handler = v72;
@@ -33649,7 +30898,7 @@ LABEL_152:
         *(_DWORD *)(result + 28) = v69;
         task_wait_flags = data[1].task_wait_flags;
         if ( task_wait_flags && task_wait_flags <= g_script_handlers_num )
-          v75 = *(void **)&aWb[4 * task_wait_flags];// BUG -1 index
+          v75 = g_script_handlers[task_wait_flags - 1];
         else
           v75 = nullptr;
         *v73 = v75;
@@ -33775,98 +31024,58 @@ LABEL_9:
 }
 
 //----- (0041E9B0) --------------------------------------------------------
-void *__fastcall SAVE_pack_prod(void *data)
+void *__fastcall SAVE_pack_prod(size_t *out_size)
 {
-  KKND::SidebarFactoryProduction *v2; // esi
-  KKND::SidebarFactoryProduction *i; // edx
-  KKND::SidebarFactoryProductionOption *j; // eax
-  void *result; // eax
-  KKND::SidebarFactoryProduction *v6; // ecx
-  KKND::SidebarFactoryProduction *prev; // edx
-  _DWORD *v8; // ebp
-  KKND::SidebarFactoryProductionOption *prod_tail; // ecx
-  KKND::Unit *factory_or_factory_type; // esi
-  int unit_id; // esi
-  _DWORD *v12; // esi
-  KKND::SidebarFactoryProduction *v13; // [esp+10h] [ebp-Ch]
-  _DWORD *v14; // [esp+14h] [ebp-8h]
-  char *v15; // [esp+18h] [ebp-4h]
-
-  *(_DWORD *)data = 20;
-  v2 = g_factory_prod_head;
-  do
-  {
-    for ( i = v2->prev; i != v2; i = i->prev )
-    {
-      j = i->prod_tail;
-      for ( *(_DWORD *)data += 16; j != (KKND::SidebarFactoryProductionOption *)&i->prod_head; j = j->prev )
-        *(_DWORD *)data += 24;
-    }
-    ++v2;
-  }
-  while ( (int)v2 < (int)&g_sidebar );          // BUG
-  result = malloc(*(_DWORD *)data);
-  v15 = (char *)result;
-  if ( result )
-  {
-    v6 = g_factory_prod_head;
-    v13 = g_factory_prod_head;
-    do
-    {
-      prev = v6->prev;
-      v8 = result;
-      *(_DWORD *)result = 0;
-      result = (char *)result + 4;
-      v14 = v8;
-      if ( prev != v6 )
-      {
-        do
-        {
-          prod_tail = prev->prod_tail;
-          ++*v8;
-          factory_or_factory_type = prev->factory_or_factory_type;
-          if ( factory_or_factory_type )
-            unit_id = factory_or_factory_type->unit_id;
-          else
-            unit_id = -1;
-          *(_DWORD *)result = unit_id;
-          *((_DWORD *)result + 1) = prev->type;
-          *((_DWORD *)result + 2) = prev->factory_header_color_idx;
-          v12 = (char *)result + 12;
-          result = (char *)result + 16;
-          *v12 = 0;
-          if ( prod_tail != (KKND::SidebarFactoryProductionOption *)&prev->prod_head )
-          {
-            do
-            {
-              result = (char *)result + 24;
-              ++*v12;
-              *((_DWORD *)result - 6) = prod_tail->product_type;
-              *((_DWORD *)result - 5) = prod_tail->icon_mobd_frame;
-              *((_DWORD *)result - 4) = prod_tail->state.remaining_cost;
-              *((_DWORD *)result - 3) = prod_tail->state.num_orders;
-              *((_DWORD *)result - 2) = prod_tail->base_cost;
-              *((_DWORD *)result - 1) = prod_tail->production_time;
-              prod_tail = prod_tail->prev;
-            }
-            while ( prod_tail != (KKND::SidebarFactoryProductionOption *)&prev->prod_head );
-            v8 = v14;
-          }
-          prev = prev->prev;
-          v6 = v13;
-        }
-        while ( prev != v13 );
+  *out_size = 20;
+  for (int t = 0; t < MAX_PROD_TYPES; ++t) {
+    KKND::SidebarFactoryProduction *head = g_factory_prod_head[t];
+    for (KKND::SidebarFactoryProduction *i = head->prev; i != head; i = i->prev) {
+      *out_size += 16;
+      for (KKND::SidebarFactoryProductionOption *j = i->prod_tail; j != END(i->prod_head); j = j->prev) {
+        *out_size += 24;
       }
-      v13 = ++v6;
     }
-    while ( (int)v6 < (int)&g_sidebar );        // BUG
-    return &v15[4 * *(_DWORD *)data] >= result ? v15 : nullptr;
   }
-  else
-  {
+
+  unsigned char *buf = malloc(*out_size);
+  if (nullptr == buf) {
     g_save_last_error = "memory";
+    return nullptr;
   }
-  return result;
+
+  unsigned char *write = buf;
+  for (int t = 0; t < MAX_PROD_TYPES; ++t) {
+    KKND::SidebarFactoryProduction *head = g_factory_prod_head[t];
+    
+    unsigned __int32 *count = (unsigned __int32 *)write;
+    write += 4;
+    *count = 0;
+
+    for (KKND::SidebarFactoryProduction *i = head->prev; i != head; i = i->prev) {
+      *count += 1;
+      *((__int32 *)write + 0) = i->factory_or_factory_type ? i->factory_or_factory_type->unit_id : -1;
+      *((__int32 *)write + 1) = (int)i->type;
+      *((__int32 *)write + 2) = (int)i->factory_header_color_idx;
+      unsigned __int32 *options_count = (unsigned __int32 *)(write + 12);
+      write += 16;
+
+      *options_count = 0;
+      for (KKND::SidebarFactoryProductionOption *j = i->prod_tail; j != END(i->prod_head); j = j->prev) {
+        *options_count += 1;
+
+        *((__int32 *)write + 0) = (int)j->product_type;
+        *((__int32 *)write + 1) = (int)j->icon_mobd_frame;
+        *((__int32 *)write + 2) = (int)j->state.remaining_cost;
+        *((__int32 *)write + 3) = (int)j->state.num_orders;
+        *((__int32 *)write + 4) = (int)j->base_cost;
+        *((__int32 *)write + 5) = (int)j->production_time;
+
+        write += 24;
+      }
+    }
+  }
+
+  return (buf + *out_size >= write) ? buf : nullptr;
 }
 
 //----- (0041EAF0) --------------------------------------------------------
@@ -34944,7 +32153,7 @@ BOOL __fastcall SAVE_unpack_ai_players(const KKND::AiPlayersSaveStruct *data)
     ai_task_handler_id = v5->ai_task_handler_id;
     data_148_11C = p_unit_free_head_unit_id;
     if ( v5->ai_task_handler_id && ai_task_handler_id <= g_script_handlers_num )
-      v8 = *(void (__cdecl **)(KKND::Task *))&aWb[4 * ai_task_handler_id];// BUG -1 indexing
+      v8 = g_script_handlers[ai_task_handler_id - 1];
     else
       v8 = nullptr;
     if ( !v8 )
@@ -36360,7 +33569,7 @@ LABEL_13:
   g_aircraft_unlocked = data->is_aircraft_unlocked;
   aircraft_sidebar_task_id = data->aircraft_sidebar_task_id;
   if ( aircraft_sidebar_task_id && aircraft_sidebar_task_id <= g_script_handlers_num )
-    v9 = *(void (__cdecl **)(KKND::Task *))&aWb[4 * aircraft_sidebar_task_id];// BUG -1 indexing
+    v9 = g_script_handlers[aircraft_sidebar_task_id - 1];
   else
     v9 = nullptr;
   if ( v9 )
@@ -36370,7 +33579,7 @@ LABEL_13:
     {
       aircraft_sidebar_task_message_handler = data->aircraft_sidebar_task_message_handler;
       if ( aircraft_sidebar_task_message_handler && aircraft_sidebar_task_message_handler <= g_script_handlers_num )
-        v12 = *(_DWORD *)&aWb[4 * aircraft_sidebar_task_message_handler];// BUG -1 indexing
+        v12 = g_script_handlers[aircraft_sidebar_task_message_handler - 1];
       else
         v12 = 0;
       *(_DWORD *)(result + 52) = v12;
@@ -36395,7 +33604,7 @@ LABEL_13:
       *(_DWORD *)(result + 16) = g_sidebar_airstrike_task;
       aircraft_mode_id = data->aircraft_mode_id;
       if ( aircraft_mode_id && aircraft_mode_id <= g_script_handlers_num )
-        result = *(_DWORD *)&aWb[4 * aircraft_mode_id];// BUG -1 indexing
+        result = g_script_handlers[aircraft_mode_id - 1];
       else
         result = 0;
       v13->mode = (void (__fastcall *)(KKND::AirstrikeSidebar *))result;
@@ -37018,21 +34227,15 @@ void __fastcall MSG_machine_shop_upgrades(
   KKND::Unit *unit; // esi
   KKND::BuildingState *state; // eax
   KKND::SidebarFactoryProduction *prod; // ebx
-  int v9; // ecx
-  bool v10; // sf
 
   unit = (KKND::Unit *)receiver->ctx;
   state = (KKND::BuildingState *)unit->state;
   prod = state->prod;
-  v9 = state->upgrade_level + 1;
-  v10 = state->upgrade_level - 4 < 0;
-  state->upgrade_level = v9;
-  if ( !(v10 ^ __OFSUB__(v9, 5) | (v9 == 5)) )
-    state->upgrade_level = 5;
+  state->upgrade_level = min(5, state->upgrade_level + 1);
   if ( unit->player_num == g_player_num )
   {
-    --dword_479FC4[state->upgrade_level];       // BUG -1 indexing
-    ++g_machineshop_levels.num_buildings_by_level[state->upgrade_level];
+    g_machineshop_levels.num_buildings_by_level[state->upgrade_level - 1] -= 1;
+    g_machineshop_levels.num_buildings_by_level[state->upgrade_level] += 1;
     if ( state->upgrade_level > g_machineshop_levels.max_level )
       g_machineshop_levels.max_level = state->upgrade_level;
     switch ( state->upgrade_level )
@@ -37162,8 +34365,7 @@ void __fastcall UNIT_mode_machine_shop_refresh_levels(KKND::Unit *unit)
   TSK_broadcast_message(unit->task, TaskMessage_BuildingComplete, nullptr, TaskChannel_MachineShop);
   if ( !state->same_building_count && g_player_num == unit->player_num )
   {
-    g_machineshop_levels.max_level = 1;
-    memset(&g_machineshop_levels, 0, 0x24u);
+    TECHLVL_reset(&g_machineshop_levels);
   }
 }
 
@@ -37188,8 +34390,7 @@ void __cdecl UNIT_machine_shop_tick(KKND::Task *task)
       TSK_broadcast_message(unit->task, TaskMessage_BuildingComplete, nullptr, TaskChannel_MachineShop);
       if ( !state->same_building_count && g_player_num == unit->player_num )
       {
-        g_machineshop_levels.max_level = 1;     // MACRO or INLINED
-        memset(&g_machineshop_levels, 0, 0x24u);
+        TECHLVL_reset(&g_machineshop_levels);
       }
       if ( !unit->entity->cplc_spawn_params )
       {
@@ -37221,8 +34422,7 @@ void __fastcall UNIT_mode_machine_shop_on_complete(KKND::Unit *unit)
       TSK_broadcast_message(unit->task, TaskMessage_BuildingComplete, nullptr, TaskChannel_MachineShop);
       if ( !state->same_building_count && g_player_num == unit->player_num )
       {
-        g_machineshop_levels.max_level = 1;     // MACRO
-        memset(&g_machineshop_levels, 0, 0x24u);
+        TECHLVL_reset(&g_machineshop_levels);
       }
       unit->mode_arrive = nullptr;
       unit->mode = UNIT_mode_building_idle_tick;
@@ -37329,7 +34529,7 @@ void __fastcall UNIT_mode_machine_shop_on_death(KKND::Unit *unit)
   if ( g_player_num == unit->player_num )
   {
     max_level = g_machineshop_levels.max_level;
-    --g_machineshop_levels.num_buildings_by_level[state->upgrade_level];// BUG -1 indexing
+    --g_machineshop_levels.num_buildings_by_level[state->upgrade_level];
     upgrade_level = state->upgrade_level;
     if ( upgrade_level == max_level && !g_machineshop_levels.num_buildings_by_level[upgrade_level] )
     {
@@ -37949,7 +35149,7 @@ BOOL GAME_post_campaign_mission()
   KKND::MapdRenderNode **v0; // esi
   KKND::MapdRenderNode *v1; // ecx
 
-  v0 = g_mapd_layers_rns;
+  v0 = g_mapd_layers_rns; // INLINED in KKND_Main
   do
   {
     v1 = *v0;
@@ -37960,7 +35160,7 @@ BOOL GAME_post_campaign_mission()
     }
     ++v0;
   }
-  while ( (int)v0 < (int)&dword_47A01C );       // BUG
+  while ( (int)v0 < (int)&dword_47A01C );       // BUG + duplicated in KKND_Main
   TURRET_mode_null((KKND::Turret *)v1);
   PROD_cleanup();
   GAME_mission_cleanup();
@@ -38068,7 +35268,7 @@ LABEL_5:
       TIME_tick();
     }
     while ( !g_os_quit_signal_received && g_game_loop == GameLoop_Continue );
-    v2 = g_mapd_layers_rns;                     // INLINED
+    v2 = g_mapd_layers_rns;                     // INLINED GAME_post_campaign_mission
     do
     {
       if ( *v2 )
@@ -38078,7 +35278,7 @@ LABEL_5:
       }
       ++v2;
     }
-    while ( (int)v2 < (int)&dword_47A01C );     // BUG
+    while ( (int)v2 < (int)&dword_47A01C );     // BUG + duplicated in GAME_post_campaign_mission
     LVL_cleanup();
     g_mission_outcome = MissionOutcome_NotStarted;
     free_(g_level);
@@ -39962,8 +37162,6 @@ void __fastcall MISSION_victory_conditions_on_death(KKND::Unit *victim)
   BOOL mission_failed; // edi
   KKND::UnitType type; // eax
   BOOL mission_accomplished; // ebp
-  bool v4; // sf
-  bool v5; // of
 
   mission_failed = 0;
   type = victim->type;
@@ -39998,10 +37196,7 @@ void __fastcall MISSION_victory_conditions_on_death(KKND::Unit *victim)
     case LevelId_Surv_07_ProtectTheConvoy:
       if ( type == UnitType_TankerConvoy )
       {
-        v5 = __OFSUB__(g_num_convoy_tankers_destroyed + 1, 3);
-        v4 = g_num_convoy_tankers_destroyed - 2 < 0;
-        ++g_num_convoy_tankers_destroyed;
-        mission_failed = v4 == v5;
+        mission_failed = ++g_num_convoy_tankers_destroyed >= 3;
         if ( victim->mode_arrive == UNIT_mode_convoy_escaped )
           --g_num_convoy_tankers_en_route;
       }
@@ -40020,10 +37215,7 @@ void __fastcall MISSION_victory_conditions_on_death(KKND::Unit *victim)
     case LevelId_Mute_08_SmashTheConvoy:
       if ( type == UnitType_TankerConvoy )
       {
-        v5 = __OFSUB__(g_num_convoy_tankers_destroyed + 1, 5);
-        v4 = g_num_convoy_tankers_destroyed - 4 < 0;
-        ++g_num_convoy_tankers_destroyed;
-        mission_accomplished = v4 == v5;
+        mission_accomplished = ++g_num_convoy_tankers_destroyed >= 5;
       }
       break;
     case LevelId_Mute_14_TheFinalAssault:
@@ -44189,24 +41381,24 @@ void __fastcall CURSOR_on_unit_selected(KKND::CursorState *cursor, KKND::Unit *u
 
 //----- (0042A0A0) --------------------------------------------------------
 // BUG/INLINE
-// 
+//
 // Verified Macro Reconstruction
 // After checking EVERY site, confirmed pattern is 100% consistent. Here's the definitive macro:
-// 
+//
 // GameEvent struct (from header):
-// 
+//
 // struct __unaligned KKND::GameEvent {
 //     GameEventType type;      // 1 byte (uint8 enum)
 //     char payload[12];        // 12 bytes
 //     char _game_event_field_D; // 1 byte (used in dequeue: "pending" flag)
 // };  // 14 bytes total
-// 
+//
 // struct __unaligned GameEventNode {
 //     GameEventNode *next;     // 4 bytes
 //     GameEvent evt;           // 14 bytes
 //     char field_12, field_13; // 2 bytes padding
 // };  // 20 bytes total = 0x14
-// 
+//
 // #define GAME_EVENT_ENQUEUE()                                            \
 // do {                                                                    \
 //     GameEventNode *_node = g_game_event_free_head;                      \
@@ -44223,35 +41415,35 @@ void __fastcall CURSOR_on_unit_selected(KKND::CursorState *cursor, KKND::Unit *u
 //         }                                                               \
 //     }                                                                   \
 // } while(0)
-// 
-// 
-// 
+//
+//
+//
 // Usage pattern at all sites:
-// 
+//
 // // 1. Fill scratch buffer:
 // g_game_event_queue.evt.type = GameEvent_XXX;
 // *(_DWORD*)g_game_event_queue.evt.payload = value1;       // bytes [0..3]
 // *(_DWORD*)&g_game_event_queue.evt.payload[4] = value2;   // bytes [4..7] (optional)
 // *(_DWORD*)&g_game_event_queue.evt.payload[8] = value3;   // bytes [8..11] (optional)
-// 
+//
 // // 2. Enqueue:
 // GAME_EVENT_ENQUEUE();
-// 
-// 
-// 
+//
+//
+//
 // MSVC 13-byte struct copy codegen:
 // The compiler emits this for _node->evt = g_game_event_queue.evt:
-// 
+//
 // *(_DWORD*)&node->evt.type       = *(_DWORD*)&src.type;        // bytes [0..3]
-// *(_DWORD*)&node->evt.payload[3] = *(_DWORD*)&src.payload[3];  // bytes [4..7]  
+// *(_DWORD*)&node->evt.payload[3] = *(_DWORD*)&src.payload[3];  // bytes [4..7]
 // *(_DWORD*)&node->evt.payload[7] = *(_DWORD*)&src.payload[7];  // bytes [8..11]
 // node->evt.payload[11]           = src.payload[11];             // byte [12]
-// 
+//
 // 4 non-overlapping reads covering 13 bytes (3×DWORD + 1×BYTE). This is just MSVC's way of copying a 13-byte unaligned struct without calling memcpy.
-// 
+//
 // Dequeue side (game_process_events, line 45412):
-// 
-// 
+//
+//
 // // Dequeue head → copy to g_47CAE0 (current event being processed) → return to freelist
 // node = g_game_event_queue.next;
 // if (node) {
@@ -44259,19 +41451,19 @@ void __fastcall CURSOR_on_unit_selected(KKND::CursorState *cursor, KKND::Unit *u
 //     g_game_event_queue.next = node->next;    // unlink head
 //     node->next = g_game_event_free_head;     // return to freelist (LIFO push!)
 //     g_game_event_free_head = node;
-//     
+//
 //     // If netz: also copy into ring buffer g_game_events[] for network sync
 //     if (g_netz_new_game_events) { ... }
 // } else {
 //     g_47CAE0.type = GameEvent_None;
 // }
-// 
+//
 // Two code paths for the NULL check:
 // Variant Sites Context
 // if (node) { ... } ~15 sites Inside larger function, continues after
 // if (!node) return; ~5 sites At end of function, early-out on pool exhaustion
 // Both are semantically identical — just MSVC choosing branch layout based on surrounding control flow.
-// 
+//
 // sub_429770 = The non-inlined twin:
 void __fastcall CURSOR_unit_orders(KKND::CursorState *cursor)
 {
@@ -45351,7 +42543,7 @@ void __fastcall CURSOR_sidebar(KKND::CursorState *cursor)
 
 //----- (0042B740) --------------------------------------------------------
 // Game events queue → dispatch → network sync pipeline
-// 
+//
 // When process_ui_events=0, following events handlers become no-ops:
 //     set airstrike targeting
 //     clear airstrike targeting
@@ -47812,7 +45004,7 @@ void __fastcall AI_process_wanderers(KKND::AiController *ai)
     v9 = j->unit;
     if ( !v9->locked_target && !v9->order_target || v9->mode == UNIT_mode_combatant_idle_tick )
     {
-      nearest_enemy = AI_find_nearest_enemy(ai, j->unit, &distance);// INLINED 42E030 AI_find_and_engage_nearest_enemy 
+      nearest_enemy = AI_find_nearest_enemy(ai, j->unit, &distance);// INLINED 42E030 AI_find_and_engage_nearest_enemy
       if ( nearest_enemy )
       {
         player_num = ai->player_num;
@@ -49531,7 +46723,7 @@ BOOL __fastcall NETZ_send_to(int player, KKND::NetzPacketType pkt, const void *d
   g_netz_send_bufs[player].pkt = pkt;
   qmemcpy(g_netz_send_bufs[player].buf, data, data_size);// BUG no size check
   from = g_dp_pid;
-  if ( player == -1 )                           // INLINED 42FFB0 DP_send_to_player 
+  if ( player == -1 )                           // INLINED 42FFB0 DP_send_to_player
     to = 0;
   else
     to = g_netz_links[player].dpid;
@@ -49655,7 +46847,7 @@ int __fastcall DP_connect_to_player(int player)
       return -1;
     do
     {
-      v8 = g_47A938_unused;                     // BUG: never initialized + immediately overwritten by the call below 
+      v8 = g_47A938_unused;                     // BUG: never initialized + immediately overwritten by the call below
       v9 = 1;
       g_dp->vtbl->GetPlayerData(g_dp, host->player_id, &v8, (LPDWORD)&v9, 0);// 0 == DPGET_REMOTE
       if ( v8 == 'S' )                          // seems to be a host marker
@@ -49816,7 +47008,7 @@ void DP_session_disable_new_players()
   if ( g_dp )
   {
     g_dp_session_desc.dwFlags |= 0x21u;         // DPSESSION_NEWPLAYERSDISABLED | DPSESSION_JOINDISABLED
-                                                // 
+                                                //
                                                 // https://scp.indiegames.us/fsodoc/vdplay_8h_source.html#l00178
     g_dp->vtbl->SetSessionDesc(g_dp, &g_dp_session_desc, 0);
   }
@@ -49828,7 +47020,7 @@ void __fastcall DP_session_enable_new_players(int _)
   if ( g_dp )
   {
     g_dp_session_desc.dwFlags &= 0xFFFFFFDE;    // ~(DPSESSION_NEWPLAYERSDISABLED | DPSESSION_JOINDISABLED)
-                                                // 
+                                                //
                                                 // https://scp.indiegames.us/fsodoc/vdplay_8h_source.html#l00178
     g_dp->vtbl->SetSessionDesc(g_dp, &g_dp_session_desc, 0);
   }
@@ -50335,17 +47527,15 @@ LABEL_25:
 //----- (00430F10) --------------------------------------------------------
 void MISSION_tech_tracker_init()
 {
-  memset(&g_outpost_levels, 0, 0x24u);
+  TECHLVL_reset(&g_outpost_levels);
+  TECHLVL_reset(&g_clanhall_levels);
   g_buildings_suspended = 0;
   g_sidebar_buildings_prod = nullptr;
   g_sidebar_tower_prod = nullptr;
   g_sidebar_aircraft_prod = nullptr;
-  memset(&g_clanhall_levels, 0, 0x24u);
   g_player_bases[0] = nullptr;
   g_player_bases[1] = nullptr;
-  g_outpost_levels.max_level = 1;
   g_player_bases[2] = nullptr;
-  g_clanhall_levels.max_level = 1;
   g_player_bases[3] = nullptr;
 }
 
@@ -50426,7 +47616,6 @@ void __fastcall MSG_outpost_upgrades(
   KKND::Unit *unit; // ebx
   KKND::BuildingState *state; // eax
   KKND::SidebarFactoryProduction *prod; // edi
-  int v8; // ecx
   int v9; // esi
   KKND::LevelId v10; // eax
   KKND::LevelId v11; // eax
@@ -50434,15 +47623,12 @@ void __fastcall MSG_outpost_upgrades(
   unit = (KKND::Unit *)receiver->ctx;           // BUG  -- not really a bug but other builds have this inlined
   state = (KKND::BuildingState *)unit->state;
   prod = state->prod;
-  v8 = state->upgrade_level + 1;
-  state->upgrade_level = v8;
-  if ( v8 > 5 )
-    state->upgrade_level = 5;
+  state->upgrade_level = min(5, state->upgrade_level + 1);
   if ( unit->player_num == g_player_num )
   {
     v9 = 0;
-    --dword_47B3DC[state->upgrade_level];       // BUG -1 indexing
-    ++g_outpost_levels.num_buildings_by_level[state->upgrade_level];
+    ++g_outpost_levels.num_buildings_by_level[state->upgrade_level - 1] -= 1;
+    ++g_outpost_levels.num_buildings_by_level[state->upgrade_level] += 1;
     if ( state->upgrade_level > g_outpost_levels.max_level )
     {
       g_outpost_levels.max_level = state->upgrade_level;
@@ -50635,8 +47821,7 @@ void __fastcall UNIT_mode_outpost_set_default_prod(KKND::Unit *unit)
         while ( (int)opt < (int)&g_surv_default_infantry[0].type );// BUG
         if ( !g_sidebar_aircraft_prod )
           g_sidebar_aircraft_prod = UI_sidebar_prod_enable_category(unit, ProductionType_Aircraft);
-        g_outpost_levels.max_level = 1;
-        memset(&g_outpost_levels, 0, 0x24u);    // BUG or rather a macro - max level assignment above always goes hand in hand with the memset
+        TECHLVL_reset(&g_outpost_levels);
       }
     }
   }
@@ -52213,7 +49398,7 @@ LABEL_27:
                         nullptr);
                 if ( v11 )
                   v11->task->netz_flags = Task_CanRunDuringSync;// BUG  there's a repeated mechanial pattern that seems to be a maro or an inlined fn e.g
-                                                // 
+                                                //
                                                 // static inline Entity *ENT_create_local(mobd, parent, fn, kind) {
                                                 // e = ENT_create_ex(mobd, parent, fn, kind, nullptr);
                                                 // if e e->task->netz_flags = TaskNetzFlags_CanRunDuringSync;
@@ -52424,7 +49609,7 @@ void __fastcall UI_ingame_button_init(KKND::Task *task, KKND::TaskChannel chan, 
 }
 
 //----- (004336E0) --------------------------------------------------------
-// Same as 433640 UI_ingame_button_init 
+// Same as 433640 UI_ingame_button_init
 // Only the entity mobd is different
 void __fastcall UI_main_menu_button_init(KKND::Task *task, KKND::TaskChannel chan, int x, int y, int z)
 {
@@ -53904,8 +51089,6 @@ void __fastcall MSG_power_plant(KKND::Task *receiver, KKND::Task *sender, KKND::
 {
   KKND::Unit *unit; // esi
   KKND::BuildingState *state; // eax
-  int v8; // ecx
-  bool v9; // sf
 
   unit = (KKND::Unit *)receiver->ctx;
   if ( message == TaskMessage_ReceiveDamage )
@@ -53922,11 +51105,7 @@ void __fastcall MSG_power_plant(KKND::Task *receiver, KKND::Task *sender, KKND::
     if ( message == TaskMessage_UpgradeComplete )
     {
       state = (KKND::BuildingState *)unit->state;
-      v8 = state->upgrade_level + 1;
-      v9 = state->upgrade_level - 7 < 0;        // BUG - min(x, 8)
-      state->upgrade_level = v8;
-      if ( !(v9 ^ __OFSUB__(v8, 8) | (v8 == 8)) )
-        state->upgrade_level = 8;
+      state->upgrade_level = min(8, state->upgrade_level + 1);
       UNIT_status_bar_update_tech(unit);
     }
     MSG_building_generic(receiver, sender, message, payload);
@@ -54589,19 +51768,19 @@ void __cdecl PROJ_mode_giant_beetle(KKND::Task *task)
                                                 //   int effective_accuracy = UNIT_get_effective_accuracy(shooter);
                                                 //   int miss_range = 100 - effective_accuracy;
                                                 //   int scatter = GAME_rand_sync(file, line) % miss_range - miss_range / 2;
-                                                //   
+                                                //
                                                 //   return scale * scatter;
                                                 // }
-                                                // 
-                                                // 
+                                                //
+                                                //
                                                 // call:
                                                 // x_speed = PROJ_scatter(parent, 4, __FILE__, __LINE__) + proj->speed * sin(orientation);
                                                 // y_speed = PROJ_scatter(parent, 4, __FILE__, __LINE__) - proj->speed * cos(orientation);
-                                                // 
+                                                //
                                                 // CAUTION beetle has tight scatter factor of 4 - default is 8 and rockets/plasma has scatter of 16
-                                                // 
+                                                //
                                                 // math:
-                                                // 
+                                                //
                                                 // effective accuracy = e.g 80
                                                 // miss_range = 100-ea = 20
                                                 // scatter = rand() % miss  e.g [0, 20)
@@ -55456,7 +52635,7 @@ void __cdecl PROJ_mode_generic(KKND::Task *task)
 // BOOL HUNK_FixPointers(void *data, void *rllc_section) {
 //     uint32_t num_entries = *(uint32_t*)rllc_section;  // first DWORD = count
 //     uint32_t *entries = (uint32_t*)rllc_section + 1;  // fixup array follows
-// 
+//
 //     for (uint32_t i = 0; i < num_entries; ) {
 //         uint32_t entry = entries[i++];
 //         if (entry & 0x80000000) {
@@ -61117,10 +58296,10 @@ void __cdecl UI_main_menu(KKND::Task *task)
   MAPD_release(g_mapd_layers_rns[0]);
   TSK_yield(task, TaskWait_Interval, 3);
   section = (KKND::LevelMapd *)LVL_find_section("MAPD");
-  PAL_apply(section->layers->palette);          // BUG -- section[0].layers[0].  
+  PAL_apply(section->layers->palette);          // BUG -- section[0].layers[0].
                                                 // map has only 1 section but 2 layers
                                                 // menu has 12 sections but only 1 layer
-                                                // 
+                                                //
                                                 // that's why it's so incosistent with the pointer arithmetic
   g_mapd_layers_rns[0] = LVL_get_mapd(MenuId_Main, 0, -10);
   CPLC_select(0);
@@ -61213,7 +58392,7 @@ void __fastcall UI_main_menu_multi_serial(KKND::Task *task)
 {
   ;                                             // BUG there's actually code here but it's hidden behind early return - see asm
                                                 // MAPD 5 [5]
-                                                // 
+                                                //
                                                 // it's actually cdecl but the argument was optimized out due to early return; retaining the argument using __fastcall to flag it's existance without creating stack mismatch
 }
 
@@ -61222,7 +58401,7 @@ void __fastcall UI_main_menu_multi_modem(KKND::Task *task)
 {
   ;                                             // BUG there's actually code here but it's hidden behind early return - see asm
                                                 // MAPD 6 [6]
-                                                // 
+                                                //
                                                 // it's actually cdecl but the argument was optimized out due to early return; retaining the argument using __fastcall to flag it's existance without creating stack mismatch
 }
 
@@ -66317,9 +63496,9 @@ BOOL GAME_verify_cdrom()
   if ( g_cdrom_is_available )                   // OS_is_drive_cdrom optimized out
                                                 // 47C6F8 g_ui_main_menu_load_open optimized out
                                                 // sub_4325B0 call optimized out
-                                                // 
+                                                //
                                                 // there's an entire switch statement on dword_47C6EC - research
-                                                // 
+                                                //
   {
     g_cdrom_is_available = 1;
     return g_is_full_install;
@@ -68495,7 +65674,7 @@ LABEL_4:
   {
     while ( type != UnitType_Invalid )
     {
-      type = v3[1].type;                        // BUG not really a bug but warrants a rewrite 
+      type = v3[1].type;                        // BUG not really a bug but warrants a rewrite
       ++v3;
       if ( type == unit_type )
         goto LABEL_4;
@@ -70092,7 +67271,7 @@ void __fastcall TURRET_mode_attacking(KKND::Turret *turret)
     v5->parent = turret->entity->parent;
     TSK_send_message(turret->parent->task, TaskMessage_Attacked, turret->parent, turret->target->task);
   }
-  attachment = turret->attachment;              // INLINED 448110 TURRET_initiate_reload 
+  attachment = turret->attachment;              // INLINED 448110 TURRET_initiate_reload
   v9 = turret->volley_remaining - 1;
   reload_time = attachment->reload_time;
   turret->volley_remaining = v9;
@@ -70599,7 +67778,7 @@ LABEL_9:
       g_angle_to_orientation[turret->current_mobd_frame]);
     if ( turret->current_mobd_frame == v9 )
     {
-      MATH_direction_to_orientation(            // 448BF0 TURRET_mode_vehicle_fire_init 
+      MATH_direction_to_orientation(            // 448BF0 TURRET_mode_vehicle_fire_init
         turret->target->entity->x - turret->entity->x,
         turret->target->entity->y - turret->entity->y);
       ENT_anim_set_frame(
@@ -70640,7 +67819,7 @@ void __fastcall TURRET_mode_vehicle_rotate_to_target(KKND::Turret *turret)
     g_angle_to_orientation[turret->current_mobd_frame]);
   if ( turret->current_mobd_frame == v4 )
   {
-    MATH_direction_to_orientation(              // INLINED 448BF0 TURRET_mode_vehicle_fire_init 
+    MATH_direction_to_orientation(              // INLINED 448BF0 TURRET_mode_vehicle_fire_init
       turret->target->entity->x - turret->entity->x,
       turret->target->entity->y - turret->entity->y);
     ENT_anim_set_frame(
@@ -70866,8 +68045,8 @@ void __cdecl UNIT_order_dispatcher(KKND::Task *task)
   if ( g_is_single_player )
     event = &g_currently_processed_event;
   else
-    event = (KKND::GameEvent *)((char *)&unk_47CA73 + 13 * ctx->player_num);// BUG - g_netz_game_events[player_num -1] 
-                                                // NetzGameEvent and GameEvetn are binary compatible in the first 13 bytes so the pointer cast is ok - but should be refactored 
+    event = (KKND::GameEvent *)((char *)&unk_47CA73 + 13 * ctx->player_num);// BUG - g_netz_game_events[player_num -1]
+                                                // NetzGameEvent and GameEvetn are binary compatible in the first 13 bytes so the pointer cast is ok - but should be refactored
   switch ( event->type )
   {
     case GameEvent_SelectedBox:
@@ -71228,7 +68407,7 @@ BOOL UNIT_order_dispatcher_init()
   do
   {
     if ( !v0 && p[-1].connection_status != NetzConnection_None || v0 && v1 == g_player_num )// BUG [-1].factions is wrong - in the assembly it goes -1C (-1 while sizeof of netz player) - meaning it's players[i-1].connection_status
-                                                // 
+                                                //
                                                 // which is a bug in itself because on the first iteration it's [0-1] -> [-1] - out of bounds
     {
       task = TSK_callback(TaskChannel_UnitEvents, UNIT_order_dispatcher);
@@ -71359,11 +68538,11 @@ void __cdecl NETZ_sync_loop(KKND::Task *task)
       while ( 1 )
       {
         g_coroutine_eax = v5;                   // BUG
-                                                // 
+                                                //
                                                 // Here and in every similar case
-                                                // 
+                                                //
                                                 // Coroutines live on a very tight stack budget; When calling libraries, COM objects (DirectPlay) and other heavy-lifting, the following macro pair temprarily borrows main thread's stack and replaces courutine's own stack with it
-                                                // 
+                                                //
                                                 // #define COROUTINE_STACK_BORROW() __asm { \
                                                 //     mov g_coroutine_eax, eax \
                                                 //     mov eax, g_coroutine_list_head \
@@ -71378,7 +68557,7 @@ void __cdecl NETZ_sync_loop(KKND::Task *task)
                                                 // _skip_enter: \
                                                 //     mov eax, g_coroutine_eax \
                                                 // }
-                                                // 
+                                                //
                                                 // #define COROUTINE_STACK_RETURN() __asm { \
                                                 //     mov g_coroutine_eax, eax \
                                                 //     mov eax, g_coroutine_list_head \
@@ -71389,11 +68568,11 @@ void __cdecl NETZ_sync_loop(KKND::Task *task)
                                                 //     mov esp, g_coroutine_esp \
                                                 // _skip_leave: \
                                                 // }
-                                                // 
-                                                // 
-                                                // 
+                                                //
+                                                //
+                                                //
                                                 // -----
-                                                // the pattern is so consistent, it was probably a wrapper e.g #define RUN_ON_MAIN_STACK(expr) ... 
+                                                // the pattern is so consistent, it was probably a wrapper e.g #define RUN_ON_MAIN_STACK(expr) ...
         v6 = g_coroutine_current;
         if ( g_coroutine_list_head != v6 && ++g_coroutine_nesting_depth == 1 )
           g_coroutine_esp = v33;
