@@ -3,12 +3,14 @@
 
 BOOL UNIT_bomber_init();
 void UNIT_bomber_cleanup();
+void __cdecl UNIT_beast_enclosure_tick(Task *task);
+void __fastcall MSG_blacksmith_upgrades(Task *receiver, Task *sender, TaskMessageType message, void *payload);
 void __fastcall UNIT_bomber_add(Unit *unit);
 void __cdecl TURRET_cosmetic_task(Task *task);
 void __fastcall TURRET_mode_bomber_follow_orientation(Turret *turret);
 void __fastcall TURRET_mode_bomber_init(Turret *turret);
 void __fastcall TURRET_bomber_init(Unit *unit);
-void __fastcall MSG_bomber(Task *receiver, Task *sender, TaskMessageType message, Entity *payload);
+void __fastcall MSG_bomber(Task *receiver, Task *sender, TaskMessageType message, void *payload);
 void __cdecl UNIT_bomber_tick(Task *task);
 void __fastcall UNIT_mode_bomber_crash_landing(Unit *unit);
 void __fastcall UNIT_bomber_initiate_end_sequence(Unit *unit, BOOL crash_or_depart);
@@ -1133,7 +1135,7 @@ IID IID_KKnD = { 0x87824EC0, 0xBB31, 0x11D0, { 0x83, 0x9C, 0x00, 0x40, 0xF6, 0xB
 double dbl_4630F8 = 0.05882352941176471; // weak
 double dbl_463100 = 1000.0; // weak
 double dbl_463108 = -1000.0; // weak
-IID IID_IDirectPlay2A = { 2638611840u, 43042u, 4559u, { 150u, 12u, 0u, 128u, 199u, 83u, 78u, 130u } };
+//IID IID_IDirectPlay2A = { 2638611840u, 43042u, 4559u, { 150u, 12u, 0u, 128u, 199u, 83u, 78u, 130u } };
 int dword_464068 = 6044195;
 BuildingStartingProduction g_mute_default_buildings[6] =
 {
@@ -1838,11 +1840,14 @@ UnitTilePosition g_next_infantry_slot[32] =
 int g_direction_x_deltas[8] = { 0, 1, 1, 1, 0, -1, -1, -1 };
 int g_direction_y_deltas[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
 int g_hinted_unit_id = -1; // weak
-BlitterDesc g_blitter_table = { 1397772884, &REND_mode_sprt_setup, &REND_mode_sprt_draw, &TURRET_mode_null };
+
+void __fastcall REND_mode_null(){}
+BlitterDesc g_blitter_table = { 1397772884, &REND_mode_sprt_setup, &REND_mode_sprt_draw, REND_mode_null };
 unsigned __int8 g_healthbar_fill_color_top[8] = { 145u, 146u, 173u, 172u, 175u, 0u, 0u, 0u };
 unsigned __int8 g_healthbar_fill_color_bottom[8] = { 144u, 145u, 239u, 223u, 174u, 0u, 0u, 0u };
 unsigned __int8 g_healthbar_border_color_top[4] = { 166u, 170u, 145u, 172u };
 unsigned __int8 g_healthbar_border_color_bottom[4] = { 164u, 169u, 145u, 223u };
+RenderViewport g_default_viewport;
 RenderViewport *g_rend_default_viewport = &g_default_viewport;
 BOOL g_is_first_blt = 1;
 RECT g_dd_rect = { 0, 0, 640, 480 };
@@ -3433,10 +3438,36 @@ LevelDesc g_lvl_desc[68] =
 const char *g_last_error = "unknown error";
 const char *g_save_last_error = "non-specific";
 LevelId g_last_loaded_level_id = LevelId_Invalid;
+
+const char *mb_m01[] = {
+  "%FRESH MEAT",
+  "~Though it makes me shiver to my",
+  "soul, I sense that the Symmetrics",
+  "have made their presence felt near",
+  "one of our camps.",
+  "~Their vile buildings taint our",
+  "sweeping view of the landscape and",
+  "would lower property values if such",
+  "things still existed.",
+  "~Clear their sorry, Symmetric selves",
+  "from the land.",
+};
+
+const char *mb_m02[] = {
+  "%THE AMOEBA",
+  "~Our prosperous war camp is coming",
+  "under threat -- the Symmetrics are",
+  "gathering their forces, and we fear",
+  "the results.",
+  "~Our big camp, though prosperous, is",
+  "too distant from the enemy, so you",
+  "must set up another camp and deal",
+  "with the enemy in close quarters.",
+}
 Briefing g_briefings[20] =
 {
-  { &off_46C4F0, "mb_m01.wav" },
-  { &off_46C520, "mb_m02.wav" },
+  { mb_m01, "mb_m01.wav" },
+  { mb_m02, "mb_m02.wav" },
   { &off_46C548, "mb_m03.wav" },
   { &off_46C578, "mb_m04.wav" },
   { &off_46C598, "mb_m05.wav" },
@@ -4848,7 +4879,6 @@ DWORD g_window_style; // idb
 int g_window_bpp; // weak
 __int16 g_dd_stride; // idb
 DDSURFACEDESC g_dd_backbuffer_desc;
-RenderViewport g_default_viewport;
 BOOL g_fullscreen;
 BOOL g_rend_limit_rate;
 RenderViewport *g_viewports_free_head;
@@ -5421,7 +5451,7 @@ void __fastcall MSG_bomber(
         Task *receiver,
         Task *sender,
         TaskMessageType message,
-        Entity *payload)                  // void* actually, but Entity for ReceiveDmg message
+        void *payload)                  // void* actually, but Entity for ReceiveDmg message
 {
   Unit *unit; // esi
   int hitpoints; // eax
@@ -5433,12 +5463,13 @@ void __fastcall MSG_bomber(
     switch ( message )
     {
       case TaskMessage_ReceiveDamage:
-        if ( payload )                          // inlined
+        Entity *entity = (Entity *)payload;
+        if (entity)                          // inlined
         {
           hitpoints = unit->hitpoints;
           if ( hitpoints > 0 )
           {
-            new_hp = hitpoints - payload->vehicle_damage;
+            new_hp = hitpoints - entity->vehicle_damage;
             unit->hitpoints = new_hp;
             if ( new_hp <= 0 )
             {
@@ -19084,13 +19115,11 @@ BOOL REND_blitter_init_all()
 void REND_blitter_cleanup_all()
 {
   RenderBlitter *i; // esi
-  void (*mode_cleanup)(void); // eax
 
   for ( i = g_blitter_active_tail; i != (RenderBlitter *)&g_blitter_active_tail; i = i->next )
   {
-    mode_cleanup = (void (*)(void))i->mode_cleanup;
-    if ( mode_cleanup )
-      mode_cleanup();
+    if (i->mode_cleanup)
+      i->mode_cleanup();
   }
 }
 

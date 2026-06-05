@@ -2646,7 +2646,7 @@ typedef struct {
   int hunk;
   BOOL (*mode_init)();
   Blitter mode_draw;
-  int (__fastcall *mode_cleanup)();
+  void (__fastcall *mode_cleanup)();
 } BlitterDesc;
 
 typedef struct {
@@ -2655,7 +2655,7 @@ typedef struct {
   int hunk;
   int (__fastcall *mode_init)();
   Blitter mode_render;
-  int (__fastcall *mode_cleanup)();
+  void (__fastcall *mode_cleanup)();
 } RenderBlitter;
 
 typedef enum : unsigned int
