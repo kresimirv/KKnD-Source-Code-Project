@@ -1,3 +1,10 @@
+#if __has_include(<stdbit.h>)
+  #include <stdbit.h> // stdc_byteswap32
+#else
+  #include <stdint.h>
+  #define stdc_byteswap32 __builtin_bswap32
+#endif
+
 #include <stdint.h>
 #include <stdio.h> // File
 
@@ -671,12 +678,13 @@ struct RenderNode {
   int _render_node_field_38;
 };
 
+// Comes from the game files so padding/type sizes are important
 typedef struct {
-  int width;
-  int height;
-  unsigned __int8 format;               ///< pixel format: 0=raw, 2=RLE compressed
-                                        ///< raw: one byte per pixel (palette index). Zero bytes are transparent
-  unsigned __int8 pixels[];
+  int32_t width;
+  int32_t height;
+  uint8_t format;               ///< pixel format: 0=raw, 2=RLE compressed
+                                ///< raw: one byte per pixel (palette index). Zero bytes are transparent
+  uint8_t pixels[];
 } __attribute__((packed)) MobdImageData;
 
 typedef struct {
@@ -1343,6 +1351,13 @@ struct Unit {
   int next_order_target_y;
 };
 
+typedef struct LevelHunkHeader LevelHunkHeader;
+
+struct LevelHunkHeader {
+    char name[4];
+    uint32_t size;
+};
+
 typedef struct {
   char name[4];
   void *ptr;
@@ -1854,12 +1869,14 @@ typedef struct {
   Entity *queue_size_label;
 } ProductionSharedState;
 
-typedef struct {
-  struct SidebarButton *next;
-  struct SidebarButton *prev;
+typedef struct SidebarButton SidebarButton;
+
+struct SidebarButton {
+  SidebarButton *next;
+  SidebarButton *prev;
   Task *task;
-  void (__fastcall *mode_open)(struct SidebarButton *);
-  void (__fastcall *mode_close)(struct SidebarButton *);
+  void (__fastcall *mode_open)(SidebarButton *);
+  void (__fastcall *mode_close)(SidebarButton *);
   ptrdiff_t icon_mobd_frame;
   int base_cost;                        ///< for progress bar calc
   ProductionSharedState *production_state;
@@ -1867,9 +1884,10 @@ typedef struct {
                                         ///< - SidebarFactoryProductionOption* for unit/vehicle buttons
                                         ///< - UnitType for building buttons
   Entity *entity;
-} SidebarButton;
+};
 
 typedef struct SidebarFactoryProductionOption SidebarFactoryProductionOption;
+
 /// One per buildable unit type within SidebarFactoryProduction parent
 struct SidebarFactoryProductionOption {
   SidebarFactoryProductionOption *next;
@@ -1908,9 +1926,11 @@ typedef enum : unsigned int {
   ProductionType_Blacksmith = 5,
 } SidebarFactoryProductionType;
 
-typedef struct {
-  struct Sidebar *next;
-  struct Sidebar *prev;
+typedef struct Sidebar Sidebar;
+
+struct Sidebar {
+  Sidebar *next;
+  Sidebar *prev;
   Task *task;
   int num_buttons;
   fixed x;
@@ -1928,7 +1948,7 @@ typedef struct {
   int _sidebar_field_40_unused;
   int _sidebar_field_44_unused;
   int _sidebar_field_48_unused;
-} Sidebar;
+};
 
 typedef struct {
   struct SidebarFactoryProduction *next;
@@ -2288,9 +2308,11 @@ struct AiSquadNode {
   int destination_y;
 };
 
-typedef struct {
-  struct AiController *next;
-  struct AiController *prev;
+typedef struct AiController AiController;
+
+struct AiController {
+  AiController *next;
+  AiController *prev;
   void *ctx1;
   void *ctx2;
   AiUnitNode *unit_node_pool;
@@ -2410,7 +2432,7 @@ typedef struct {
   Task *construction_task;        ///< current building under construction
   int airstrike_interval;
   int airstrike_count;
-} AiController;
+};
 
 typedef struct {
   __int32 num_attacker_nodes;
@@ -2672,19 +2694,21 @@ typedef struct {
 
 typedef struct {
   int hunk;
-  BOOL (*mode_init)();
+  BOOL (__fastcall *mode_init)();
   Blitter mode_draw;
   void (__fastcall *mode_cleanup)();
 } BlitterDesc;
 
-typedef struct {
-  struct RenderBlitter *next;
-  struct RenderBlitter *prev;
+typedef struct RenderBlitter RenderBlitter;
+
+struct RenderBlitter {
+  RenderBlitter *next;
+  RenderBlitter *prev;
   int hunk;
-  int (__fastcall *mode_init)();
+  BOOL (__fastcall *mode_init)();
   Blitter mode_render;
   void (__fastcall *mode_cleanup)();
-} RenderBlitter;
+};
 
 typedef enum : unsigned int
 {
@@ -2692,16 +2716,18 @@ typedef enum : unsigned int
   File_MemoryMapped = 2,
 } FileFlags;
 
-typedef struct {
+typedef struct File File;
+
+struct File {
   FileFlags flags;
   FILE *fp;
   HANDLE map_handle;
   void *map_base;
   void *map_cursor;
   void *map_end;
-  struct File *next;
-  struct File *prev;
-} File;
+  File *next;
+  File *prev;
+};
 
 typedef enum : unsigned int
 {
@@ -2813,13 +2839,11 @@ typedef struct {
 
 typedef struct {
   MovieHeader header;
-  char _movie_2C[372];
-  int _movie_1A0[80];
-  char _movie_2E0[36];
-  int _movie_304[9];
-  char _movie_328[8];
+  uint16_t num_palette_entries;
+  uint16_t palette_starting_idx;
+  uint8_t palette[256][3];
   MovieFlags frame_flags;
-  __int16 active_decode_buffer;
+  int16_t active_decode_buffer;
   FILE *file;
   size_t first_frame_offset;            ///< for rewinding
   void *decode_buffers[2];

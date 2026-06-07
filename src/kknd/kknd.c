@@ -183,7 +183,7 @@ void FADE_reset();
 void __fastcall FADE_out(Task *task);
 void __fastcall FADE_in(Task *task);
 void PAL_multi_apply();
-BOOL FADE_init();
+bool FADE_init();
 void __fastcall FADE_start(RenderViewport *ctx, int start, int end, int length);
 void __fastcall SOUND_play_positional(Entity *entity, SoundId sound_id, int volume, int unused);
 void FADE_update();
@@ -281,7 +281,7 @@ void REND_blitter_cleanup();
 void __fastcall UNIT_building_status_bar_update_health(Unit *unit);
 void __fastcall UNIT_tanker_status_bar_update_health(Unit *unit);
 void __fastcall UNIT_status_bar_update_frame(Unit *unit);
-int __fastcall UNIT_tanker_status_bar_update_oil(Unit *unit);
+void __fastcall UNIT_tanker_status_bar_update_oil(Unit *unit);
 void __fastcall UNIT_status_bar_update_sabotage(Unit *unit);
 void __fastcall UNIT_status_bar_update_factory_stripe(Unit *unit, int stripe_color_palette_index);
 void __fastcall UNIT_status_bar_update_tech(Unit *unit);
@@ -308,7 +308,7 @@ void __fastcall REND_draw_batch(RenderBatch *batch);
 int __fastcall REND_get_width(RenderCommand *cmd);
 int __fastcall REND_get_height(RenderCommand *cmd);
 void REND_cleanup();
-BOOL REND_mode_sprt_setup();
+BOOL __fastcall REND_mode_sprt_setup();
 int __fastcall REND_mode_sprt_draw(RenderCommand *cmd, BlitterMode mode);
 BOOL REND_mode_scrl_setup();
 int __fastcall REND_mode_scrl_draw(RenderCommand *cmd, BlitterMode mode);
@@ -1843,16 +1843,16 @@ int g_direction_y_deltas[8] = { -1, -1, 0, 1, 1, 1, 0, -1 };
 int g_hinted_unit_id = -1; // weak
 
 void __fastcall REND_mode_null(){}
-BlitterDesc g_blitter_table = { 1397772884, &REND_mode_sprt_setup, &REND_mode_sprt_draw, REND_mode_null };
-unsigned __int8 g_healthbar_fill_color_top[8] = { 145u, 146u, 173u, 172u, 175u, 0u, 0u, 0u };
-unsigned __int8 g_healthbar_fill_color_bottom[8] = { 144u, 145u, 239u, 223u, 174u, 0u, 0u, 0u };
-unsigned __int8 g_healthbar_border_color_top[4] = { 166u, 170u, 145u, 172u };
-unsigned __int8 g_healthbar_border_color_bottom[4] = { 164u, 169u, 145u, 223u };
+BlitterDesc g_blitter_table = { 'SPRT', REND_mode_sprt_setup, REND_mode_sprt_draw, REND_mode_null };
+uint8_t g_healthbar_fill_color_top[8] = { 145u, 146u, 173u, 172u, 175u, 0u, 0u, 0u };
+uint8_t g_healthbar_fill_color_bottom[8] = { 144u, 145u, 239u, 223u, 174u, 0u, 0u, 0u };
+uint8_t g_healthbar_border_color_top[4] = { 166u, 170u, 145u, 172u };
+uint8_t g_healthbar_border_color_bottom[4] = { 164u, 169u, 145u, 223u };
 RenderViewport g_default_viewport;
 RenderViewport *g_rend_default_viewport = &g_default_viewport;
 BOOL g_is_first_blt = 1;
 RECT g_dd_rect = { 0, 0, 640, 480 };
-unsigned __int8 g_sprt_pal_465848_unused[256] =
+uint8_t g_sprt_pal_465848_unused[256] =
 {
   0u,
   1u,
@@ -5224,7 +5224,7 @@ BOOL g_is_level_pal_dimmed;
 BOOL g_fade_is_in_progress;
 int g_fade_length;
 int g_fade_start;
-BOOL g_fade_in_progress;
+bool g_fade_in_progress;
 int g_fade_end;
 RenderViewport *g_fade_draw_ctx;
 int g_fade_timer;
@@ -5240,6 +5240,7 @@ int g_movie_sound_write_pos; // weak
 FmvFrameImage g_main_movie_img;
 RenderNode *g_main_movie_rn;
 WAVEFORMATEX g_movie_waveformat;
+PaletteEntry g_477992[256];
 FmvFrameImage g_secondary_movie_img;
 RenderNode *g_secondary_movie_rn;
 int g_movie_sound_play_pos_prev; // weak
@@ -5278,7 +5279,7 @@ void (__fastcall *REND_blt_fmv)(unsigned __int8 *, int, int, int, int);
 void (__fastcall *REND_blt_rle)(unsigned __int8 *, int, int, int, int);
 BOOL g_478A0C_unused;
 void (__fastcall *REND_blt_scrl)(unsigned __int8 *pixels, int x, int y);
-int g_pal_last_brightness;
+unsigned int g_pal_last_brightness;
 COLORREF g_win32_sys_colors[25];
 void (__fastcall *REND_blt_rle_override_palette)(unsigned __int8 *, unsigned __int8 *, int, int, int, int);
 int g_display_height_2; // weak
@@ -5369,7 +5370,7 @@ BOOL g_mobd_initialized;
 BOOL g_timer_initialized;
 BOOL g_input_initialized;
 LevelHunk *g_current_lvl;
-BOOL g_fade_initialized;
+bool g_fade_initialized;
 BOOL g_window_initialized;
 BOOL g_boxd_collisions_initialized;
 BOOL g_render_blitters_initialized;
@@ -12224,11 +12225,11 @@ void PAL_multi_apply()
 }
 
 //----- (00408780) --------------------------------------------------------
-BOOL FADE_init()
+bool FADE_init()
 {
   g_rend_default_viewport->brightness = 0x80000000;
-  g_fade_in_progress = 0;
-  return 1;
+  g_fade_in_progress = false;
+  return true;
 }
 
 //----- (004087A0) --------------------------------------------------------
@@ -12244,12 +12245,12 @@ void __fastcall FADE_start(RenderViewport *ctx, int start, int end, int length)
     g_fade_end = end;
     g_fade_draw_ctx = ctx;
     ctx->brightness = start;
-    g_fade_in_progress = 1;
+    g_fade_in_progress = true;
   }
   else
   {
     ctx->brightness = end;
-    g_fade_in_progress = 0;
+    g_fade_in_progress = false;
   }
 }
 
@@ -12334,23 +12335,19 @@ LABEL_22:
 //----- (00408930) --------------------------------------------------------
 void FADE_update()
 {
-  int v0; // esi
+  if (!g_fade_in_progress) {
+    return;
+  }
 
-  if ( g_fade_in_progress )
-  {
-    v0 = --g_fade_timer;
-    if ( g_fade_timer )
-    {
-      if ( g_fade_end <= (unsigned int)g_fade_start )
-        g_fade_draw_ctx->brightness = g_fade_end + v0 * ((g_fade_start - g_fade_end) / (unsigned int)g_fade_length);
-      else
-        g_fade_draw_ctx->brightness = g_fade_end - v0 * ((g_fade_end - g_fade_start) / (unsigned int)g_fade_length);
-    }
+  if (g_fade_timer > 0) {
+    int t = --g_fade_timer;
+    if (g_fade_end <= g_fade_start)
+      g_fade_draw_ctx->brightness = g_fade_end + t * ((g_fade_start - g_fade_end) / g_fade_length);
     else
-    {
-      g_fade_draw_ctx->brightness = g_fade_end;
-      g_fade_in_progress = 0;
-    }
+      g_fade_draw_ctx->brightness = g_fade_end - t * ((g_fade_end - g_fade_start) / g_fade_length);
+  } else {
+    g_fade_draw_ctx->brightness = g_fade_end;
+    g_fade_in_progress = false;
   }
 }
 
@@ -12363,7 +12360,6 @@ void __fastcall MSG_ai_controller(
 {
   (void)sender;
 
-  AiController *ai; // esi
   Unit *v5; // ebp
   AiEnemyNode *m; // edi
   AiEnemyNode *prev; // eax
@@ -12410,7 +12406,6 @@ void __fastcall MSG_ai_controller(
   bool v48; // zf
   int player_num; // eax
   AiEnemyNode *v50; // edi
-  AiController *k; // eax
   AiBuildNode *v52; // ebx
   AiTankerNode *v53; // edi
   AiDrillrigNode *v54; // eax
@@ -12423,15 +12418,13 @@ void __fastcall MSG_ai_controller(
   AiBuildingPlacementNode **p_drillrig_replacement_head; // esi
   int y; // edx
   AiPowerPlantNode *v63; // ebx
-  AiController *i; // eax
   UnitStats *stats; // ecx
   AiWandererNode *v66; // edi
   AiAttackerNode *v67; // eax
   AiSquadNode *squad; // ecx
-  AiController *j; // ecx
   AiBuildNode *messagea; // [esp+14h] [ebp+4h]
 
-  ai = (AiController *)receiver->ctx;
+  AiController *ai = receiver->ctx;
   if ( message == TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox )
   {
     v48 = !GAME_is_enemy(ai->player_num, payload);
@@ -12471,7 +12464,7 @@ void __fastcall MSG_ai_controller(
               if ( guard_squad )
               {
                 guard_squad->next = ai->attack_squad_head;
-                v54->guard_squad->prev = (AiSquadNode *)&ai->attack_squad_head;
+                v54->guard_squad->prev = END(ai->attack_squad_head);
                 ai->attack_squad_head->prev = v54->guard_squad;
                 ai->attack_squad_head = v54->guard_squad;
               }
@@ -12536,10 +12529,10 @@ void __fastcall MSG_ai_controller(
             }
             if ( v63 )
             {
-              for ( i = (AiController *)ai->drillrig_head; i != (AiController *)&ai->drillrig_head; i = i->next )
+              for (AiDrillrigNode *i = ai->drillrig_head; i != END(ai->drillrig_head); i = i->next )
               {
-                if ( (AiPowerPlantNode *)i->wanderer_pool == v63 )
-                  i->wanderer_pool = nullptr;
+                if (i->nearest_powerplant == v63)
+                  i->nearest_powerplant = nullptr;
               }
               v63->next->prev = v63->prev;
               v63->prev->next = v63->next;
@@ -12593,7 +12586,7 @@ void __fastcall MSG_ai_controller(
             stats = payload->stats;
             if ( stats->speed > 0 && (stats->attachment || stats->projectile) )
             {
-              if ( SLOBYTE(payload->path_flags) >= 0 )
+              if (~payload->path_flags & 0x80)
               {
                 v67 = (AiAttackerNode *)payload->ai_node_per_side[player_num];
                 if ( v67 )
@@ -12605,14 +12598,14 @@ void __fastcall MSG_ai_controller(
                     v67->squad->total_squad_threat -= v67->unit->stats->ai_threat_weight;
                     squad = v67->squad;
                     if ( squad != ai->staging_squad
-                      && (AiAttackerNode **)squad->attackers_head == &squad->attackers_head )
+                      && squad->attackers_head == (AiAttackerNode *)&squad->attackers_head )
                     {
-                      for ( j = (AiController *)ai->retreat_squad_head;
-                            j != (AiController *)&ai->retreat_squad_head;
-                            j = j->next )
+                      for (AiSquadNode *i = ai->retreat_squad_head;
+                            i != END(ai->retreat_squad_head);
+                            i = i->next )
                       {
-                        if ( j->ctx1 == v67->squad )
-                          j->ctx1 = nullptr;
+                        if ( i->merge_target_squad == v67->squad )
+                          i->merge_target_squad = nullptr;
                       }
                       v67->squad->next->prev = v67->squad->prev;
                       v67->squad->prev->next = v67->squad->next;
@@ -12655,12 +12648,12 @@ void __fastcall MSG_ai_controller(
       v50 = (AiEnemyNode *)payload->ai_node_per_side[player_num];
       if ( v50 )
       {
-        for ( k = (AiController *)ai->attack_squad_head;
-              k != (AiController *)&ai->attack_squad_head;
-              k = k->next )
+        for (AiSquadNode *i = ai->attack_squad_head;
+              i != END(ai->attack_squad_head);
+              i = i->next )
         {
-          if ( (AiEnemyNode *)k->_ai_controller_24 == v50 )
-            k->_ai_controller_24 = 0;
+          if (i->enemy_target == v50)
+            i->enemy_target = nullptr;
         }
         v50->next->prev = v50->prev;
         v50->prev->next = v50->next;
@@ -12675,7 +12668,7 @@ void __fastcall MSG_ai_controller(
     if ( GAME_is_enemy(ai->player_num, payload) )
     {
       if ( payload->stats->race != ai->player_race
-        || (int)g_current_lvl_id >= (int)LevelId_Surv_16 && (int)g_current_lvl_id <= (int)LevelId_Mute_25
+        || ((int)g_current_lvl_id >= (int)LevelId_Surv_16 && (int)g_current_lvl_id <= (int)LevelId_Mute_25)
         || g_is_kaos_mode )
       {
         enemy_free_head = ai->enemy_free_head;
@@ -13216,7 +13209,7 @@ void __cdecl AI_controller_tick_impl(Task *task)
   AiDrillrigNode *v12; // eax
   CreatureIdToUnitId *v13; // ebp
   AiBuildNode *j; // edi
-  AiBuildNode *__shifted(AiBuildNode,0xC) p; // ebx
+  AiBuildNode *p; // ebx
   UnitType last_unit_produced; // eax
   int prod_time; // ecx
   int v18; // eax
@@ -13265,12 +13258,10 @@ void __cdecl AI_controller_tick_impl(Task *task)
   int *cash; // ecx
   AiBuildingPlacementNode *v62; // edi
   Unit *v63; // eax
-  int unit_x; // ecx
-  int unit_y; // edx
   AiSquadNode *attack_squad_head; // edi
   int v67; // ebp
   AiAttackerNode *v68; // ecx
-  AiController *retreat_squad_head; // eax
+  AiSquadNode *retreat_squad_head; // eax
   AiSquadNode *m; // edx
   Entity *entity; // ebx
   int v72; // eax
@@ -13280,7 +13271,7 @@ void __cdecl AI_controller_tick_impl(Task *task)
   AiSquadNode *n; // edi
   AiAttackerNode *v77; // ecx
   int v78; // ebp
-  AiController *v79; // eax
+  AiSquadNode *v79; // eax
   AiSquadNode *ii; // edx
   Entity *v81; // ebx
   int v82; // eax
@@ -13307,8 +13298,6 @@ void __cdecl AI_controller_tick_impl(Task *task)
   int best_patrol_waypoint_idx; // ecx
   AiAttackerNode *unassigned_attacker_head; // eax
   Vec2 *v105; // edx
-  int v106; // ecx
-  int rally_y; // edx
   AiAttackerNode *v108; // edi
   AiAttackerNode *i4; // eax
   Entity *v110; // edx
@@ -13368,9 +13357,6 @@ void __cdecl AI_controller_tick_impl(Task *task)
   AiController *v164; // [esp+10h] [ebp-24h]
   int out_y; // [esp+14h] [ebp-20h] BYREF
   Vec2 *v166; // [esp+18h] [ebp-1Ch] BYREF
-  int param; // [esp+1Ch] [ebp-18h] BYREF
-  int rally_x; // [esp+20h] [ebp-14h]
-  int i3; // [esp+24h] [ebp-10h]
   MoveOrderPayload move_order; // [esp+28h] [ebp-Ch] BYREF
 
   ai = (AiController *)task->ctx;
@@ -13459,7 +13445,7 @@ LABEL_20:
       {
         AI_squad_attack(ai, v11);
         drillrig_head->guard_squad->next = ai->attack_squad_head;
-        drillrig_head->guard_squad->prev = (AiSquadNode *)&ai->attack_squad_head;
+        drillrig_head->guard_squad->prev = END(ai->attack_squad_head);
         ai->attack_squad_head->prev = drillrig_head->guard_squad;
         ai->attack_squad_head = drillrig_head->guard_squad;
         drillrig_head->guard_squad = nullptr;
@@ -13478,9 +13464,9 @@ LABEL_26:
   {
     if ( !ai->tanker_production_in_progress )
     {
-      for ( j = ai->build_head; j != (AiBuildNode *)&ai->build_head; j = j->next )
+      for ( j = ai->build_head; j != END(ai->build_head); j = j->next )
       {
-        p = (AiBuildNode *__shifted(AiBuildNode,0xC))&j->remaining_cost;
+        p = j;
         if ( j->remaining_cost <= 0 && j->unit->type == ai->last_unit_produced_factory )
         {
           last_unit_produced = ai->last_unit_produced;
@@ -13492,12 +13478,12 @@ LABEL_26:
           else
             v18 = g_lvl_desc[g_current_lvl_id].superlvl_ai_cost_reduction * g_unit_stats[last_unit_produced].cost;
           v19 = v18 >> 8;
-          ADJ(p)->remaining_cost = v19;
+          p->remaining_cost = v19;
           if ( v19 < 10 )
-            ADJ(p)->remaining_cost = 10;
+            p->remaining_cost = 10;
           j->unit_type = ai->last_unit_produced;
-          cost = ADJ(p)->remaining_cost;
-          j->base_cost = ADJ(p)->remaining_cost;
+          cost = p->remaining_cost;
+          j->base_cost = p->remaining_cost;
           base_bandwidth = (cost << 8) / prod_time;
           unit = j->unit;
           unit_type = j->unit_type;
@@ -13621,7 +13607,7 @@ LABEL_82:
         : &g_lvl_desc[g_current_lvl_id].superlvl_ai_airstrike_count_enemy;
     if ( (player_num == 1 || player_num == 2)
       && ai->airstrike_count
-      && (AiBuildNode **)ai->build_head != &ai->build_head )
+      && ai->build_head != END(ai->build_head))
     {
       airstrike_interval = ai->airstrike_interval;
       v46 = (ai->player_race != Race_Evolved) + UnitType_Mute_Wasp;
@@ -13644,7 +13630,7 @@ LABEL_82:
     }
   }
 LABEL_97:
-  if ( *ai->cash && (AiBuildNode **)ai->build_head != &ai->build_head )
+  if ( *ai->cash && ai->build_head != END(ai->build_head))
   {
     construction_countdown = ai->construction_countdown;
     if ( construction_countdown <= 0 )
@@ -13690,18 +13676,18 @@ LABEL_97:
       else if ( g_cash.cash[ai->player_num] > 0 )
       {
         building_replacement_head = ai->building_replacement_head;
-        if ( building_replacement_head != (AiBuildingPlacementNode *)&ai->building_replacement_head )
+        if ( building_replacement_head != END(ai->building_replacement_head))
         {
-          while ( AI_get_threat_in_area(
+          while ( (AI_get_threat_in_area(
                     ai,
                     0x10000,
                     building_replacement_head->unit_x,
                     building_replacement_head->unit_y) >= g_unit_stats[UnitType_Mute_GiantScorpion].ai_threat_weight
-               && building_replacement_head->strategic_value < g_unit_stats[UnitType_Surv_PowerStation].ai_strategic_value
+               && building_replacement_head->strategic_value < g_unit_stats[UnitType_Surv_PowerStation].ai_strategic_value)
                || !AI_find_building_placement_site(building_replacement_head) )
           {
             building_replacement_head = building_replacement_head->next;
-            if ( building_replacement_head == (AiBuildingPlacementNode *)&ai->building_replacement_head )
+            if ( building_replacement_head == END(ai->building_replacement_head))
               goto LABEL_125;
           }
           v55 = building_replacement_head->unit_type;
@@ -13740,19 +13726,15 @@ LABEL_97:
       }
 LABEL_125:
       v62 = ai->drillrig_replacement_head;
-      if ( v62 != (AiBuildingPlacementNode *)&ai->drillrig_replacement_head )
+      if (ai->drillrig_replacement_head != END(ai->drillrig_replacement_head))
       {
         v63 = v62->unit;
         if ( v63 )
         {
           if ( v63->task->message_handler != MSG_non_interruptable )
-          {
-            unit_x = v62->unit_x;
-            param = ai->player_num;
-            unit_y = v62->unit_y;
-            rally_x = unit_x;
-            i3 = unit_y;
-            TSK_send_message(nullptr, TaskMessage_MoveOrder_or_SoundSettings_or_DoSaveGame, &param, v63->task);
+          { 
+            MoveOrderPayload move = {ai->player_num, v62->unit_x, v62->unit_y};
+            TSK_send_message(nullptr, TaskMessage_MoveOrder_or_SoundSettings_or_DoSaveGame, &move, v63->task);
             v62->next->prev = v62->prev;
             v62->prev->next = v62->next;
             v62->next = ai->building_replacement_free_head;
@@ -13767,21 +13749,21 @@ LABEL_125:
     }
   }
   attack_squad_head = ai->attack_squad_head;
-  if ( attack_squad_head != (AiSquadNode *)&ai->attack_squad_head )
+  if ( attack_squad_head != END(ai->attack_squad_head))
   {
     v67 = 0;
     do
     {
       v68 = attack_squad_head->attackers_head;
-      if ( v68 == (AiAttackerNode *)&attack_squad_head->attackers_head )
+      if (attack_squad_head->attackers_head == END(attack_squad_head->attackers_head))
       {
-        retreat_squad_head = (AiController *)ai->retreat_squad_head;
+        retreat_squad_head = ai->retreat_squad_head;
         for ( m = attack_squad_head->prev;
-              retreat_squad_head != (AiController *)&ai->retreat_squad_head;
+              retreat_squad_head != END(ai->retreat_squad_head);
               retreat_squad_head = retreat_squad_head->next )
         {
-          if ( retreat_squad_head->ctx1 == attack_squad_head )
-            retreat_squad_head->ctx1 = nullptr;
+          if ( retreat_squad_head->merge_target_squad == attack_squad_head )
+            retreat_squad_head->merge_target_squad = nullptr;
         }
         attack_squad_head->next->prev = attack_squad_head->prev;
         attack_squad_head->prev->next = attack_squad_head->next;
@@ -13826,13 +13808,13 @@ LABEL_125:
   {
     v77 = n->attackers_head;
     v78 = 0;
-    if ( v77 == (AiAttackerNode *)&n->attackers_head )
+    if (n->attackers_head == END(n->attackers_head))
     {
-      v79 = (AiController *)ai->retreat_squad_head;
-      for ( ii = n->prev; v79 != (AiController *)&ai->retreat_squad_head; v79 = v79->next )
+      ii = n->prev;
+      for (v79 = ai->retreat_squad_head ; v79 != END(ai->retreat_squad_head); v79 = v79->next )
       {
-        if ( v79->ctx1 == n )
-          v79->ctx1 = nullptr;
+        if ( v79->merge_target_squad == n )
+          v79->merge_target_squad = nullptr;
       }
       n->next->prev = n->prev;
       n->prev->next = n->next;
@@ -13862,7 +13844,7 @@ LABEL_125:
         }
         v77 = v77->next;
       }
-      while ( v77 != (AiAttackerNode *)&n->attackers_head );
+      while ( v77 != END(n->attackers_head));
       v85 = AI_get_threat_in_area(ai, 0x10000, n->center_x, n->center_y);
       n->area_threat = v85;
       if ( v85 > ai->max_squad_threat )
@@ -13871,15 +13853,15 @@ LABEL_125:
   }
   v86 = ai->retreat_squad_head;
   p_retreat_squad_head = &ai->retreat_squad_head;
-  if ( v86 != (AiSquadNode *)&ai->retreat_squad_head )
+  if (ai->retreat_squad_head != END(ai->retreat_squad_head))
   {
     for ( jj = 0; ; jj = 0 )
     {
       p_attackers_head = &v86->attackers_head;
-      if ( (AiAttackerNode **)v86->attackers_head == &v86->attackers_head )
+      if (v86->attackers_head == END(v86->attackers_head))
       {
-        v90 = *p_retreat_squad_head;
-        for ( kk = v86->prev; v90 != (AiSquadNode *)p_retreat_squad_head; v90 = v90->next )
+        kk = v86->prev;
+        for (v90 = *p_retreat_squad_head ; v90 != END(ai->retreat_squad_head); v90 = v90->next )
         {
           if ( v90->merge_target_squad == v86 )
             v90->merge_target_squad = nullptr;
@@ -13892,14 +13874,14 @@ LABEL_125:
       }
       else
       {
-        v92 = *p_attackers_head;
+        v86->center_x = 0;
         v86->center_y = 0;
-        for ( v86->center_x = 0; v92 != (AiAttackerNode *)p_attackers_head; ++jj )
+        for (v92 = *p_attackers_head; v92 != END(v86->attackers_head); v92 = v92->next)
         {
           v92->unit->entity->is_collidable = 1;
           v86->center_x += v92->unit->entity->x;
           v86->center_y += v92->unit->entity->y;
-          v92 = v92->next;
+          ++jj;
         }
         v93 = v86->center_x / jj;
         v94 = v86->center_y / jj;
@@ -14117,17 +14099,13 @@ LABEL_227:
       goto LABEL_272;
     }
     best_patrol_waypoint_idx = ai->best_patrol_waypoint_idx;
-    rally_x = ai->rally_x;
     out_y = 0;
-    unassigned_attacker_head = ai->unassigned_attacker_head;
     v105 = &ai->patrol_waypoints[best_patrol_waypoint_idx];
-    v106 = ai->player_num;
     v166 = v105;
-    rally_y = ai->rally_y;
-    param = v106;
-    for ( i3 = rally_y;
-          unassigned_attacker_head != (AiAttackerNode *)&ai->unassigned_attacker_head;
-          unassigned_attacker_head = unassigned_attacker_head->next )
+    MoveOrderPayload mv = {ai->player_num, ai->rally_x, ai->rally_y};
+    for (unassigned_attacker_head = ai->unassigned_attacker_head;
+         unassigned_attacker_head != END(ai->unassigned_attacker_head);
+         unassigned_attacker_head = unassigned_attacker_head->next)
     {
       if ( unassigned_attacker_head->unit->task->message_handler != MSG_non_interruptable )
       {
@@ -14141,7 +14119,7 @@ LABEL_227:
         TSK_send_message(
           nullptr,
           TaskMessage_MoveOrder_or_SoundSettings_or_DoSaveGame,
-          &param,
+          &mv,
           unassigned_attacker_head->unit->task);
         unassigned_attacker_head = v108;
       }
@@ -14614,7 +14592,6 @@ void __fastcall AI_squad_attack(AiController *ai, AiSquadNode *squad)
   target = nullptr;
   v8 = 0x20000000;
   v18 = squad;
-  attack_order.player_num = (int)ai_;           // BUG local variable re-use - attack order is not used until later
   v19 = 0x20000000;
   found_close_target = 0;
   v20 = nullptr;
@@ -14634,7 +14611,7 @@ void __fastcall AI_squad_attack(AiController *ai, AiSquadNode *squad)
           dx = v18->center_x - entity->x;
         if ( dy < 0 )
           dy = v18->center_y - entity->y;
-        if ( *(int *)(attack_order.player_num + 700) || dx < 0x10000 && dy < 0x10000 )// BUG variable re-use - AiController* ->base_threat
+        if (ai_->base_threat || (dx < 0x10000 && dy < 0x10000) )
         {
           if ( dy + dx < v8 + v6 )
           {
@@ -14657,10 +14634,9 @@ void __fastcall AI_squad_attack(AiController *ai, AiSquadNode *squad)
           }
         }
       }
-      ai_ = (AiController *)attack_order.player_num;
       i = i->next;
     }
-    while ( i != (AiEnemyNode *)(attack_order.player_num + 264) );
+    while ( i != END(ai_->enemy_head));
     squad = v18;
     target = v20;
   }
@@ -14878,6 +14854,8 @@ AiSquadNode *__fastcall AI_find_nearest_attack_squad(
 //----- (0040B490) --------------------------------------------------------
 BOOL __fastcall AI_find_nuke_target(AiController *ai, UnitType type, int *out_x, int *out_y)
 {
+  (void)type;
+
   int v4; // ebp
   int v5; // ebx
   size_t v6; // esi
@@ -15657,51 +15635,46 @@ BOOL AI_init()
 //----- (0040C590) --------------------------------------------------------
 void AI_cleanup()
 {
-  Task *v1; // eax
-  AiController *ai_; // esi
-  AiController *ai; // esi
-
-  v0 = g_ai_players_tasks;
   for (int i = 0; i < PLAYERS_MAX; ++i) {
-    v1 = g_ai_players_tasks[i];
-    if ( v1 )
+    Task *task = g_ai_players_tasks[i];
+    if (task) {
+      continue;
+    }
+
+    AiController *ai = (AiController *)task->ctx;
+    if ( g_current_lvl_id == LevelId_Mute_05_Ambush )
     {
-      if ( g_current_lvl_id == LevelId_Mute_05_Ambush )
+      free(ai->enemy_pool);
+      free(ai->attacker_pool);
+      free(ai->wanderer_pool);
+      free(ai->active_wanderer_pool);
+    }
+    else
+    {
+      if ( g_current_lvl_id == LevelId_Mute_08_SmashTheConvoy )
       {
-        ai = (AiController *)v1->ctx;
         free(ai->enemy_pool);
         free(ai->attacker_pool);
-        free(ai->wanderer_pool);
-        free(ai->active_wanderer_pool);
+        free(ai->convoy_escort_pool);
+        free(ai->unit_node_pool);
+        free(ai->squad_pool);
       }
       else
       {
-        ai_ = (AiController *)v1->ctx;
-        if ( g_current_lvl_id == LevelId_Mute_08_SmashTheConvoy )
-        {
-          free(ai_->enemy_pool);
-          free(ai_->attacker_pool);
-          free(ai_->convoy_escort_pool);
-          free(ai_->unit_node_pool);
-          free(ai_->squad_pool);
-        }
-        else
-        {
-          free(ai_->build_order_pool);
-          free(ai_->attacker_pool);
-          free(ai_->build_pool);
-          free(ai_->drillrig_pool);
-          free(ai_->enemy_pool);
-          free(ai_->squad_pool);
-          free(ai_->tanker_pool);
-          free(ai_->powerplant_pool);
-          free(ai_->building_replacement_pool);
-        }
-        free(ai_->wanderer_pool);
-        free(ai_->active_wanderer_pool);
+        free(ai->build_order_pool);
+        free(ai->attacker_pool);
+        free(ai->build_pool);
+        free(ai->drillrig_pool);
+        free(ai->enemy_pool);
+        free(ai->squad_pool);
+        free(ai->tanker_pool);
+        free(ai->powerplant_pool);
+        free(ai->building_replacement_pool);
       }
-      TSK_kill(v1);
+      free(ai->wanderer_pool);
+      free(ai->active_wanderer_pool);
     }
+    TSK_kill(task);
   }
 }
 
@@ -15779,81 +15752,44 @@ File *__fastcall FILE_open(const char *filename)
 //----- (0040C840) --------------------------------------------------------
 size_t __fastcall FILE_read(File *file, void *buffer, size_t size)
 {
-  size_t result; // eax
-  size_t max_size; // ecx
+  if (~file->flags & File_MemoryMapped) {
+    return fread(buffer, 1, size, file->fp);
+  }
 
-  if ( (file->flags & File_MemoryMapped) == 0 )
-    return fread(buffer, 1u, size, file->fp);
-  result = size;
-  max_size = (char *)file->map_end - (char *)file->map_base;
-  if ( (int)size > (int)max_size )
-    result = max_size;
-  qmemcpy(buffer, file->map_cursor, result);
-  file->map_cursor = (char *)file->map_cursor + result;
-  return result;
+  size_t actual_size = size;
+  size_t max_size = (size_t)((char *)file->map_end - (char *)file->map_base);
+  if (size > max_size)
+    actual_size = max_size;
+  memcpy(buffer, file->map_cursor, actual_size);
+  file->map_cursor = (char *)file->map_cursor + actual_size;
+  return actual_size;
 }
 
 //----- (0040C8A0) --------------------------------------------------------
 LevelHunk *__fastcall FILE_read_hunk(File *file)
 {
-  size_t v1; // eax
-  void *map_base; // esi
-  char *map_cursor; // edx
-  LevelHunk *result; // eax
-  unsigned __int16 v6; // dx
-  LevelHunk *v7; // ebp
-  size_t v8; // eax
-  void *v9; // esi
-  _BYTE Buffer[4]; // [esp+10h] [ebp-8h] BYREF
-  size_t ElementCount; // [esp+14h] [ebp-4h]
+  // important for the original file layout
+  static_assert(8 == sizeof(LevelHunkHeader));
 
-  v1 = 8;
-  if ( (file->flags & File_MemoryMapped) != 0 )
-  {
-    map_base = file->map_base;
-    if ( (char *)file->map_end - (char *)map_base < 8 )
-      v1 = (char *)file->map_end - (char *)map_base;
-    map_cursor = (char *)file->map_cursor;
-    qmemcpy(Buffer, map_cursor, v1);
-    file->map_cursor = &map_cursor[v1];
-  }
-  else
-  {
-    v1 = fread(Buffer, 1u, 8u, file->fp);
-  }
-  if ( v1 < 8 )
+  LevelHunkHeader header;
+  size_t read_size = FILE_read(file, &header, sizeof(LevelHunkHeader));
+  if (read_size != sizeof(LevelHunkHeader)) {
     return nullptr;
-  LOBYTE(v6) = 0;
-  HIBYTE(v6) = BYTE2(ElementCount);
-  ElementCount = HIBYTE(ElementCount) | v6 | (((ElementCount << 16) | ElementCount & 0xFF00) << 8);
-  result = (LevelHunk *)malloc(ElementCount);
-  v7 = result;
-  if ( result )
-  {
-    v8 = ElementCount;
-    if ( (file->flags & 2) != 0 )
-    {
-      v9 = file->map_base;
-      if ( (int)ElementCount > (char *)file->map_end - (char *)v9 )
-        v8 = (char *)file->map_end - (char *)v9;
-      qmemcpy(v7, file->map_cursor, v8);
-      file->map_cursor = (char *)file->map_cursor + v8;
-    }
-    else
-    {
-      v8 = fread(v7, 1u, ElementCount, file->fp);
-    }
-    if ( (int)v8 >= (int)ElementCount )
-    {
-      return v7;
-    }
-    else
-    {
-      free(v7);
-      return nullptr;
-    }
   }
-  return result;
+
+  size_t hunk_size = stdc_byteswap32(header.size);
+  LevelHunk *hunk = malloc(hunk_size);
+  if (!hunk) {
+    return nullptr;
+  }
+
+  read_size = FILE_read(file, hunk, hunk_size);
+  if (read_size >= hunk_size) {
+    return hunk;
+  }
+
+  free(hunk);
+  return nullptr;
 }
 
 //----- (0040C9B0) --------------------------------------------------------
@@ -15992,11 +15928,6 @@ BOOL MOVIE_do_frame()
   int v16; // ecx
   int v17; // esi
   BOOL v18; // eax
-  Movie *v19; // eax
-  int v20; // edx
-  int v21; // ecx
-  char *v22; // esi
-  char v23; // dl
   DWORD v24; // [esp+68h] [ebp-10h] BYREF
   void *v25; // [esp+6Ch] [ebp-Ch] BYREF
   char *v26; // [esp+70h] [ebp-8h] BYREF
@@ -16013,7 +15944,7 @@ BOOL MOVIE_do_frame()
       if ( g_movie_sound_initialized )
       {
         sound_flags = g_movie->header.sound_flags;
-        v4 = ((_BYTE)sound_flags != 8) + 1;
+        v4 = ((sound_flags & 0xFF) != 8) + 1;
         if ( (sound_flags & 0x100) != 0 )
           v4 *= 2;
         if ( g_movie_dsb->lpVtbl->GetCurrentPosition(g_movie_dsb, (LPDWORD)&v27, (LPDWORD)&v26) )
@@ -16029,9 +15960,9 @@ BOOL MOVIE_do_frame()
       }
       else
       {
-        LODWORD(v2) = timeGetTime();
+        v2 = timeGetTime();
       }
-      v5 = (unsigned int)v2 < g_movie_next_frame_time_ms;
+      v5 = v2 < g_movie_next_frame_time_ms;
 LABEL_14:
       if ( !v5 && g_movie )
       {
@@ -16066,7 +15997,7 @@ LABEL_14:
       {
         if ( !g_movie_dsb->lpVtbl->Lock(
                 g_movie_dsb,
-                ((g_movie_sound_write_pos >> 31) ^ (unsigned __int16)abs32(g_movie_sound_write_pos))
+                ((g_movie_sound_write_pos >> 31) ^ (unsigned __int16)abs(g_movie_sound_write_pos))
               - (g_movie_sound_write_pos >> 31),
                 sound_bytes_num,
                 (LPVOID *)&v27,
@@ -16078,13 +16009,13 @@ LABEL_14:
           v9 = v24;
           if ( v24 )
           {
-            qmemcpy((void *)v27, v8->header.sound_bytes, v24);
+            memcpy((void *)v27, v8->header.sound_bytes, v24);
             v9 = v24;
           }
           v10 = (DWORD)v25;
           if ( v25 )
           {
-            qmemcpy(v26, (char *)v8->header.sound_bytes + v9, (unsigned int)v25);
+            memcpy(v26, (char *)v8->header.sound_bytes + v9, (unsigned int)v25);
             v10 = (DWORD)v25;
             v9 = v24;
           }
@@ -16102,7 +16033,7 @@ LABEL_14:
     {
       if ( !g_movie_dsb->lpVtbl->Lock(
               g_movie_dsb,
-              ((g_movie_sound_write_pos >> 31) ^ (unsigned __int16)abs32(g_movie_sound_write_pos))
+              ((g_movie_sound_write_pos >> 31) ^ (unsigned __int16)abs(g_movie_sound_write_pos))
             - (g_movie_sound_write_pos >> 31),
               0x10000,
               &v25,
@@ -16149,7 +16080,7 @@ LABEL_14:
   if ( g_movie_sound_initialized )
   {
     v16 = v0->header.sound_flags;
-    v17 = ((_BYTE)v16 != 8) + 1;
+    v17 = ((v16 & 0xFF) != 8) + 1;
     if ( (v16 & 0x100) != 0 )
       v17 *= 2;
     if ( g_movie_dsb->lpVtbl->GetCurrentPosition(g_movie_dsb, (LPDWORD)&v27, (LPDWORD)&v26) )
@@ -16165,57 +16096,42 @@ LABEL_14:
   }
   else
   {
-    LODWORD(v15) = timeGetTime();
+    v15 = timeGetTime();
   }
-  v18 = (unsigned int)v15 < g_movie_next_frame_time_ms;
+  v18 = v15 < g_movie_next_frame_time_ms;
 LABEL_55:
   if ( v18 )
   {
     g_movie_frame_pending = 0;
     return 0;
   }
-  v19 = g_movie;
   g_movie_frame_decoded = 0;
   g_movie_next_frame_time_ms += g_movie->header.frame_duration_ms;
   if ( (g_movie->frame_flags & Movie_HasSubtitles) != 0 )
   {
     MOVIE_subtitles_set(g_movie->header.subtitles, g_movie->header.subtitles_len);
-    v19 = g_movie;
   }
-  if ( *(_WORD *)v19->_movie_2C )
-  {
-    v20 = *(__int16 *)&v19->_movie_2C[2];
-    v21 = 3 * v20;
-    v22 = (char *)&g_movie_waveformat.cbSize + 4 * v20 + 1;
-    do
-    {
-      v23 = v19->_movie_2C[v21 + 4];
-      v21 += 3;
-      *(v22 - 1) = v23;
-      *v22 = v19->_movie_2C[v21 + 2];
-      v22[1] = v19->_movie_2C[v21 + 3];
-      --*(_WORD *)v19->_movie_2C;
-      v19 = g_movie;
-      v22 += 4;
-    }
-    while ( *(_WORD *)g_movie->_movie_2C );
-    PAL_apply((PaletteEntry *)&g_movie_waveformat.cbSize);
-    v19 = g_movie;
+
+  for (int i = g_movie->palette_starting_idx; i < g_movie->palette_starting_idx + g_movie->num_palette_entries; ++i) {
+    g_477992[i].r = g_movie->palette[i][0];
+    g_477992[i].g = g_movie->palette[i][1];
+    g_477992[i].b = g_movie->palette[i][2];
   }
+
+  if (g_movie->num_palette_entries > 0) {
+    g_movie->num_palette_entries = 0;
+    PAL_apply(g_477992);
+  }
+
   if ( !g_movie_frame_pending )
   {
-    g_main_movie_img.pixels = v19->header.curent_frame_pixels;
-    g_secondary_movie_img.pixels = (char *)v19->header.curent_frame_pixels
+    g_main_movie_img.pixels = g_movie->header.curent_frame_pixels;
+    g_secondary_movie_img.pixels = (char *)g_movie->header.curent_frame_pixels
                                  + g_main_movie_img.height * g_main_movie_img.width;
     return 1;
   }
   return 0;
 }
-// 463000: using guessed type double dbl_463000;
-// 477940: using guessed type int g_movie_next_frame_time_ms;
-// 477944: using guessed type int g_movie_sound_write_pos;
-// 477DC4: using guessed type int g_movie_sound_play_pos_prev;
-// 477DC8: using guessed type int g_movie_sound_play_pos_hi;
 
 //----- (0040D090) --------------------------------------------------------
 void __fastcall MOVIE_play_sound(Movie *movie)
@@ -16228,15 +16144,12 @@ void __fastcall MOVIE_play_sound(Movie *movie)
   DWORD v7; // [esp+3Ch] [ebp-4h] BYREF
 
   sound_flags = movie->header.sound_flags;
-  v3 = ((_BYTE)sound_flags != 8) + 1;
+  v3 = ((sound_flags & 0xFF) != 8) + 1;
   if ( (sound_flags & 0x100) != 0 )
     v3 *= 2;
   g_movie_waveformat.wFormatTag = 1;
-  g_movie_waveformat.wReserved2 = 0;
   g_movie_waveformat.nSamplesPerSec = 0;
   g_movie_waveformat.nAvgBytesPerSec = 0;
-  g_movie_waveformat.nBlockAlign = 0;
-  g_movie_waveformat.wReserved4 = 0;
   g_movie_waveformat.nChannels = ((movie->header.sound_flags & 0x100) != 0) + 1;
   g_movie_waveformat.nSamplesPerSec = movie->header.sound_samples_per_sec;
   g_movie_waveformat.nBlockAlign = v3;
@@ -16251,7 +16164,7 @@ void __fastcall MOVIE_play_sound(Movie *movie)
     && !g_ds->lpVtbl->CreateSoundBuffer(g_ds, (LPCDSBUFFERDESC)&g_movie_dsbd, &g_movie_dsb, nullptr)
     && !g_movie_dsb->lpVtbl->Lock(g_movie_dsb, 0, 0x10000, (LPVOID *)&v4, &v7, &v6, &v5, 0) )
   {
-    qmemcpy(v4, movie->header.sound_bytes, movie->header.sound_bytes_num);
+    memcpy(v4, movie->header.sound_bytes, movie->header.sound_bytes_num);
     g_movie_sound_write_pos = movie->header.sound_bytes_num;
     g_movie_sound_play_pos_hi = 0;
     g_movie_sound_play_pos_prev = 0;
@@ -16554,7 +16467,7 @@ LABEL_9:
   if ( dy_ < distance_tolerance )
   {
     v12 = (v20 >= target_x) - 1;
-    LOBYTE(v12) = v12 & 0x80;
+    v12 &= 0xFFFFFF80;
     result = v12 + 192;
   }
   v13 = dx_ - dy_;
@@ -16565,7 +16478,7 @@ LABEL_9:
     if ( dx <= 0 )
     {
       v14 = (dy <= 0) - 1;
-      LOBYTE(v14) = v14 & 0xC0;
+      v14 &= 0xFFFFFFC0;
       result = v14 + 224;
     }
     else
@@ -16581,7 +16494,7 @@ LABEL_9:
     if ( dx <= 0 )
     {
       v16 = (dy <= 0) - 1;
-      LOBYTE(v16) = v16 & 0xA0;
+      v16 &= 0xFFFFFFA0;
       result = v16 + 240;
     }
     else
@@ -16599,7 +16512,7 @@ LABEL_9:
     if ( dx <= 0 )
     {
       v19 = (dy <= 0) - 1;
-      LOBYTE(v19) = v19 & 0xE0;
+      v19 &= 0xFFFFFFE0;
       return v19 + 208;
     }
     else
@@ -17003,12 +16916,12 @@ void __fastcall BOXD_building_release_area(Unit *unit)
   int v8; // ebp
   int i; // edi
   int v10; // esi
-  int v11; // [esp+10h] [ebp-Ch]
+  //int v11; // [esp+10h] [ebp-Ch]
   int v13; // [esp+18h] [ebp-4h]
 
   type = unit->type;
   v2 = g_building_blueprints[0].type;
-  v11 = 0x80000000;
+  //v11 = 0x80000000;
   v3 = g_building_blueprints;
   if ( g_building_blueprints[0].type == type )
   {
@@ -17027,7 +16940,7 @@ LABEL_4:
         do
         {
           BOXD_remove_unit_from_tile(unit, v10++, v8, UnitPosition_Slot0);
-          v11 >>= 1;
+          //v11 >>= 1;
         }
         while ( v10 < v3->footprint_width + i );
         v7 = v13;
@@ -17264,7 +17177,7 @@ LABEL_19:
   unit->nav_obstacle_id = v4->units[v20]->unit_id;
 LABEL_29:
   v22 = -(v11 != 0);
-  LOBYTE(v22) = v22 & 0xFE;
+  v22 &= 0xFFFFFFFE;
   return v22 + 3;
 }
 
@@ -17396,7 +17309,7 @@ void PAL_apply(PaletteEntry *pal)
 {
   g_brightness_adjusted_pal = pal;
   g_selected_pal = pal;
-  g_pal_last_brightness = -1;
+  g_pal_last_brightness = 0xFFFFFFFF;
   PAL_adjust_brightness(g_rend_default_viewport->brightness);
 }
 
@@ -17515,7 +17428,7 @@ void PAL_save_system_colors()
       int dg = g - g_dd_palette[j].peGreen;
       int db = b - g_dd_palette[j].peBlue;
       int dist = dr * dr + dg * dg + db * db;
-      int (dist < best_dist) {
+      if (dist < best_dist) {
         best_idx = j;
         best_dist = dist;
         if (0 == dist) break;
@@ -17524,8 +17437,8 @@ void PAL_save_system_colors()
     remapped[i] = RGB(
       g_dd_palette[best_idx].peRed,
       g_dd_palette[best_idx].peGreen,
-      g_dd_palette[best_idx].peBlue,
-    )
+      g_dd_palette[best_idx].peBlue
+    );
   }
 
   SetSysColors(25, g_win32_sys_colors_indices, remapped);
@@ -17713,7 +17626,7 @@ BOOL LVL_terrain_init()
               v25 = v10;
             }
             while ( type );
-            LOBYTE(v2) = v32;
+            v2 = v2 & 0xFFFFFF00 + v32 & 0xFF;
           }
         }
         v24 += 1 << v2;
@@ -17905,7 +17818,7 @@ LABEL_33:
     }
   }
   v20 = -(((tile->flags1 ^ tile->flags2) & 0x1F) != 0);
-  LOBYTE(v20) = v20 & 0xFE;
+  v20 &= 0xFFFFFFFE;
   return v20 + 3;
 }
 
@@ -17964,7 +17877,7 @@ BoxdPathingClassification __fastcall BOXD_classify_tile_simple(Unit *unit, Terra
     tile = v11;
   }
   v10 = -(((tile->flags1 ^ tile->flags2) & 0x1F) != 0);
-  LOBYTE(v10) = v10 & 0xFE;
+  v10 &= 0xFFFFFFFE;
   return v10 + 3;
 }
 
@@ -18068,7 +17981,7 @@ UnitTilePosition __fastcall BOXD_place_unit(Unit *unit, int map_x, int map_y, Un
       {
         flags2 = v5->flags2;
         v5->flags1 = flags1 | (1 << tile_position);
-        v5->flags2 = ((_BYTE)pos << tile_position) | flags2;
+        v5->flags2 = ((uint8_t)pos << tile_position) | flags2;
         v5->units[tile_position] = unit;
         SHROUD_reveal(unit);
         return tile_position;
@@ -18130,14 +18043,14 @@ UnitTilePosition __fastcall BOXD_place_unit(Unit *unit, int map_x, int map_y, Un
     return UnitTilePosition_Invalid;
   }
 LABEL_15:
-  if ( pos == TerrainTileFlags1_Blocked )
+  if ( pos == UnitTilePosition_BuildingPlacement )
     v5->flags1 = TerrainTileFlags1_None;
   else
     v5->flags1 |= 0x9Fu;
   if ( pos )
   {
     v12 = v5->flags2;
-    if ( pos == TerrainTileFlags1_Blocked )
+    if ( pos == UnitTilePosition_BuildingPlacement )
       v13 = v12 | TerrainTileFlags1_Blocked;
     else
       v13 = v12 | 0x1F;
@@ -18147,7 +18060,7 @@ LABEL_15:
     v13 = v5->flags2 & 0xE0;
   }
   v5->flags2 = v13;
-  if ( pos == TerrainTileFlags1_Blocked )
+  if ( pos == UnitTilePosition_BuildingPlacement )
   {
 LABEL_43:
     SHROUD_reveal(unit);
@@ -18290,6 +18203,9 @@ void __fastcall BOXD_tile_set_friendly_mask(
 // Synced rand (NETZ cmd 0x47) for shared game state in e.g multiplyer
 int __fastcall GAME_rand_sync(const char *file, int line)
 {
+  (void)file;
+  (void)line;
+
   int result; // eax
 
   result = (unsigned __int16)(3141 * g_rand_seed_synced + 13867);
@@ -19237,7 +19153,7 @@ SidebarButton *__fastcall UI_sidebar_button_create(
 //----- (004102D0) --------------------------------------------------------
 void __fastcall UI_sidebar_button_destroy(Sidebar *sidebar, SidebarButton *button)
 {
-  ProductionSharedState *__shifted(ProductionSharedState,8) p_progress_bar; // esi
+  ProductionSharedState *state; // esi
   Entity *queue_size_label; // ecx
 
   if ( sidebar )
@@ -19247,17 +19163,17 @@ void __fastcall UI_sidebar_button_destroy(Sidebar *sidebar, SidebarButton *butto
     button->next->prev = button->prev;
     if ( button->base_cost )
     {
-      p_progress_bar = (ProductionSharedState *__shifted(ProductionSharedState,8))&button->production_state->progress_bar;
-      if ( ADJ(p_progress_bar)->progress_bar )
+      state = button->production_state;
+      if ( state->progress_bar )
       {
-        ENT_remove(ADJ(p_progress_bar)->progress_bar);
-        ADJ(p_progress_bar)->progress_bar = nullptr;
+        ENT_remove(state->progress_bar);
+        state->progress_bar = nullptr;
       }
-      queue_size_label = ADJ(p_progress_bar)->queue_size_label;
+      queue_size_label = state->queue_size_label;
       if ( queue_size_label )
       {
         ENT_remove(queue_size_label);
-        ADJ(p_progress_bar)->queue_size_label = nullptr;
+        state->queue_size_label = nullptr;
       }
     }
   }
@@ -19387,7 +19303,7 @@ LABEL_7:
 BOOL REND_blitter_init_all()
 {
   RenderBlitter *v0; // esi
-  int (*mode_init)(void); // eax
+  BOOL (__fastcall *mode_init)(void); // eax
 
   v0 = g_blitter_active_tail;
   if ( g_blitter_active_tail == (RenderBlitter *)&g_blitter_active_tail )
@@ -19425,88 +19341,66 @@ void REND_blitter_cleanup()
   free(g_blitter_pool);
 }
 
+#define HP_BAR_BORDER_TOP 0xA6
+#define HP_BAR_BORDER_BOT 0xA0
+#define HP_BAR_OIL_TOP    0xAA
+#define HP_BAR_OIL_BOT    0xA9
+
+const size_t hp_building_width = 59;
+const size_t hp_building_stride = 66;
+
 //----- (00410520) --------------------------------------------------------
 void __fastcall UNIT_building_status_bar_update_health(Unit *unit)
 {
-  int v1; // ebx
-  BuildingState *state; // esi
-  unsigned __int8 *v3; // edx
-  unsigned __int8 *v4; // edi
-  unsigned __int8 *v5; // esi
-  unsigned int v6; // ebp
-  int v7; // eax
-  int v8; // eax
-  int v9; // eax
-
-  HIWORD(v1) = HIWORD(unit);
-  state = (BuildingState *)unit->state;
-  if ( state )
-  {
-    v3 = &state->status_bar->pixels[134];
-    memset(v3, 0xA6u, 0x38u);
-    *((_WORD *)v3 + 28) = -22874;
-    v3[58] = -90;
-    v3 += 66;
-    memset(v3, 0xA0u, 0x38u);
-    *((_WORD *)v3 + 28) = -24416;
-    v3[58] = -96;
-    memset(v3 + 66, 0xA0u, 0x38u);
-    *((_WORD *)v3 + 61) = -24416;
-    v3[124] = -96;
-    v4 = &state->status_bar->pixels[134];
-    v5 = &state->status_bar->pixels[200];
-    v6 = 59 * unit->hitpoints / unit->stats->hitpoints;
-    LOBYTE(v1) = g_healthbar_fill_color_top[(int)(4 * v6) / 59];
-    BYTE1(v1) = v1;
-    v7 = v1 << 16;
-    LOWORD(v7) = v1;
-    memset32(v4, v7, v6 >> 2);
-    memset(&v4[4 * (v6 >> 2)], v1, v6 & 3);
-    LOBYTE(v1) = g_healthbar_fill_color_bottom[(int)(4 * v6) / 59];
-    BYTE1(v1) = v1;
-    v8 = v1 << 16;
-    LOWORD(v8) = v1;
-    memset32(v5, v8, v6 >> 2);
-    memset(&v5[4 * (v6 >> 2)], v1, v6 & 3);
-    LOBYTE(v1) = g_healthbar_fill_color_bottom[(int)(4 * v6) / 59];
-    BYTE1(v1) = v1;
-    v9 = v1 << 16;
-    LOWORD(v9) = v1;
-    memset32(v5 + 66, v9, v6 >> 2);
-    memset(&v5[4 * (v6 >> 2) + 66], v1, v6 & 3);
+  BuildingState *state = unit->state;
+  if (!state) {
+    return;
   }
+
+  uint8_t *row1 = &state->status_bar->pixels[134];
+  uint8_t *row2 = row1 + hp_building_stride;
+  uint8_t *row3 = row2 + hp_building_stride;
+
+  int hp_width = hp_building_width * unit->hitpoints / unit->stats->hitpoints;
+  int color_idx = 4 * hp_width / hp_building_width;
+  uint8_t c1 = g_healthbar_fill_color_top[color_idx];
+  uint8_t c2 = g_healthbar_fill_color_bottom[color_idx];
+
+  memset(row1, c1, hp_width);
+  memset(row1 + hp_width, HP_BAR_BORDER_TOP, hp_building_width - hp_width);
+
+  memset(row2, c2, hp_width);
+  memset(row2 + hp_width, HP_BAR_BORDER_BOT, hp_building_width - hp_width);
+
+  memset(row3, c2, hp_width);
+  memset(row3 + hp_width, HP_BAR_BORDER_BOT, hp_building_width - hp_width);
 }
 
 //----- (00410640) --------------------------------------------------------
 void __fastcall UNIT_tanker_status_bar_update_health(Unit *unit)
 {
-  Unit *v1; // ebx
-  TankerState *state; // esi
-  unsigned __int8 *v3; // edx
-  unsigned __int8 *v4; // esi
-  unsigned int v5; // ebp
-  int v6; // eax
-  int v7; // eax
+  TankerState *state = unit->state;
+  if (!state) {
+    return;
+  }
 
-  v1 = unit;
-  state = (TankerState *)unit->state;
-  v3 = &state->img->pixels[66];
-  memset(v3, 0xA6u, 0x1Cu);
-  memset(v3 + 32, 0xA0u, 0x1Cu);
-  v4 = &state->img->pixels[66];
-  v5 = 28 * v1->hitpoints / v1->stats->hitpoints;
-  LOBYTE(v1) = g_healthbar_fill_color_top[(int)(4 * v5) / 28];
-  BYTE1(v1) = (_BYTE)v1;
-  v6 = (int)v1 << 16;
-  LOWORD(v6) = (_WORD)v1;
-  memset32(v4, v6, v5 >> 2);
-  memset(&v4[4 * (v5 >> 2)], (char)v1, v5 & 3);
-  LOBYTE(v1) = g_healthbar_fill_color_bottom[(int)(4 * v5) / 28];
-  BYTE1(v1) = (_BYTE)v1;
-  v7 = (int)v1 << 16;
-  LOWORD(v7) = (_WORD)v1;
-  memset32(v4 + 32, v7, v5 >> 2);
-  memset(&v4[4 * (v5 >> 2) + 32], (char)v1, v5 & 3);
+  const size_t bar_width = 28;
+  const size_t bar_stride = 32;
+
+  uint8_t *row1 = &state->img->pixels[66];
+  uint8_t *row2 = row1 + bar_stride;
+  
+  int hp_width = bar_width * unit->hitpoints / unit->stats->hitpoints;
+  int color_idx = 4 * hp_width / bar_width;
+
+  uint8_t c1 = g_healthbar_fill_color_top[color_idx];
+  uint8_t c2 = g_healthbar_fill_color_bottom[color_idx];
+
+  memset(row1, c1, hp_width);
+  memset(row1 + hp_width, HP_BAR_BORDER_TOP, bar_width - hp_width);
+  
+  memset(row2, c2, hp_width);
+  memset(row2 + hp_width, HP_BAR_BORDER_BOT, bar_width - hp_width);
 }
 
 //----- (00410710) --------------------------------------------------------
@@ -19540,22 +19434,26 @@ void __fastcall UNIT_status_bar_update_frame(Unit *unit)
 }
 
 //----- (004107B0) --------------------------------------------------------
-int __fastcall UNIT_tanker_status_bar_update_oil(Unit *unit)
+void __fastcall UNIT_tanker_status_bar_update_oil(Unit *unit)
 {
-  TankerState *state; // ebx
-  unsigned __int8 *v2; // edx
-  unsigned __int8 *v3; // esi
-  unsigned int v4; // ebx
+  TankerState *state = unit->state;
+  if (!state) {
+    return;
+  }
 
-  state = (TankerState *)unit->state;
-  v2 = &state->img->pixels[162];
-  memset(v2, 0xA6u, 0x1Cu);
-  memset(v2 + 32, 0xA0u, 0x1Cu);
-  v3 = &state->img->pixels[162];
-  v4 = 28 * state->oil_loaded / 500;
-  memset(v3, 0xAAu, v4);
-  memset(v3 + 32, 0xA9u, v4);
-  return 0xA9A9A9A9;
+  const size_t bar_width = 28;
+  const size_t bar_stride = 32;
+
+  uint8_t *row1 = &state->img->pixels[162];
+  uint8_t *row2 = row1 + bar_stride;
+  
+  int fill_width = 28 * state->oil_loaded / 500;
+
+  memset(row1,              HP_BAR_OIL_TOP,    fill_width);
+  memset(row1 + fill_width, HP_BAR_BORDER_TOP, bar_width - fill_width);
+  
+  memset(row2,              HP_BAR_OIL_BOT,    fill_width);
+  memset(row2 + fill_width, HP_BAR_BORDER_BOT, bar_width - fill_width);
 }
 
 //----- (00410840) --------------------------------------------------------
@@ -19669,38 +19567,32 @@ void __fastcall UNIT_status_bar_update_sabotage(Unit *unit)
 //----- (00410950) --------------------------------------------------------
 void __fastcall UNIT_status_bar_update_factory_stripe(Unit *unit, int stripe_color_palette_index)
 {
-  int *v2; // eax
-  int v3; // ecx
-  int v4; // eax
-  int v5; // esi
-  __int16 v6; // cx
+  BuildingState *state = unit->state;
+  if (!state) {
+    return;
+  }
 
-  if ( stripe_color_palette_index )
+  if (stripe_color_palette_index)
   {
-    v4 = *((int *)unit->state + 5) + 203;
-    v5 = 11;
-    do
-    {
-      LOBYTE(v6) = stripe_color_palette_index;
-      v4 += 66;
-      HIBYTE(v6) = stripe_color_palette_index;
-      --v5;
-      *(_WORD *)(v4 - 66) = v6;
+    uint8_t *row = &state->status_bar->pixels[194];
+    for (int i = 0; i < 11; ++i) {
+      row[0] = stripe_color_palette_index;
+      row[1] = stripe_color_palette_index;
+
+      row += hp_building_stride;
     }
-    while ( v5 );
   }
   else
   {
-    v2 = (int *)(*((int *)unit->state + 5) + 71);
-    v3 = 15;
-    do
-    {
-      *v2 = 0;
-      *(_BYTE *)v2 = -92;
-      v2 = (int *)((char *)v2 + 66);
-      --v3;
+    uint8_t *row = &state->status_bar->pixels[63];
+    for (int i = 0; i < 15; ++i) {
+      row[0] = 0xA4;
+      row[1] = 0;
+      row[2] = 0;
+      row[3] = 0;
+
+      row += hp_building_stride;
     }
-    while ( v3 );
   }
 }
 
@@ -19817,9 +19709,9 @@ void __fastcall UNIT_status_bar_update_tech(Unit *unit)
   {
     v25 = &state->status_bar->pixels[660];
     memset(v25, 0, 0x148u);
-    *((_WORD *)v25 + 164) = 0;
+    *((uint16_t *)v25 + 164) = 0;
     memset(v25, 0xA4u, 0x3Cu);
-    *((_WORD *)v25 + 30) = 0xA4A4;
+    *((uint16_t *)v25 + 30) = 0xA4A4;
     v25[62] = 0xA4;
   }
 }
@@ -19833,29 +19725,21 @@ void __fastcall UNIT_drillrig_status_bar_update_oil(Unit *unit)
   unsigned __int8 *v4; // edx
   unsigned __int8 *v5; // esi
   int amount; // ecx
-  signed int v7; // edx
-  unsigned __int8 *v8; // edi
+  unsigned int v7; // edx
   unsigned __int8 *v9; // esi
 
   state = (BuildingState *)unit->state;
   patch = (OilPatch *)state->ctx;
   v3 = &state->status_bar->pixels[662];
   v4 = &state->status_bar->pixels[728];
-  memset(v3, 0xA6u, 0x38u);
-  v3 += 56;
-  *(_WORD *)v3 = -22874;
-  v3[2] = -90;
-  memset(v4, 0xA0u, 0x38u);
-  *((_WORD *)v4 + 28) = -24416;
-  v4[58] = -96;
-  memset(v4 + 66, 0xA0u, 0x38u);
-  *((_WORD *)v4 + 61) = -24416;
-  v4[124] = -96;
+  memset(v3, HP_BAR_BORDER_TOP, hp_building_width);
+  memset(v4, HP_BAR_BORDER_BOT, hp_building_width);
+  memset(v4 + 66, HP_BAR_BORDER_BOT, hp_building_width);
   v5 = &state->status_bar->pixels[662];
   if ( patch )
   {
     amount = patch->amount;
-    v7 = 59 * amount / 100000;
+    v7 = hp_building_width * amount / 100000;
     if ( v7 < 1 && amount > 0 )
       v7 = 1;
   }
@@ -19863,39 +19747,41 @@ void __fastcall UNIT_drillrig_status_bar_update_oil(Unit *unit)
   {
     v7 = 0;
   }
-  if ( v7 > 59 )
-    v7 = 59;
-  memset(v5, 0xAAu, 4 * ((unsigned int)v7 >> 2));
-  v8 = &v5[4 * ((unsigned int)v7 >> 2)];
-  v9 = v5 + 66;
-  memset(v8, 170, v7 & 3);
-  memset(v9, 0xA9u, v7);
-  memset(v9 + 66, 0xA9u, v7);
+  if ( v7 > hp_building_width )
+    v7 = hp_building_width;
+  memset(v5, HP_BAR_OIL_TOP, v7);
+  memset(v9, HP_BAR_OIL_BOT, v7);
+  memset(v9 + 66, HP_BAR_OIL_BOT, v7);
 }
 
 //----- (00410BE0) --------------------------------------------------------
 void __fastcall UNIT_building_status_bar_full_redraw(Unit *unit)
 {
-  MobdImageData *v2; // edx
+  BuildingState *state = unit->state;
+  if (!state) {
+    return;
+  }
+
+  uint8_t *v2; // edx
   unsigned __int8 *v3; // edi
   unsigned __int8 *v4; // edx
   int v5; // eax
   UnitType type; // eax
   int v7; // ecx
-  _WORD *v8; // eax
+  uint16_t *v8; // eax
   int v9; // ecx
   int *v10; // eax
   UnitType v11; // eax
 
-  v2 = (MobdImageData *)(*((int *)unit->state + 5) + 9);
-  memset(v2, 1u, 0x3DCu);
-  *(_WORD *)&v2->pixels[14][52] = 257;
-  memset(v2, 0xA6u, 0x40u);
-  *(_WORD *)&v2->pixels[0][52] = -22874;
-  v3 = &v2->pixels[13][54];
-  v4 = &v2->pixels[0][54];
-  memset(v3, 0xA4u, 0x40u);
-  *((_WORD *)v3 + 32) = -23388;
+  v2 = state->status_bar->pixels;
+  memset(v2, 1, 988);
+  *((uint16_t *)v2 + 494) = 0x0101;
+  memset(v2, 0xA6u, 64);
+  *((uint16_t *)v2 + 32) = 0xA6A6;
+  v3 = v2 + 924;
+  v4 = v2 + 66;
+  memset(v3, 0xA4, 64);
+  *((uint16_t *)v3 + 32) = 0xA4A4;
   v5 = 13;
   do
   {
@@ -19913,10 +19799,10 @@ void __fastcall UNIT_building_status_bar_full_redraw(Unit *unit)
     && unit->player_num == g_player_num )
   {
     v7 = 11;
-    v8 = (_WORD *)(*((int *)unit->state + 5) + 203);
+    v8 = (uint16_t *)(state->status_bar->pixels + 203 - 9);
     do
     {
-      *v8 = 257;
+      *v8 = 0x0101;
       v8 += 33;
       --v7;
     }
@@ -19925,11 +19811,11 @@ void __fastcall UNIT_building_status_bar_full_redraw(Unit *unit)
   else
   {
     v9 = 15;
-    v10 = (int *)(*((int *)unit->state + 5) + 71);
+    v10 = (int *)(state->status_bar->pixels + 71 - 9);
     do
     {
       *v10 = 0;
-      *(_BYTE *)v10 = -92;
+      *(uint8_t *)v10 = 0xA4;
       v10 = (int *)((char *)v10 + 66);
       --v9;
     }
@@ -20041,9 +19927,9 @@ void __fastcall UNIT_tanker_status_bar_init(Unit *unit)
   MobdImageData *img; // eax
   Entity *entity; // ecx
   RenderNode *v6; // eax
-  char *v7; // edx
+  uint8_t *v7; // edx
   void *v8; // edi
-  _BYTE *v9; // edx
+  uint8_t *v9; // edx
   int v10; // eax
   TankerState *v11; // ebp
   unsigned __int8 *v12; // edx
@@ -20073,7 +19959,7 @@ void __fastcall UNIT_tanker_status_bar_init(Unit *unit)
     v6 = REND_node_add(entity, (RenderTransform)REND_transform_tanker_overlay);
     unit->overlay_rn = v6;
     v6->payload = unit;
-    v7 = (char *)(*((int *)unit->state + 28) + 9);
+    v7 = (uint8_t *)(*((int *)unit->state + 28) + 9);
     memset(v7, 1u, 0x120u);
     memset(v7, 0xA6u, 0x20u);
     v8 = v7 + 256;
@@ -21126,7 +21012,7 @@ void REND_cleanup()
 }
 
 //----- (00412650) --------------------------------------------------------
-BOOL REND_mode_sprt_setup()
+BOOL __fastcall REND_mode_sprt_setup()
 {
   PAL_copy(g_sprt_pal_465848_unused, g_sprt_pal_4798F8_unused);
   return 1;
@@ -28030,10 +27916,8 @@ BOOL __fastcall LVL_run(LevelHunk *lvl)
                       if ( result )
                       {
                         g_ui_string_initialized = 1;
-                        result = FADE_init();
-                        if ( result )
+                        if ((g_fade_initialized = FADE_init()))
                         {
-                          g_fade_initialized = 1;
                           result = INPUT_mouse_init();
                           if ( result )
                           {
@@ -28063,8 +27947,13 @@ void LVL_cleanup()
 
   if ( g_input_initialized )
     REND_mode_scrl_setup();
-  if ( g_fade_initialized )
-    TURRET_mode_null(v0);
+  if (g_fade_initialized) {
+    g_fade_timer = 0;
+    g_fade_start = 0;
+    g_fade_end = 0;
+    g_fade_in_progress = false;
+    g_fade_initialized = false;
+  }
   if ( g_ui_string_initialized )
     UI_str_cleanup();
   if ( g_cplc_initialized )
@@ -28088,7 +27977,6 @@ void LVL_cleanup()
   g_boxd_collisions_initialized = 0;
   g_cplc_initialized = false;
   g_ui_string_initialized = 0;
-  g_fade_initialized = 0;
   g_input_initialized = 0;
   g_window_initialized = 0;
   g_render_blitters_initialized = 0;
