@@ -797,7 +797,10 @@ typedef enum : unsigned int {
   TaskType_SidebarTooltip = 81,         ///< 42D030 Sidebar tooltip
   TaskType_Camera = 84,
   TaskType_NewMissionsSelect = 85,      ///< 442BB0 New Missions menu level selection
+  TaskType_AlchemyHall = 91,            ///< 425F50
+  TaskType_SentinelDroid = 156,         ///< 425F50
   TaskType_Reinforcements = 122,        ///< 4269B0
+  TaskType_OilPatch = 123,              ///< 425F50
   TaskType_Max = 196,
   TaskType_Invalid = (unsigned int)-1,
 } TaskType;
@@ -863,7 +866,7 @@ typedef struct {
 struct Entity {
   Entity *next;
   Entity *prev;
-  Entity *parent;
+  Entity *parent;  // Can also be Unit* or int unit_id
   MobdId mobd_id;
   int x;
   int y;
@@ -1970,9 +1973,10 @@ struct Sidebar {
   int _sidebar_field_48_unused;
 };
 
-typedef struct {
-  struct SidebarFactoryProduction *next;
-  struct SidebarFactoryProduction *prev;
+typedef struct SidebarFactoryProduction SidebarFactoryProduction;
+struct SidebarFactoryProduction {
+  SidebarFactoryProduction *next;
+  SidebarFactoryProduction *prev;
   SidebarFactoryProductionType type;
   Unit *factory_or_factory_type;
   Sidebar *sidebar;
@@ -1990,7 +1994,7 @@ typedef struct {
   int key;
   int factory_header_color_idx;         ///< multiple factories of the same type have differently coloured header bars
   Entity *icon_entity;
-} SidebarFactoryProduction;
+};
 
 /// Production per individual factory
 typedef struct {
@@ -2017,7 +2021,7 @@ typedef struct {
   void *ctx;                            ///< drillrig: OilPatch*
                                         ///< lab: Task* for the research task
   int upgrade_level;
-  int upgrade_timer;
+  int upgrade_remaining_cost;
   __int16 same_building_count;
   __int16 garrison_strength;            ///< Init from params (typically 5). Friendly unit enters → increment (max 5). Enemy saboteur → decrement. Zero = building captured/destroyed.
   SidebarFactoryProduction *prod;
@@ -3293,6 +3297,12 @@ typedef struct {
   char phone[12];
   int baud_index;
 } NetzMobemPhonebook;
+
+typedef struct {
+    UnitType type;
+    int x_offset;  // off player's spawn position
+    int y_offset;
+} MultiUnitSpawn;
 
 
 
