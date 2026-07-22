@@ -1,5 +1,6 @@
 #include "kknd.h"
 
+#define NUM_SCRIPTS 196
 
 BOOL UNIT_bomber_init();
 void __cdecl mode_null(Task *);
@@ -47,8 +48,12 @@ void __fastcall UNIT_mode_blacksmith_downgrade_production(Unit *unit);
 void __fastcall UNIT_mode_blacksmith_complete(Unit *unit);
 void __fastcall UNIT_mode_blacksmith_on_death(Unit *unit);
 BOOL TSK_coroutine_init();
-Coroutine *__fastcall TSK_coroutine_create(void (*starter)(), const size_t stack_size);
+Coroutine *__fastcall TSK_coroutine_create(void (*starter)(), const size_t stack_size, const char *name);
 void __fastcall TSK_coroutine_remove(Coroutine *coroutine);
+// debug: guard word at the low end of a coroutine's malloc'd stack buffer; if
+// it's ever clobbered, that coroutine's stack overflowed downward into the heap
+#define TSK_COROUTINE_STACK_CANARY 0xC0FFEEEEu
+void TSK_coroutine_check_canary(Coroutine *co, const char *where);
 void __fastcall TSK_execute_sync(Task *task);
 void TSK_coroutine_cleanup();
 void __cdecl TSK_execute_async(Coroutine *coroutine);
@@ -929,8 +934,12 @@ void __fastcall UNIT_tanker_on_powerplant_built(Unit *unit);
 void __fastcall UNIT_tanker_on_drillrig_built(Unit *unit);
 void __fastcall MSG_tanker(Task *receiver, Task *sender, TaskMessageType message, void *payload);
 BOOL __fastcall TSK_init(int default_coroutine_stack_size);
-Task *__fastcall TSK_async(TaskChannel chan, TaskFn fn, size_t stack_size);
-Task *__fastcall TSK_callback(TaskChannel chan, TaskFn fn);
+Task *__fastcall TSK_async_impl(TaskChannel chan, TaskFn fn, size_t stack_size, const char *name);
+Task *__fastcall TSK_callback_impl(TaskChannel chan, TaskFn fn, const char *name);
+// debug: capture the fn arg's source token as a string at every call site, stashed
+// on Task/Coroutine so a heap-corruption or crash dump can name the offending task
+#define TSK_async(chan, fn, stack_size) TSK_async_impl((chan), (fn), (stack_size), #fn)
+#define TSK_callback(chan, fn) TSK_callback_impl((chan), (fn), #fn)
 void __fastcall TSK_kill(Task *task);
 TaskEvents __cdecl TSK_yield(Task *task, TaskWaitFlags wait_flags, int sleep_interval_or_wait_filter);
 void *__fastcall TSK_alloc(Task *task, size_t size);
@@ -4806,6 +4815,210 @@ ScriptType4 *g_scripts[196] =
   &stru_46FCD0,
   &stru_46FCE8
 };
+
+// debug: names[i] mirrors g_scripts[i]'s ->handler identifier (or nullptr), so
+// CPLC_entity_spawn can give TSK_async/TSK_callback a real function name instead
+// of the generic stringized local var name for its runtime-dispatched handler
+const char *g_script_names[196] =
+{
+  nullptr,
+  nullptr,
+  "UNIT_prison_tick",
+  "UNIT_prison_tick",
+  "UNIT_clanhall_tick",
+  "UNIT_outpost_tick",
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  nullptr,
+  "GAME_mission_briefing_or_credits",
+  "INPUT_keyboard_dispatcher_task",
+  "TKS_terminate_with_entity",
+  "UI_ingame_menu_controller",
+  "UI_sidebar_refresh_loop",
+  "MISSION_outcome_sequence_play",
+  "CURSOR_loop_and_game_events",
+  "UI_sidebar_tooltip",
+  "UI_select_main_menu",
+  nullptr,
+  nullptr,
+  "GAME_new_missions_selection",
+  "UNIT_tanker_convoy_tick",
+  "UNIT_default_tick",
+  "UNIT_hut_tick",
+  "CPLC_multi_tech_bunker_spawn_positions",
+  "CPLC_multi_player_spawn_positions",
+  "UNIT_research_lab_tick",
+  "UNIT_beast_enclosure_tick",
+  "UNIT_blacksmith_tick",
+  "UNIT_repair_bay_tick",
+  "UNIT_power_plant_tick",
+  "UNIT_drillrig_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_scout_tick",
+  "UNIT_tower_tick",
+  "UNIT_tower_tick",
+  "UNIT_tower_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_mobile_derrick_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_mobile_base_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_tanker_tick",
+  nullptr,
+  "MISSION_reinforcements_task",
+  "UNIT_oil_patch_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_machine_shop_tick",
+  "UNIT_power_plant_tick",
+  "UNIT_repair_bay_tick",
+  "UNIT_research_lab_tick",
+  "UNIT_drillrig_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_infantry_tick",
+  "UNIT_scout_tick",
+  "UNIT_tower_tick",
+  "UNIT_tower_tick",
+  "UNIT_tower_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_mobile_derrick_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_mobile_base_tick",
+  "UNIT_tanker_tick",
+  "UNIT_tech_bunker_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UNIT_vehicle_tick",
+  "UI_main_menu_game_allies_count_and_lobby_watch",
+  "UI_main_menu_game_difficulty_or_leave_lobby_as_client",
+  "UI_main_menu_multi_cancel_to_modem_1",
+  "UI_main_menu_multi_modem_phonebook_edit",
+  "NETZ_modem_list_update",
+  "UI_main_menu_multi_cancel_to_modem_2",
+  "UI_main_menu_multi_modem_cancel_to_main",
+  "UI_main_menu_multi_modem_answer",
+  "UI_main_menu_multi_modem_dial",
+  "UI_main_menu_play_mission_cancel",
+  "UI_main_menu_play_mission_start",
+  "UI_main_menu_play_mission_faction_toggle",
+  "UI_main_menu_multi_serial_cancel",
+  "UI_main_menu_multi_modem_list_delete",
+  "UI_main_menu_multi_modem_connect",
+  "UI_main_menu_multi_modem_phonebook_select",
+  "UI_main_menu_multi_modem_add",
+  "UI_main_menu_multi_modem_host",
+  "UI_main_menu_multi_cancel",
+  "UI_main_menu_multi_ipx",
+  "UI_main_menu_multi_modem",
+  "UI_main_menu_multi_serial",
+  "mode_null",
+  "UI_main_menu",
+  "UI_main_menu_campaign_mute",
+  "UI_main_menu_campaign_surv",
+  "UI_main_menu_multi_join_cancel",
+  "UI_main_menu_multi_join",
+  "UI_main_menu_multi_host",
+  "UI_main_menu_multi_ipx_cancel",
+  "UI_main_menu_multi_ipx_join",
+  "UI_main_menu_multi_host_lobby_init",
+  "UI_main_menu_game_cancel",
+  "UI_main_menu_game_start",
+  "UI_main_menu_multi_ipx_host",
+  "UI_main_menu_quit",
+  "UI_main_menu_load",
+  "UI_main_menu_multi",
+  "UI_main_menu_campaign"
+};
+
 int g_color_idx_to_sidebar_color_bit[4] = { 1, 2, 4, 8 };
 FactoryColorStripe g_factory_stripes[4] = { { 146, 2016 }, { 174, 2028 }, { 169, 2004 }, { 172, 2040 } };
 BuildingBlueprint g_building_blueprints[28] =
@@ -5118,6 +5331,7 @@ void *g_coroutine_current_stack = NULL;
 int g_coroutine_nesting_depth = 0;
 Coroutine *g_coroutine_free_head = NULL;
 #define MAX_COROUTINES 2000
+#define MAX_TASKS 2000
 Coroutine *g_coroutine_pool = NULL;
 int g_dbg_mode_sentinel = 0; // weak
 BuildLimits *g_build_limits_head = NULL;
@@ -5423,7 +5637,7 @@ NetzError g_netz_last_send_result;
 LevelId g_current_lvl_id;
 __int16 g_current_mute_level; // weak
 __int16 g_current_surv_level; // weak
-BOOL g_is_full_install;
+BOOL g_is_full_install = 1;
 BOOL g_nocd;
 BOOL g_no_shroud;
 BOOL g_unit_stats_override;
@@ -5564,7 +5778,7 @@ MapdCamera g_mapd_camera;
 BOOL g_mapd_active;
 struct Entity *g_mapd_camera_target;
 LevelMapd *g_mapd;
-SoundStream *g_47C398_sentinel;
+SoundStream g_47C398_sentinel;
 SoundStream *g_sounds_head;
 SoundStream *g_sounds_tail;
 void *g_sound_bank;
@@ -5639,8 +5853,6 @@ UiStr *g_string_active_head;
 #define MAX_PROD_TYPES 5
 SidebarFactoryProduction g_factory_prod_head[MAX_PROD_TYPES];
 Sidebar *g_sidebar;
-SidebarFactoryProduction *g_47C918_unused;
-SidebarFactoryProduction *g_47C91C_unused;
 SidebarFactoryProduction *g_sidebar_prod_pool;
 SidebarFactoryProduction *g_prod_free_head;
 Entity *g_sidebar_unused_slots;
@@ -5648,8 +5860,6 @@ Task *g_sidebar_airstrike_task;
 int g_sidebar_color_bars_used[6];
 BOOL g_is_sidebar_open[6];
 MissionCashTable g_cash;
-SidebarFactoryProductionOption *g_47C9C8_unused;
-SidebarFactoryProductionOption *g_47C9CC_unused;
 SidebarFactoryProductionOption *g_sidebar_prod_job_pool;
 SidebarFactoryProductionOption *g_prod_options_free_head;
 UiStr *g_sidebar_cash_string;
@@ -5704,9 +5914,7 @@ MapdScrlImageTile *g_fog_of_war_tile9;
 MapdScrlImageTile *g_fog_of_war_tile2;
 int dword_47CBC0[256];
 MapdScrlImageTile *g_shroud_clear;
-int dword_47CFC4[1]; // weak (tentative->1 elem)
 int g_orientation_to_sin[256];
-int _47D3C4_bugged[1]; // weak (tentative->1 elem)
 int g_angle_to_orientation[256];
 unsigned __int8 pal_47D7C8_static_prolly_unused[256];
 MissionDiplomacyTable g_diplomacy;
@@ -5732,7 +5940,7 @@ int g_next_entity_id;
 int g_num_player_units;
 int g_num_ai_units;
 int g_num_towers;
-MobdPoint *g_mobd_anchors_default[4];
+MobdPoint *g_mobd_anchors_default[6];
 BOOL g_escort_initialized;
 HINSTANCE g_hinstance; // idb
 int g_cmd_show; // idb
@@ -6754,7 +6962,6 @@ LABEL_26:
     }
   }
 }
-// 477314: using guessed type int dword_477314[];
 
 //----- (00402150) --------------------------------------------------------
 void __fastcall UNIT_mode_beast_enclosure_refresh_levels(Unit *this)
@@ -7156,6 +7363,7 @@ BOOL TSK_coroutine_init()
     g_coroutine_pool[i].yield_to = nullptr;
     g_coroutine_pool[i].context = nullptr;
     g_coroutine_pool[i].stack = nullptr;
+    g_coroutine_pool[i].name = nullptr;
     g_coroutine_pool[i].next = &g_coroutine_pool[i + 1];
   }
   g_coroutine_pool[MAX_COROUTINES - 1].next = nullptr;
@@ -7166,7 +7374,7 @@ BOOL TSK_coroutine_init()
 }
 
 //----- (00402980) --------------------------------------------------------
-Coroutine *__fastcall TSK_coroutine_create(void (__cdecl *starter)(), const size_t stack_size)
+Coroutine *__fastcall TSK_coroutine_create(void (__cdecl *starter)(), const size_t stack_size, const char *name)
 {
   Coroutine *co = g_coroutine_free_head;
   if (nullptr == co)
@@ -7179,6 +7387,8 @@ Coroutine *__fastcall TSK_coroutine_create(void (__cdecl *starter)(), const size
 
   g_coroutine_free_head = g_coroutine_free_head->next;
   co->context = stack;
+  co->name = name;
+  co->context[0] = TSK_COROUTINE_STACK_CANARY;
 
   uintptr_t sp = (uintptr_t)(stack_size / sizeof(int));
   co->context[sp - 1] = (uintptr_t)TURRET_mode_null;
@@ -7190,11 +7400,22 @@ Coroutine *__fastcall TSK_coroutine_create(void (__cdecl *starter)(), const size
   return co;
 }
 
+void TSK_coroutine_check_canary(Coroutine *co, const char *where)
+{
+  if (co && co->context && co->context[0] != TSK_COROUTINE_STACK_CANARY) {
+    printf(
+      "TSK_coroutine stack overflow: name=%s co=%p context=%p canary=0x%08x (want 0x%08x) at %s\n",
+      co->name ? co->name : "?", (void *)co, (void *)co->context,
+      (unsigned)co->context[0], (unsigned)TSK_COROUTINE_STACK_CANARY, where);
+  }
+}
+
 //----- (00402A00) --------------------------------------------------------
 void __fastcall TSK_coroutine_remove(Coroutine *coroutine)
 {
   if ( coroutine )
   {
+    TSK_coroutine_check_canary(coroutine, "TSK_coroutine_remove");
     if ( coroutine->context )
       free(coroutine->context);
     coroutine->next = g_coroutine_free_head;
@@ -7371,7 +7592,9 @@ void __fastcall UNIT_building_construction_start(Unit *unit, UnitMode arrive_mod
     TSK_send_message(unit->task, TaskMessage_AdvanceConstructionStage, unit, g_game_update_loop_task);
   entity = unit->entity;
   unit->mode_arrive = arrive_mode;
-  id = (MobdPoint *)entity->anim_current_frame->points[0].id;// BUG
+  // BUG: points[0].id is int (MobdPoint.id field), not MobdPoint*. Decompiler type confusion.
+  // points is array of MobdPoint structs, so points[0].id is the id field of first point.
+  id = (MobdPoint *)entity->anim_current_frame->points[0].id;  // INLINED NNN
   if ( id )
   {
     for ( i = id->id; i != -1; ++id )
@@ -9168,12 +9391,6 @@ BOOL BOXD_collisions_init()
   }
   return result;
 }
-// 4773A0: using guessed type int g_tile_collisions_pool_size;
-// 4773AC: using guessed type int g_world_to_cgrid_x;
-// 4773B4: using guessed type int g_collision_grid_height;
-// 4773B8: using guessed type int g_world_to_cgrid_y;
-// 4773BC: using guessed type int g_boxd_active;
-// 4773C8: using guessed type int g_collision_grid_width;
 
 //----- (00404D50) --------------------------------------------------------
 void __fastcall BOXD_rebuild_collision_grid(Entity **entity_list)
@@ -9596,12 +9813,6 @@ void __fastcall BOXD_collide_entity(Entity *entity, BoxdCollisionAxis direction,
     }
   }
 }
-// 4773AC: using guessed type int g_world_to_cgrid_x;
-// 4773B4: using guessed type int g_collision_grid_height;
-// 4773B8: using guessed type int g_world_to_cgrid_y;
-// 4773BC: using guessed type int g_boxd_active;
-// 4773C8: using guessed type int g_collision_grid_width;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (00405430) --------------------------------------------------------
 void BOXD_cleanup()
@@ -9614,7 +9825,6 @@ void BOXD_cleanup()
       free(g_tile_collisions_pool);
   }
 }
-// 4773BC: using guessed type int g_boxd_active;
 
 //----- (00405460) --------------------------------------------------------
 void __fastcall UNIT_show_hint(Unit *unit)
@@ -9636,7 +9846,6 @@ void __fastcall UNIT_show_hint(Unit *unit)
     }
   }
 }
-// 4657C8: using guessed type int g_hinted_unit_id;
 
 //----- (004054D0) --------------------------------------------------------
 void __fastcall UNIT_tanker_convoy_advance_to_next_waypoint(Unit *unit)
@@ -9731,7 +9940,6 @@ void __fastcall UNIT_mode_convoy_escaped(Unit *unit)
 
   g_dbg_mode_sentinel = 2371645;
 }
-// 477358: using guessed type int g_dbg_mode_sentinel;
 
 //----- (00405690) --------------------------------------------------------
 void __fastcall UNIT_mode_convoy_countdown_to_escape(Unit *unit)
@@ -10365,10 +10573,16 @@ void __fastcall CPLC_entity_spawn(CplcEntity *cplc)
     next_y_sorted->prev_y_sorted = cplc->prev_y_sorted;
   if ( !cplc->spawn_params.skip_spawning )
   {
+    assert(cplc->task_type >= 0 && cplc->task_type < NUM_SCRIPTS);
     v6 = g_scripts[cplc->task_type];
     handler = (void (__cdecl *)(Task *))v6->handler;
     if ( handler )
-      v8 = v6->kind ? TSK_callback(TaskChannel_None, handler) : TSK_async(TaskChannel_None, handler, 0);
+      // bypass the TSK_async/TSK_callback debug-name macros here: `handler` is a
+      // runtime table lookup, so #handler would just stringize to "handler" for
+      // every CPLC-spawned task; g_script_names gives the real function name instead
+      v8 = v6->kind
+             ? TSK_callback_impl(TaskChannel_None, handler, g_script_names[cplc->task_type])
+             : TSK_async_impl(TaskChannel_None, handler, 0, g_script_names[cplc->task_type]);
     else
       v8 = nullptr;
     if ( cplc->task_type >= 0 )
@@ -10825,14 +11039,6 @@ void CPLC_viewport_update()
     }
   }
 }
-// 477428: using guessed type int g_cplc_spawn_x;
-// 477434: using guessed type int g_cplc_spawn_y;
-// 47743C: using guessed type int g_cplc_despawn_w;
-// 477440: using guessed type int g_cplc_despawn_z;
-// 477448: using guessed type int g_cplc_despawn_x;
-// 477454: using guessed type int g_cplc_despawn_y;
-// 47745C: using guessed type int g_cplc_spawn_z;
-// 477460: using guessed type int g_cplc_spawn_w;
 
 //----- (004068B0) --------------------------------------------------------
 void __fastcall CPLC_exec_with_objects(TaskType type)
@@ -12165,7 +12371,9 @@ void __fastcall UNIT_mode_drillrig_adjust_to_oil_patch_position(Unit *unit)
     nearest_patch = OIL_find_nearest_patch(unit->entity->x, unit->entity->y);
     if ( nearest_patch )
     {
-      unit->entity->x = (nearest_patch->entity->x & 0xFFFFE000) + 0x1000; // BUG repeated accross drillrig code
+      // TODO: Magic numbers 0xFFFFE000, 0x1000 repeated across drillrig code. Extract as constants.
+      // Aligns entity to grid: mask out low 13 bits, add 0x1000 (half tile = 4096)
+      unit->entity->x = (nearest_patch->entity->x & 0xFFFFE000) + 0x1000;
       unit->entity->y = (nearest_patch->entity->y & 0xFFFFE000) + 0x1000;
     }
   }
@@ -13758,10 +13966,11 @@ LABEL_82:
       }
       else
       {
-        if ( AI_find_nuke_target(ai, v46, &out_y, (int *)&v166) )// BUG- reused var
+        int nuke_z = 0;
+        if ( AI_find_nuke_target(ai, v46, &out_y, &nuke_z) )
         {
-          ENT_create_by_unit_type(v46, out_y, (int)v166, ai->player_num);
-          ai->airstrike_interval = (v44->rng_interval_min + GAME_rand_local_capped(v44->rng_interval_max)) >> 2;// BUG desync in multi
+          ENT_create_by_unit_type(v46, out_y, nuke_z, ai->player_num);
+          ai->airstrike_interval = (v44->rng_interval_min + GAME_rand_local_capped(v44->rng_interval_max)) >> 2;
           --ai->airstrike_count;
           goto LABEL_97;
         }
@@ -15147,9 +15356,6 @@ BOOL __fastcall AI_find_nuke_target(AiController *ai, UnitType type, int *out_x,
   }
   return v37;
 }
-// 40B5F2: conditional instruction was optimized away because eax.4>=43
-// 478AB4: using guessed type int g_map_width;
-// 478FF0: using guessed type int g_map_height;
 
 //----- (0040B700) --------------------------------------------------------
 void __cdecl AI_controller_tick(Task *task)
@@ -16314,9 +16520,6 @@ void __fastcall MOVIE_play_sound(Movie *movie)
     g_movie_sound_initialized = 1;
   }
 }
-// 477944: using guessed type int g_movie_sound_write_pos;
-// 477DC4: using guessed type int g_movie_sound_play_pos_prev;
-// 477DC8: using guessed type int g_movie_sound_play_pos_hi;
 
 //----- (0040D230) --------------------------------------------------------
 void MOVIE_cleanup()
@@ -16421,9 +16624,6 @@ void __fastcall MOVIE_subtitles_init(UiStr *str)
   g_movie_subtitles_current_col = 0;
   g_movie_subtitles_current_row = 0;
 }
-// 4780EC: using guessed type int g_movie_subtitles_current_row;
-// 4780F0: using guessed type int g_movie_subtitles_write_pos;
-// 4780F4: using guessed type int g_movie_subtitles_current_col;
 
 //----- (0040D450) --------------------------------------------------------
 void __fastcall MOVIE_subtitles_set(const char *text, int len)
@@ -16467,9 +16667,6 @@ void __fastcall MOVIE_subtitles_set(const char *text, int len)
     while ( v3 );
   }
 }
-// 4780EC: using guessed type int g_movie_subtitles_current_row;
-// 4780F0: using guessed type int g_movie_subtitles_write_pos;
-// 4780F4: using guessed type int g_movie_subtitles_current_col;
 
 //----- (0040D580) --------------------------------------------------------
 BOOL __fastcall TIME_init(int fps)
@@ -16478,7 +16675,6 @@ BOOL __fastcall TIME_init(int fps)
   g_time_next_tick_time_dirty = 1;
   return 1;
 }
-// 478100: using guessed type int g_time_fixed_dt_step;
 
 //----- (0040D5A0) --------------------------------------------------------
 void TIME_tick()
@@ -16496,8 +16692,6 @@ void TIME_tick()
     OS_message_pump();
   }
 }
-// 478100: using guessed type int g_time_fixed_dt_step;
-// 478104: using guessed type int g_time_next_tick_time;
 
 //----- (0040D600) --------------------------------------------------------
 // distance tolerance is used to prevent erratic rotation jitters when the target is too close leading to over-sensitivity to minor coordinate changes
@@ -17379,8 +17573,6 @@ LABEL_5:
     return posa;
   }
 }
-// 40E217: conditional instruction was optimized away because eax.4!=5
-// 40E225: conditional instruction was optimized away because eax.4!=5
 
 //----- (0040E2A0) --------------------------------------------------------
 BOOL REND_routines_init()
@@ -17409,11 +17601,6 @@ BOOL REND_routines_init()
   REND_4785B8 = (void (*)())TURRET_mode_null;
   return 1;
 }
-// 4785BC: using guessed type int REND_4785BC;
-// 4785CC: using guessed type int REND_4785CC;
-// 478A84: using guessed type int g_display_height;
-// 478A98: using guessed type int REND_478A98;
-// 478AA0: using guessed type int g_display_width;
 
 //----- (0040E390) --------------------------------------------------------
 BOOL REND_set_display_dimensions()
@@ -17428,10 +17615,6 @@ BOOL REND_set_display_dimensions()
   }
   return 1;
 }
-// 4785E8: using guessed type int g_display_width_2;
-// 478A80: using guessed type int g_display_height_2;
-// 478A84: using guessed type int g_display_height;
-// 478AA0: using guessed type int g_display_width;
 
 //----- (0040E3E0) --------------------------------------------------------
 const char *__cdecl REND_get_resource_resolution()
@@ -17443,7 +17626,6 @@ const char *__cdecl REND_get_resource_resolution()
     return "640";
   return result;
 }
-// 478AA0: using guessed type int g_display_width;
 
 //----- (0040E400) --------------------------------------------------------
 void PAL_apply(PaletteEntry *pal)
@@ -17608,7 +17790,7 @@ BOOL LVL_terrain_init()
   int v8; // eax
   int v9; // edx
   BoxdAabb *v10; // edx
-  int *type; // eax
+  IntUnaligned *type; // eax
   int v12; // eax
   TerrainTile *v13; // esi
   int v14; // edi
@@ -17617,14 +17799,14 @@ BOOL LVL_terrain_init()
   int v17; // edi
   int v18; // ebp
   int v19; // eax
-  int *v20; // ecx
+  IntUnaligned *v20; // ecx
   int v21; // edx
   int v22; // ecx
   int v23; // ecx
   TerrainTile *v24; // [esp+10h] [ebp-34h]
   BoxdAabb *v25; // [esp+14h] [ebp-30h]
   int j; // [esp+18h] [ebp-2Ch]
-  BoxdAabb **tiles; // [esp+1Ch] [ebp-28h]
+  BoxdAabbPtrUnaligned *tiles; // [esp+1Ch] [ebp-28h]
   int i; // [esp+20h] [ebp-24h]
   int v29; // [esp+24h] [ebp-20h]
   BoxdGrid *v30; // [esp+28h] [ebp-1Ch]
@@ -17656,7 +17838,7 @@ BOOL LVL_terrain_init()
     g_terrain = v4;
     if ( !v4 )
       return 0;
-    tiles = v1->tiles;
+    tiles = (BoxdAabbPtrUnaligned *)v1->tiles;
     v6 = 0;
     if ( g_map_num_tiles_x * g_map_num_tiles_y > 0 )
     {
@@ -17685,11 +17867,18 @@ BOOL LVL_terrain_init()
     {
       for ( j = 0; j < v1->num_tiles_x; ++j )
       {
-        if ( *tiles )
+        // `tiles` walks a raw BoxdAabb* array embedded in packed hunk data, so
+        // element addresses aren't guaranteed 4-byte aligned. memcpy() alone
+        // didn't fix this - clang still lowers a small constant-size memcpy to
+        // a typed load and UBSan flags THAT. `tiles` is now typed as
+        // BoxdAabbPtrUnaligned* (aligned(1)), so this dereference itself is
+        // unaligned-safe.
+        BoxdAabb *tile0 = *tiles;
+        if ( tile0 )
         {
-          v10 = *tiles;
-          v25 = *tiles;
-          type = (int *)(*tiles)->type;
+          v10 = tile0;
+          v25 = tile0;
+          type = (IntUnaligned *)tile0->type;
           if ( type )
           {
             do
@@ -17715,9 +17904,9 @@ BOOL LVL_terrain_init()
                       while ( 1 )
                       {
                         v19 = v18 + (j << v1->world_to_tile_x);
-                        v20 = (int *)v25->type;
+                        v20 = (IntUnaligned *)v25->type;
                         v21 = v17 + (i << v1->world_to_tile_y);
-                        if ( *(int *)(v25->type + 4) < v19 + 0x2000
+                        if ( *(IntUnaligned *)(v25->type + 4) < v19 + 0x2000
                           && v20[4] > v19
                           && v20[2] < v21 + 0x2000
                           && v20[5] > v21 )
@@ -17762,7 +17951,7 @@ BOOL LVL_terrain_init()
                   v10 = v25;
                 }
               }
-              type = (int *)v10->min_x;
+              type = (IntUnaligned *)v10->min_x;
               v10 = (BoxdAabb *)((char *)v10 + 4);
               v25 = v10;
             }
@@ -17792,12 +17981,6 @@ BOOL LVL_terrain_init()
   g_terrain_adjacent_tile_by_8_direction[7] = -1 - g_map_num_tiles_x;
   return 1;
 }
-// 478AB0: using guessed type int g_478AB0_unused;
-// 478AB4: using guessed type int g_map_width;
-// 478C08: using guessed type char g_478C08_unused;
-// 478FF0: using guessed type int g_map_height;
-// 478FF4: using guessed type int g_478FF4_unused;
-// 47952C: using guessed type int g_47952C_unused;
 
 //----- (0040EA20) --------------------------------------------------------
 void GAME_opportunity_timer_update()
@@ -18214,7 +18397,6 @@ LABEL_43:
     return UnitPosition_Slot0;
   }
 }
-// 40EF7D: conditional instruction was optimized away because ecx.4==0
 
 //----- (0040F0A0) --------------------------------------------------------
 int __fastcall BOXD_adjust_unit_position_x(Unit *unit, UnitTilePosition position)
@@ -18302,8 +18484,6 @@ void __fastcall BOXD_remove_unit_from_tile(Unit *unit, int map_x, int map_y, Uni
     }
   }
 }
-// 478AAC: using guessed type int g_map_num_tiles_y;
-// 4793F8: using guessed type int g_map_num_tiles_x;
 
 //----- (0040F230) --------------------------------------------------------
 void __fastcall BOXD_tile_set_friendly_mask(
@@ -18371,7 +18551,6 @@ int __fastcall GAME_rand_local_capped(int max_val)
   g_rand_seed_local = (unsigned __int16)(3141 * g_rand_seed_local + 13867);
   return g_rand_seed_local % max_val;
 }
-// 479534: using guessed type int g_rand_seed_local;
 
 //----- (0040F380) --------------------------------------------------------
 void __fastcall DBG_on_invalid_unit_tick(BOOL inc)
@@ -18385,7 +18564,6 @@ void __fastcall DBG_on_invalid_unit_tick(BOOL inc)
     --dword_479540;
   }
 }
-// 479540: using guessed type int dword_479540;
 
 //----- (0040F3A0) --------------------------------------------------------
 BOOL UI_sidebar_init()
@@ -18425,8 +18603,6 @@ BOOL UI_sidebar_init()
   g_sidebar_default_v_spacing = 0x2000;
   return 1;
 }
-// 4795D0: using guessed type int g_sidebar_default_v_spacing;
-// 4795D4: using guessed type int g_sidebar_default_h_spacing;
 
 //----- (0040F460) --------------------------------------------------------
 void __cdecl UI_sidebar_task(Task *task)
@@ -18486,8 +18662,6 @@ Sidebar *__fastcall UI_sidebar_create(
   g_sidebar_active_head = v5;
   return v5;
 }
-// 4795D0: using guessed type int g_sidebar_default_v_spacing;
-// 4795D4: using guessed type int g_sidebar_default_h_spacing;
 
 //----- (0040F5D0) --------------------------------------------------------
 void __cdecl UI_sidebar_buttons_task(Task *task)
@@ -18684,7 +18858,6 @@ LABEL_61:
   v10 = btn;
   goto LABEL_63;
 }
-// 40F89C: conditional instruction was optimized away because ebp.4==1
 
 //----- (0040F8F0) --------------------------------------------------------
 void __cdecl UI_sidebar_buttons_cancellable_task(Task *task)
@@ -18873,7 +19046,6 @@ LABEL_69:
   while ( v4 );
   goto LABEL_75;
 }
-// 40FBB9: conditional instruction was optimized away because ebx.4==1
 
 //----- (0040FC10) --------------------------------------------------------
 void __cdecl UI_sidebar_buttons_production_task(Task *task)
@@ -20164,9 +20336,9 @@ void UNIT_status_bar_short_sprites_init()
       }
 
       if (frame % 2 == 0) {
-        fill_top = g_healthbar_border_color_top[color_idx];
-        fill_bot = g_healthbar_border_color_bottom[color_idx];
         if (color_idx < 4) {
+          fill_top = g_healthbar_border_color_top[color_idx];
+          fill_bot = g_healthbar_border_color_bottom[color_idx];
           color_idx++;
         }
       }
@@ -20212,9 +20384,9 @@ void UNIT_status_bar_wide_sprites_init()
       }
 
       if (frame % 5 == 0) {
-        fill_top = g_healthbar_border_color_top[color_idx];
-        fill_bot = g_healthbar_border_color_bottom[color_idx];
         if (color_idx < 4) {
+          fill_top = g_healthbar_border_color_top[color_idx];
+          fill_bot = g_healthbar_border_color_bottom[color_idx];
           color_idx++;
         }
       }
@@ -20640,7 +20812,6 @@ BOOL REND_direct_draw_init() {
   MessageBoxA(GetActiveWindow(), "Failed to setup DirectDraw", "Error", MB_OK);
   return FALSE;
 }
-// 47980C: using guessed type int g_window_bpp;
 
 //----- (00411FE0) --------------------------------------------------------
 void REND_direct_draw_cleanup()
@@ -21001,8 +21172,6 @@ void __fastcall REND_draw_batch(RenderBatch *batch)
     }
   }
 }
-// 47980C: using guessed type int g_window_bpp;
-// 4798E4: using guessed type int g_dd_4798E4_unused;
 
 //----- (004125D0) --------------------------------------------------------
 int __fastcall REND_get_width(RenderCommand *cmd) {
@@ -27447,7 +27616,6 @@ BOOL INPUT_unk_device_init()
   while ( v0 < 50 );
   return 1;
 }
-// 479D3C: using guessed type int g_479D3C_unused;
 
 //----- (0041AAE0) --------------------------------------------------------
 void INPUT_keyboard_update()
@@ -27769,7 +27937,6 @@ BOOL SYS_init()
   }
   return result;
 }
-// 479DF4: using guessed type __int16 g_rend_blitters_initialized;
 
 //----- (0041B140) --------------------------------------------------------
 LevelHunk *__fastcall LVL_load(const char *filename)
@@ -27887,7 +28054,6 @@ BOOL __fastcall LVL_run(LevelHunk *lvl)
   }
   return result;
 }
-// 479DC0: using guessed type int g_ui_string_initialized;
 
 //----- (0041B2E0) --------------------------------------------------------
 void LVL_cleanup()
@@ -27936,8 +28102,6 @@ void LVL_cleanup()
   g_current_lvl = nullptr;
   g_current_lvl_sections = nullptr;
 }
-// 41B2F9: variable 'v0' is possibly undefined
-// 479DC0: using guessed type int g_ui_string_initialized;
 
 //----- (0041B3F0) --------------------------------------------------------
 void SYS_shutdown()
@@ -28337,8 +28501,6 @@ BOOL __fastcall BOXD_is_in_line_of_sight(Unit *a, Unit *b)
   }
   return 0;
 }
-// 478AB4: using guessed type int g_map_width;
-// 478FF0: using guessed type int g_map_height;
 
 //----- (0041B970) --------------------------------------------------------
 // Builds complex path with waypoints
@@ -28461,6 +28623,7 @@ BoxdRaycastResult __fastcall BOXD_path_builder_raycast_x_major(
   error_inc_diagonal = 2 * abs_dy - 2 * abs_dx;
   bresenham_error = 2 * abs_dy - abs_dx;
   v9 = 0;
+  v9 = 0;
   for ( phase = RaycastPhase_ScanningClear; (int)phase < 10; ++phase )// BUG - variable reuse - here it's an int
   {
     has_waypoint[v9] = 0;
@@ -28469,6 +28632,7 @@ BoxdRaycastResult __fastcall BOXD_path_builder_raycast_x_major(
     v9 = phase + 1;
   }
   phase = RaycastPhase_ScanningClear;           // BUG - variable reuse
+  phase = RaycastPhase_ScanningClear;
   is_tile_blocked = 0;
   is_tile_clear = 0;
   any_non_clear_tiles = 0;
@@ -28601,14 +28765,16 @@ BoxdRaycastResult __fastcall BOXD_path_builder_raycast_y_major(
   error_inc_diagonal = 2 * abs_dx - 2 * abs_dy;
   bresenham_error = 2 * abs_dx - abs_dy;
   v9 = 0;
-  for ( phase = RaycastPhase_ScanningClear; (int)phase < 10; ++phase )// BUG var reuse - here it's looping int
+  v9 = 0;
+  for ( phase = RaycastPhase_ScanningClear; (int)phase < 10; ++phase )// BUG - variable reuse - here it's an int
   {
     has_waypoint[v9] = 0;
     unit->ray_exit_map_xs[v9] = -1;
     unit->ray_exit_map_ys[phase] = -1;
     v9 = phase + 1;
   }
-  phase = RaycastPhase_ScanningClear;           // BUG - var reuse - here it's the enum
+  phase = RaycastPhase_ScanningClear;           // BUG - variable reuse
+  phase = RaycastPhase_ScanningClear;
   is_tile_blocked = 0;
   is_tile_clear = 0;
   any_non_clear_tiles = 0;
@@ -30572,7 +30738,7 @@ LABEL_42:
         unit->message_handler = nullptr;
 
       memset(unit->ai_node_per_side, 0, sizeof(unit->ai_node_per_side));
-      memset(&unit->mobd_anchors, (int)g_mobd_anchors_default, 6u);// BUG only 4, 6 would corrupt memory
+      memcpy(&unit->mobd_anchors, g_mobd_anchors_default, 6*4);
       unit->_unit_field_78_unused = data->unit_field_78;
       unit->orientation = data->orientation;
       unit->_unit_field_80_unused = data->unit_field_80;
@@ -30852,7 +31018,7 @@ LABEL_131:
         case UnitType_Mute_RotaryCannon:
           unit->state = nullptr;
           UNIT_rendering_default(unit);
-          id = (MobdPoint *)unit->entity->anim_current_frame->points[0].id; // BUG
+          id = (MobdPoint *)unit->entity->anim_current_frame->points[0].id; // INLINED NNN
           if ( id )
           {
             for ( i = id->id; i != -1; ++id )
@@ -33338,7 +33504,6 @@ LABEL_17:
       goto LABEL_22;
   }
 }
-// 46560C: using guessed type int g_script_handlers_num;
 
 //----- (00420A90) --------------------------------------------------------
 unsigned __int8 *__fastcall SAVE_pack_map_info(int *out_total_tiles)
@@ -33456,7 +33621,7 @@ MetaSaveStruct *__fastcall SAVE_pack_meta(size_t *out_data_size)
       ++v7;
       ++player_bases_unit_ids;
     }
-    while ( (int)v7 < (int)&g_sidebar_buildings_prod );// BUG
+    while ( (int)v7 < (int)&g_player_bases[4] );
     v5->num_ally_waves_remaining = g_num_ally_waves_remaining;
     v5->num_enemy_waves_remaining = g_num_enemy_waves_remaining;
     v5->is_aircraft_unlocked = g_aircraft_unlocked;
@@ -33640,7 +33805,7 @@ LABEL_13:
     *v5++ = v7;
     ++player_bases_unit_ids;
   }
-  while ( (int)v5 < (int)&g_sidebar_buildings_prod );// BUG
+  while ( (int)v5 < (int)&g_player_bases[4] );
   g_aircraft_unlocked = data->is_aircraft_unlocked;
   aircraft_sidebar_task_id = data->aircraft_sidebar_task_id;
   if ( aircraft_sidebar_task_id && aircraft_sidebar_task_id <= g_script_handlers_num )
@@ -33720,7 +33885,6 @@ LABEL_13:
   }
   return result;
 }
-// 46560C: using guessed type int g_script_handlers_num;
 
 //----- (004211D0) --------------------------------------------------------
 BOOL GAME_save()
@@ -34338,7 +34502,6 @@ void __fastcall MSG_machine_shop_upgrades(
   UNIT_status_bar_update_tech(unit);
   MSG_building_generic(receiver, sender, message, payload);
 }
-// 479FC4: using guessed type int dword_479FC4[];
 
 //----- (00421F50) --------------------------------------------------------
 void __fastcall MSG_machine_shop(
@@ -34618,8 +34781,6 @@ void MISSION_campaign_progress()
     }
   }
 }
-// 47A2DC: using guessed type __int16 g_current_mute_level;
-// 47A2E0: using guessed type __int16 g_current_surv_level;
 
 //----- (00422500) --------------------------------------------------------
 void GAME_read_config()
@@ -34630,7 +34791,7 @@ void GAME_read_config()
   BYTE data[16]; // [esp+14h] [ebp-10h] BYREF
 
   g_game_path_drive_letter = 'C';
-  g_is_minimum_install = 1;
+  g_is_minimum_install = 0;
   strcpy(g_game_path, ".");
   if ( !RegOpenKeyExA(
           HKEY_LOCAL_MACHINE,
@@ -34650,7 +34811,6 @@ void GAME_read_config()
     RegCloseKey(res);
   }
 }
-// 47A008: using guessed type char g_game_path_drive_letter;
 
 int __fastcall NETZ_null(int a1) {
   (void)a1;
@@ -34741,12 +34901,10 @@ BOOL GAME_splash()
   }
   while ( splash_ticks );
   MAPD_release(g_mapd_layers_rns[0]);
+  g_mapd_layers_rns[0] = nullptr;
   LVL_cleanup();
   return 1;
 }
-// 422697: variable 'v0' is possibly undefined
-// 468B60: using guessed type int g_468B60_unused;
-// 47A008: using guessed type char g_game_path_drive_letter;
 
 //----- (00422860) --------------------------------------------------------
 void __fastcall GAME_prep_super_lvl(MenuId mapd_id)
@@ -34828,13 +34986,12 @@ void __fastcall GAME_prep_super_lvl(MenuId mapd_id)
   g_current_lvl_id = v3;
   v17 = LVL_load(Buffer);
   g_level = v17;
-  if ( !v17 )
+  if ( !v17 ) // inline/duplicated
   {
     LVL_cleanup();
     NETZ_shutdown();
     SYS_shutdown();
-    if ( "LVL_LoadLevel(%s) failed\n" )
-      printf("%s", "LVL_LoadLevel(%s) failed\n");
+    printf("LVL_LoadLevel(%s) failed\n", "super.lvl");
     exit(0);
   }
   if ( !LVL_subst_hunk(v17, g_supspr_lvl, "MOBD") )
@@ -35044,6 +35201,7 @@ LABEL_30:
       REND_viewport_free(v10);
       REND_viewport_free(v9);
       MAPD_release(g_mapd_layers_rns[0]);
+      g_mapd_layers_rns[0] = nullptr;
       LVL_cleanup();
       free(v7);
       goto LABEL_44;
@@ -35060,7 +35218,7 @@ void GAME_mission_load()
   const char *v2; // eax
   LevelHunk *v3; // eax
   BOOL is_evolved; // eax
-  LevelMapdSurface **mapd; // eax
+  LevelMapd *mapd; // eax
   const char *lvl_filename; // [esp-4h] [ebp-84h]
   char Buffer[120]; // [esp+8h] [ebp-78h] BYREF
 
@@ -35101,13 +35259,12 @@ void GAME_mission_load()
     sprintf(Buffer, "%s\\LEVELS\\%s\\%s", g_level_base_path, v2, lvl_filename);
     v3 = LVL_load(Buffer);
     g_level = v3;
-    if ( !v3 )
+    if ( !v3 ) // inline/duplicated
     {
       LVL_cleanup();
       NETZ_shutdown();
       SYS_shutdown();
-      if ( "LVL_LoadLevel(%s) failed\n" )
-        printf("%s", "LVL_LoadLevel(%s) failed\n");
+      printf("LVL_LoadLevel(%s) failed\n", lvl_filename);
       exit(0);
     }
     if ( !LVL_subst_hunk(v3, g_supspr_lvl, "MOBD") )
@@ -35132,8 +35289,8 @@ void GAME_mission_load()
     exit(0);
   }
   FADE_reset();
-  mapd = (LevelMapdSurface **)LVL_find_section("MAPD");
-  PAL_apply((PaletteEntry *)&(*mapd)[1]); // BUG - verify data layout. is it &palette[1] or &palette[2] or a field is missing?
+  mapd = (LevelMapd *)LVL_find_section("MAPD");
+  PAL_apply(mapd[0].layers[0].palette);
   UI_sidebar_init();
   LVL_terrain_init();
   PAL_multi_init();
@@ -35183,8 +35340,6 @@ void GAME_mission_load()
     CPLC_exec_all();
   }
 }
-// 47A008: using guessed type char g_game_path_drive_letter;
-// 47A01C: using guessed type int dword_47A01C;
 
 //----- (00423320) --------------------------------------------------------
 // true: continue to next level
@@ -35205,7 +35360,7 @@ BOOL GAME_post_campaign_mission()
     }
     ++v0;
   }
-  while ( (int)v0 < (int)&dword_47A01C );       // BUG + duplicated in KKND_Main
+  while ( v0 < g_mapd_layers_rns + 3 );
   TURRET_mode_null((Turret *)v1);
   PROD_cleanup();
   GAME_mission_cleanup();
@@ -35259,7 +35414,6 @@ BOOL GAME_post_campaign_mission()
   return 0;
 }
 // 423342: variable 'v1' is possibly undefined
-// 47A01C: using guessed type int dword_47A01C;
 
 //----- (00423460) --------------------------------------------------------
 int KKND_Main()
@@ -35323,7 +35477,7 @@ LABEL_5:
       }
       ++v2;
     }
-    while ( (int)v2 < (int)&dword_47A01C );     // BUG + duplicated in GAME_post_campaign_mission
+    while ( v2 < g_mapd_layers_rns + 3 );
     LVL_cleanup();
     g_mission_outcome = MissionOutcome_NotStarted;
     free(g_level);
@@ -35375,7 +35529,7 @@ LABEL_5:
               }
               ++v3;
             }
-            while ( (int)v3 < (int)&dword_47A01C );// BUG
+            while ( v3 < g_mapd_layers_rns + 3 );
             LVL_cleanup();
             g_mission_outcome = MissionOutcome_NotStarted;
             free(g_level);
@@ -35445,9 +35599,6 @@ LABEL_5:
     return 1;
   }
 }
-// 468B60: using guessed type int g_468B60_unused;
-// 47A01C: using guessed type int dword_47A01C;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (004237F0) --------------------------------------------------------
 BOOL TSK_message_pool_init()
@@ -35708,11 +35859,6 @@ void __cdecl GAME_mission_briefing(Task *task)
   FADE_in(task);
   g_game_loop = GameLoop_PreviousScreen;
 }
-// 47A19C: using guessed type int g_briefing_end_countdown;
-// 47A1A0: using guessed type int g_briefing_y_offset;
-// 47A1A4: using guessed type int g_current_briefing_line;
-// 47A1A8: using guessed type int g_briefing_idx;
-// 47A1B0: using guessed type int g_briefing_scroll_ticks;
 
 //----- (00423C60) --------------------------------------------------------
 void __fastcall GAME_mission_briefing_scroll_row(BOOL scroll)
@@ -35795,11 +35941,6 @@ LABEL_23:
     v1 = row + 1;
   }
 }
-// 47A19C: using guessed type int g_briefing_end_countdown;
-// 47A1A0: using guessed type int g_briefing_y_offset;
-// 47A1A4: using guessed type int g_current_briefing_line;
-// 47A1A8: using guessed type int g_briefing_idx;
-// 47A1B0: using guessed type int g_briefing_scroll_ticks;
 
 //----- (00423DD0) --------------------------------------------------------
 void CPLC_exec_all()
@@ -35843,7 +35984,6 @@ void CPLC_exec_subset()
     }
   }
 }
-// 423E3B: conditional instruction was optimized away because esi.4 is in (==6|==9|==49|==4B|4D..51|==55|==7A)
 
 //----- (00423E50) --------------------------------------------------------
 void SAVE_infer_player_num()
@@ -35872,8 +36012,6 @@ void SAVE_infer_player_num()
     }
   }
 }
-// 47A2DC: using guessed type __int16 g_current_mute_level;
-// 47A2E0: using guessed type __int16 g_current_surv_level;
 
 //----- (00423ED0) --------------------------------------------------------
 void GAME_parse_cmd_line()
@@ -35971,7 +36109,6 @@ void GAME_parse_cmd_line()
     }
   }
 }
-// 47A2BC: using guessed type int g_47A2BC_unused;
 
 //----- (004240E0) --------------------------------------------------------
 void __fastcall GAME_read_campaign_progress(const char *filename)
@@ -36113,7 +36250,6 @@ LABEL_17:
     *out_mute_level = 0;
   }
 }
-// 4630E8: using guessed type int dword_4630E8;
 
 //----- (004243C0) --------------------------------------------------------
 void __fastcall MISSION_save_campaign_progress(const char *filename)
@@ -36490,8 +36626,6 @@ void __cdecl CPLC_multi_tech_bunker_spawn_positions(Task *task)
   ENT_remove(task->entity);
   TSK_schedule_self_destruct(task);
 }
-// 47A2FC: using guessed type int _bug_47A2FC_neg1_index[];
-// 47A3E8: using guessed type int g_multi_num_bunker_spawn_positions;
 
 //----- (00424BF0) --------------------------------------------------------
 void __cdecl CPLC_multi_player_spawn_positions(Task *task)
@@ -36519,7 +36653,6 @@ void __cdecl CPLC_multi_player_spawn_positions(Task *task)
   ENT_remove(task->entity);
   TSK_schedule_self_destruct(task);
 }
-// 47A3E4: using guessed type int g_multi_num_player_spawn_positions;
 
 //----- (00424CA0) --------------------------------------------------------
 void MISSION_signal_defeat()
@@ -36969,7 +37102,6 @@ BOOL __fastcall MISSION_outcome_sequence_init(Task *task, int bits)
   v9->task->netz_flags = Task_CanRunDuringSync;
   return TSK_send_message(nullptr, TaskMessage_MissionOutcomePopup, nullptr, g_ui_ingame_controller_task);
 }
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (00425400) --------------------------------------------------------
 void __cdecl MISSION_victory_watch(Task *task)
@@ -37105,7 +37237,6 @@ LABEL_54:
   TSK_yield(v1, TaskWait_Interval, 300);
   TSK_schedule_self_destruct(v1);
 }
-// 4255B0: conditional instruction was optimized away because eax.4==1
 
 //----- (00425660) --------------------------------------------------------
 void MISSION_outcome_task_terminate()
@@ -37546,7 +37677,6 @@ LABEL_50:
 LABEL_51:
   TSK_schedule_self_destruct(task);
 }
-// 425CC8: conditional instruction was optimized away because edx.4==0
 
 //----- (00425EC0) --------------------------------------------------------
 // 0=none
@@ -38208,7 +38338,7 @@ void __cdecl MISSION_reinforcements_task(Task *task)
   ReinforcementsState *state; // esi
   Entity *entity; // eax
   int player_side_or_spawn_table_idx; // edi
-  unsigned int x; // ebx
+  int x; // ebx
   int v6; // eax
   UnitType *units; // ebx
   int v8; // eax
@@ -38237,23 +38367,23 @@ void __cdecl MISSION_reinforcements_task(Task *task)
   entity->is_collidable = 1;
   x = task->entity->x;
   cmd = &g_mapd_layers_rns[0]->rn->cmd;
-  if ( x < (unsigned int)((REND_get_width(cmd) + 0xFFFFC0) << 8) )
+  if ( x < (int)(((unsigned int)REND_get_width(cmd) + 0xFFFFC0) << 8) )
   {
     if ( x <= 0x40 )
       x = 0;
   }
   else
   {
-    x = (REND_get_width(cmd) << 8) - 64;
+    x = ((unsigned int)REND_get_width(cmd) << 8) - 64;
   }
-  if ( (unsigned int)y < (unsigned int)((REND_get_height(cmd) + 0xFFFFC0) << 8) )
+  if ( y < (int)(((unsigned int)REND_get_height(cmd) + 0xFFFFC0) << 8) )
   {
     if ( (unsigned int)y <= 0x40 )
       y = 0;
   }
   else
   {
-    y = (REND_get_height(cmd) + 0xFFFFC0) << 8;
+    y = (int)(((unsigned int)REND_get_height(cmd) + 0xFFFFC0) << 8);
   }
   task->ctx = state;
   v6 = (g_player_num - 1) ^ 1;
@@ -38817,7 +38947,6 @@ LABEL_53:
     }
   }
 }
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (004272A0) --------------------------------------------------------
 void __fastcall ENT_anim_set(Entity *entity, ptrdiff_t anim)
@@ -39080,7 +39209,6 @@ void GAME_entity_anims_tick()
     }
   }
 }
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (004275D0) --------------------------------------------------------
 void LVL_mobd_cleanup()
@@ -39906,9 +40034,6 @@ BOOL INPUT_mouse_init()
   g_mouse_state.cursor_y = 0;
   return g_input_mouse_window_losing_focus_reset_to_defaults;
 }
-// 47A560: using guessed type int g_prev_mouse_held_actions;
-// 47A588: using guessed type int g_num_mouse_buttons;
-// 47A58C: using guessed type int g_new_mouse_actions;
 
 //----- (004283A0) --------------------------------------------------------
 BOOL __fastcall INPUT_set_mouse_pos(__int16 x, __int16 y)
@@ -39949,7 +40074,6 @@ BOOL __fastcall INPUT_set_scroll_speed(__int16 speed)
   g_input_scroll_speed = speed;
   return 1;
 }
-// 47A590: using guessed type __int16 g_input_scroll_speed;
 
 //----- (00428480) --------------------------------------------------------
 BOOL __fastcall INPUT_get_mouse_state(MouseState *state)
@@ -40029,9 +40153,6 @@ BOOL INPUT_mouse_update()
     return 0;
   }
 }
-// 47A560: using guessed type int g_prev_mouse_held_actions;
-// 47A588: using guessed type int g_num_mouse_buttons;
-// 47A58C: using guessed type int g_new_mouse_actions;
 
 //----- (00428730) --------------------------------------------------------
 BOOL CONSTR_init()
@@ -40810,11 +40931,6 @@ LABEL_75:
     }
   }
 }
-// 42950F: conditional instruction was optimized away because di.2==0
-// 468980: using guessed type int g_last_ctrl_group_key;
-// 468984: using guessed type int g_last_assigned_control_group;
-// 47A5A0: using guessed type int g_sidebar_tooltip_cooldown;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (00429770) --------------------------------------------------------
 void __fastcall CURSOR_event_enqueue(GameEvent *event)
@@ -42126,9 +42242,6 @@ LABEL_161:
     }
   }
 }
-// 42A907: conditional instruction was optimized away because %var_8.4 is in (==CA000006|==CA00000E)
-// 468980: using guessed type int g_last_ctrl_group_key;
-// 468984: using guessed type int g_last_assigned_control_group;
 
 //----- (0042AFD0) --------------------------------------------------------
 void __fastcall CURSOR_repair_bay_order(CursorState *cursor, Unit *unit)
@@ -42465,8 +42578,6 @@ void __fastcall CURSOR_sidebar(CursorState *cursor)
     }
   }
 }
-// 47A5A0: using guessed type int g_sidebar_tooltip_cooldown;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (0042B740) --------------------------------------------------------
 // Game events queue → dispatch → network sync pipeline
@@ -43296,10 +43407,6 @@ LABEL_210:
     g_currently_processed_event.type = GameEvent_None;
   }
 }
-// 468980: using guessed type int g_last_ctrl_group_key;
-// 47A6F0: using guessed type int g_rmb_hold_frame_count;
-// 47A72C: using guessed type int g_game_events_write_idx;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (0042C810) --------------------------------------------------------
 int __fastcall CURSOR_building_planner_ghost(
@@ -43759,8 +43866,6 @@ LABEL_57:
     ENT_anim_set(cursor_hitbox_tester, MOBD_CURSOR_DEFAULT_ARROW);
   }
 }
-// 468980: using guessed type int g_last_ctrl_group_key;
-// 468984: using guessed type int g_last_assigned_control_group;
 
 //----- (0042D030) --------------------------------------------------------
 void __cdecl UI_sidebar_tooltip(Task *task)
@@ -43868,7 +43973,6 @@ void __cdecl UI_sidebar_tooltip(Task *task)
     }
   }
 }
-// 47A5A0: using guessed type int g_sidebar_tooltip_cooldown;
 
 //----- (0042D220) --------------------------------------------------------
 void __fastcall NETZ_multi_chat_input_cb(const char *text, int cursor_pos)
@@ -44022,8 +44126,6 @@ void __cdecl NETZ_multi_chat(Task *task)
   g_netz_multi_chat_message = nullptr;
   TSK_schedule_self_destruct(task);
 }
-// 468A58: using guessed type char g_netz_char_terminator;
-// 468B58: using guessed type int g_netz_local_player_slot;
 
 //----- (0042D500) --------------------------------------------------------
 GameEvent *GAME_events_dequeue()
@@ -44042,7 +44144,6 @@ GameEvent *GAME_events_dequeue()
   g_game_events_read_idx = v0 + 1;
   return &g_game_events[v0];
 }
-// 47A728: using guessed type int g_game_events_read_idx;
 
 //----- (0042D540) --------------------------------------------------------
 void GAME_events_init()
@@ -44051,8 +44152,6 @@ void GAME_events_init()
   g_game_events_read_idx = 0;
   g_game_events_write_idx = 0;
 }
-// 47A728: using guessed type int g_game_events_read_idx;
-// 47A72C: using guessed type int g_game_events_write_idx;
 
 //----- (0042D560) --------------------------------------------------------
 // returns MobdOrientation essentially
@@ -44744,7 +44843,6 @@ void __fastcall MSG_ai_controller_mute05_ambush(
     }
   }
 }
-// 42DE06: conditional instruction was optimized away because ecx.4!=0
 
 //----- (0042DE80) --------------------------------------------------------
 void __cdecl AI_controller_tick_mute05_ambush_impl(Task *task)
@@ -44988,7 +45086,7 @@ BOOL __fastcall NETZ_local_player_init(NetzProtocol protocol, const char *name)
     player->connection_status = NetzConnection_None;
     (player++)->synced = 1;
   }
-  while ( (int)player + 0x18 < (int)&g_join_pkt );     // BUG
+  while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
   v3 = clock();
   srand(v3);
   v4 = 0;
@@ -45004,7 +45102,7 @@ BOOL __fastcall NETZ_local_player_init(NetzProtocol protocol, const char *name)
     }
   }
   g_netz_local_player_slot = slot;
-  memset(v23, 0, sizeof(v23));
+  memset(v23, 0, sizeof(v23)); // INLINED DDD
   v6 = 0;
   player_ = &g_netz_players[1];
   do
@@ -45014,7 +45112,7 @@ BOOL __fastcall NETZ_local_player_init(NetzProtocol protocol, const char *name)
     ++player_;
     ++v6;
   }
-  while ( (int)player_ + 1 < (int)((char *)&g_netz_game_start_signal + 1) );// BUG
+  while ( (int)player_ < (int)&g_netz_players[PLAYERS_MAX] );
   v8 = 0;
   v9 = rand() % 15;
   while ( v23[v9] )
@@ -45061,9 +45159,6 @@ LABEL_20:
     --g_coroutine_nesting_depth;
   return v20 == NetzError_Ok;
 }
-// 468B50: using guessed type int g_num_multi_players;
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47A828: using guessed type int g_netz_game_start_signal;
 
 //----- (0042E390) --------------------------------------------------------
 void NETZ_disconnect()
@@ -45173,7 +45268,7 @@ void __fastcall NETZ_send_roster(NetzPacketType pkt, bool wait_for_ack)
     i = &roster.players[0];
     roster.num_players = g_num_multi_players;
     player_ = &g_netz_players[1];
-    do
+    do // INLINED EEE
     {
       if ( player_->connection_status && player_->synced )
       {
@@ -45196,7 +45291,7 @@ void __fastcall NETZ_send_roster(NetzPacketType pkt, bool wait_for_ack)
       ++player_;
       ++i;
     }
-    while ( (int)player_ + 0x18 < (int)&g_join_pkt );  // BUG
+    while ( (int)player_ < (int)&g_netz_players[PLAYERS_MAX] );
     v10 = 0;
     player__ = &g_netz_players[1];
     do
@@ -45210,7 +45305,7 @@ void __fastcall NETZ_send_roster(NetzPacketType pkt, bool wait_for_ack)
       ++player__;
       ++v10;
     }
-    while ( (int)player__ + 0x10 < (int)&g_netz_msg_loop );// BUG
+    while ( (int)player__ < (int)&g_netz_players[PLAYERS_MAX] );
     LOBYTE(v4) = wait_for_ack_;
     if ( wait_for_ack_ )
     {
@@ -45262,10 +45357,6 @@ void __fastcall NETZ_send_roster(NetzPacketType pkt, bool wait_for_ack)
   if ( g_coroutine_list_head != v18 )
     --g_coroutine_nesting_depth;
 }
-// 42E45F: variable 'v2' is possibly undefined
-// 468B50: using guessed type int g_num_multi_players;
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47CB10: using guessed type int g_netz_num_pending_acks;
 
 //----- (0042E690) --------------------------------------------------------
 void __fastcall NETZ_broadcast_roster_on_game_start(NetzPacketType pkt)
@@ -45297,7 +45388,7 @@ void __fastcall NETZ_broadcast_roster_on_game_start(NetzPacketType pkt)
   event_received_this_tick = g_num_multi_players;
   player = &g_netz_players[1];
   roster.num_players = g_num_multi_players;
-  do
+  do // INLINED EEE
   {
     LOBYTE(event_received_this_tick) = player->connection_status;
     if ( (_BYTE)event_received_this_tick && player->synced )
@@ -45321,7 +45412,7 @@ void __fastcall NETZ_broadcast_roster_on_game_start(NetzPacketType pkt)
     ++player;
     ++i;
   }
-  while ( (int)player + 0x18 < (int)&g_join_pkt );     // BUG
+  while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
   v9 = 0;
   player_ = &g_netz_players[1];
   do
@@ -45342,14 +45433,12 @@ void __fastcall NETZ_broadcast_roster_on_game_start(NetzPacketType pkt)
     ++player_;
     ++v9;
   }
-  while ( (int)player_ + 0x18 < (int)&g_join_pkt );    // BUG
+  while ( (int)player_ < (int)&g_netz_players[PLAYERS_MAX] );
   g_coroutine_eax = event_received_this_tick;
   v12 = g_coroutine_current;
   if ( g_coroutine_list_head != v12 )
     --g_coroutine_nesting_depth;
 }
-// 42E69C: variable 'v1' is possibly undefined
-// 468B50: using guessed type int g_num_multi_players;
 
 //----- (0042E7B0) --------------------------------------------------------
 BOOL NETZ_all_players_synced()
@@ -45365,7 +45454,7 @@ BOOL NETZ_all_players_synced()
       player = &g_netz_players[1];
       while ( player->connection_status != NetzConnection_Joined || player->synced )
       {
-        if ( (int)++player + 0x18 >= (int)&g_join_pkt )// BUG
+        if ( (int)++player >= (int)&g_netz_players[PLAYERS_MAX] )
           return result;
       }
     }
@@ -45373,7 +45462,6 @@ BOOL NETZ_all_players_synced()
   }
   return result;
 }
-// 468B50: using guessed type int g_num_multi_players;
 
 //----- (0042E7F0) --------------------------------------------------------
 void NETZ_game_start()
@@ -45383,8 +45471,6 @@ void NETZ_game_start()
   if ( !g_is_single_player )
     g_player_num = g_netz_local_player_slot + 1;
 }
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47A830: using guessed type int g_netz_is_game_started_2_unused;
 
 //----- (0042E820) --------------------------------------------------------
 void __fastcall NETZ_msg_loop(NetzMessage *msg)
@@ -45481,14 +45567,14 @@ void __fastcall NETZ_msg_loop(NetzMessage *msg)
               ++v2;
             ++player;
           }
-          while ( (int)player + 0x18 < (int)&g_join_pkt );// BUG
+          while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
           v4 = 0;
           player_ = &g_netz_players[1];
-          while ( player_->connection_status != NetzConnection_Joined || player_->slot != msg->player_slot )
+          while ( player_->connection_status != NetzConnection_Joined || player_->slot != msg->player_slot ) // INLINED FFF
           {
             ++player_;
             ++v4;
-            if ( (int)player_ + 0x10 >= (int)&g_netz_msg_loop )// BUG
+            if ( (int)player_ >= (int)&g_netz_players[PLAYERS_MAX] )
             {
               v6 = -1;
               goto LABEL_14;
@@ -45538,8 +45624,8 @@ LABEL_14:
               g_netz_players[v13 + 1].faction = NetzFaction_Mute;
               _player = &g_netz_players[1];
               do
-                (_player++)->event_received_this_tick = 0;
-              while ( (int)_player + 0x14 < (int)&dword_47A83C );// BUG
+                (_player++)->event_received_this_tick = 0; // INLINED GGG
+              while ( (int)_player < (int)&g_netz_players[PLAYERS_MAX] );
               __player = &g_netz_players[v12 + 1];
               __player->synced = 1;
               NETZ_broadcast_roster_on_game_start(NETZ_PKT_LOBBY_SYNC);
@@ -45589,12 +45675,12 @@ LABEL_14:
           msg->player_slot = msg->player_slot;
           synced = (NetzMessage *)g_netz_players[0].synced;
           v37 = 0;
-          while ( _player_->connection_status != NetzConnection_Joined
-               || _player_->slot != *(int *)(g_netz_players[0].synced + 44) )
+          while ( _player_->connection_status != NetzConnection_Joined  // INLINED FFF
+               || _player_->slot != *(int *)(g_netz_players[0].synced + 44) ) // BUG
           {
             ++_player_;
             ++v37;
-            if ( (int)_player_ + 0x10 >= (int)&g_netz_msg_loop )// BUG
+            if ( (int)_player_ >= (int)&g_netz_players[PLAYERS_MAX] )
             {
               v38 = -1;
               goto LABEL_90;
@@ -45625,11 +45711,11 @@ LABEL_90:
         case NETZ_PKT_CLIENT_ACK:
           v24 = 0;
           _player__ = &g_netz_players[1];
-          while ( _player__->connection_status != NetzConnection_Joined || _player__->slot != msg->player_slot )
+          while ( _player__->connection_status != NetzConnection_Joined || _player__->slot != msg->player_slot )  // INLINED FFF
           {
             ++_player__;
             ++v24;
-            if ( (int)_player__ + 0x10 >= (int)&g_netz_msg_loop )// BUG
+            if ( (int)_player__ >= (int)&g_netz_players[PLAYERS_MAX] )
             {
               v26 = -1;
               goto LABEL_69;
@@ -45686,12 +45772,12 @@ LABEL_40:
           v52 = 0;
           msg->player_slot = msg->player_slot;
           __player__ = &g_netz_players[1];
-          while ( __player__->connection_status != NetzConnection_Joined
-               || __player__->slot != *(int *)(g_netz_players[0].synced + 44) )
+          while ( __player__->connection_status != NetzConnection_Joined  // INLINED FFF
+               || __player__->slot != *(int *)(g_netz_players[0].synced + 44) ) // BUG
           {
             ++__player__;
             ++v52;
-            if ( (int)__player__ + 0x10 >= (int)&g_netz_msg_loop )// BUG
+            if ( (int)__player__ >= (int)&g_netz_players[PLAYERS_MAX] )
             {
               v54 = -1;
               goto LABEL_120;
@@ -45741,12 +45827,12 @@ LABEL_123:
           msg->player_slot = msg->player_slot;
           v56 = g_netz_players[0].synced;
           player_1 = &g_netz_players[1];
-          while ( player_1->connection_status != NetzConnection_Joined
-               || player_1->slot != *(int *)(g_netz_players[0].synced + 44) )
+          while ( player_1->connection_status != NetzConnection_Joined // INLINED HHH
+               || player_1->slot != *(int *)(g_netz_players[0].synced + 44) ) // BUG
           {
             ++player_1;
             ++v55;
-            if ( (int)player_1 + 0x10 >= (int)&g_netz_msg_loop )// BUG
+            if ( (int)player_1 >= (int)&g_netz_players[PLAYERS_MAX] )
             {
               v55 = -1;
               break;
@@ -45768,7 +45854,7 @@ LABEL_123:
                 NETZ_send(player_2->slot, NETZ_PKT_PLAYER_REMOVED_BROADCAST, &a3, 4u, 1);
               ++player_2;
             }
-            while ( (int)player_2 + 0x10 < (int)&g_netz_msg_loop );// BUG
+            while ( (int)player_2 < (int)&g_netz_players[PLAYERS_MAX] );
           }
           g_netz_has_player_departed = 1;
           g_netz_show_disconnect_ui = 1;
@@ -45839,12 +45925,12 @@ LABEL_123:
           player_4 = &g_netz_players[1];
           msg->player_slot = msg->player_slot;
           v21 = 0;
-          while ( player_4->connection_status != NetzConnection_Joined
-               || player_4->slot != *(int *)(g_netz_players[0].synced + 44) )
+          while ( player_4->connection_status != NetzConnection_Joined // INLINED HHH
+               || player_4->slot != *(int *)(g_netz_players[0].synced + 44) )  // BUG
           {
             ++player_4;
             ++v21;
-            if ( (int)player_4 + 0x10 >= (int)&g_netz_msg_loop )// BUG
+            if ( (int)player_4 >= (int)&g_netz_players[PLAYERS_MAX] )
             {
               v21 = -1;
               break;
@@ -45907,14 +45993,14 @@ LABEL_62:
         default:
           return;
       }
-      while ( v50 == v47
+      while ( v50 == v47 // INLINED JJJ
            || player_5->connection_status == NetzConnection_None
            || !player_5->synced
            || player_5->palette_idx != v48 )
       {
         ++player_5;
         ++v50;
-        if ( (int)player_5 + 0x18 >= (int)&g_join_pkt )// BUG
+        if ( (int)player_5 >= (int)&g_netz_players[PLAYERS_MAX] )
           goto LABEL_108;
       }
       v49 = 1;
@@ -45987,12 +46073,12 @@ LABEL_108:
         msg->player_slot = msg->player_slot;
         v66 = (NetzMessage *)g_netz_players[0].synced;
         v65 = 0;
-        while ( player_6->connection_status != NetzConnection_Joined
-             || player_6->slot != *(int *)(g_netz_players[0].synced + 44) )
+        while ( player_6->connection_status != NetzConnection_Joined // INLINED HHH
+             || player_6->slot != *(int *)(g_netz_players[0].synced + 44) ) // BUG
         {
           ++player_6;
           ++v65;
-          if ( (int)player_6 + 0x10 >= (int)&g_netz_msg_loop )// BUG
+          if ( (int)player_6 >= (int)&g_netz_players[PLAYERS_MAX] )
             goto LABEL_177;
         }
         goto LABEL_178;
@@ -46010,14 +46096,14 @@ LABEL_108:
         do
         {
           if ( player_7->connection_status == NetzConnection_Joined
-            && player_7->slot == *(int *)(g_netz_players[0].synced + 44) )
+            && player_7->slot == *(int *)(g_netz_players[0].synced + 44) ) // BUG
           {
             goto LABEL_178;
           }
           ++player_7;
           ++v65;
         }
-        while ( (int)player_7 + 0x10 < (int)&g_netz_msg_loop );// BUG
+        while ( (int)player_7 < (int)&g_netz_players[PLAYERS_MAX] );
 LABEL_177:
         v65 = -1;
 LABEL_178:
@@ -46046,17 +46132,6 @@ LABEL_181:
       return;
   }
 }
-// 42F080: conditional instruction was optimized away because esi.4==1
-// 468A58: using guessed type char g_netz_char_terminator;
-// 468B50: using guessed type int g_num_multi_players;
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47A828: using guessed type int g_netz_game_start_signal;
-// 47A830: using guessed type int g_netz_is_game_started_2_unused;
-// 47A83C: using guessed type int dword_47A83C;
-// 47C6F4: using guessed type int g_netz_num_pending_joins;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
-// 47CB10: using guessed type int g_netz_num_pending_acks;
-// 47CB18: using guessed type int g_netz_game_over_signal;
 
 //----- (0042F620) --------------------------------------------------------
 void NETZ_mission_victory()
@@ -46110,7 +46185,7 @@ void __fastcall NETZ_join_locally()
     ++player;
     ++v2;
   }
-  while ( (int)player + 0x18 < (int)&g_join_pkt );     // BUG
+  while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
   v4 = clock();
   srand(v4);
   v5 = 0;
@@ -46127,7 +46202,7 @@ void __fastcall NETZ_join_locally()
   }
   v7 = v6;
 LABEL_12:
-  memset(v19, 0, sizeof(v19));
+  memset(v19, 0, sizeof(v19)); // INLINED DDD
   v8 = 0;
   player_ = &g_netz_players[1];
   do
@@ -46137,7 +46212,7 @@ LABEL_12:
     ++player_;
     ++v8;
   }
-  while ( (int)player_ + 1 < (int)((char *)&g_netz_game_start_signal + 1) );// BUG
+  while ( (int)player_ < (int)&g_netz_players[PLAYERS_MAX] );
   v10 = 0;
   v11 = rand() % 15;                            // INLINED
   while ( v19[v11] )
@@ -46169,10 +46244,6 @@ LABEL_24:
   if ( g_coroutine_list_head != v17 )
     --g_coroutine_nesting_depth;
 }
-// 42F659: variable 'v0' is possibly undefined
-// 468B50: using guessed type int g_num_multi_players;
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47A828: using guessed type int g_netz_game_start_signal;
 
 //----- (0042F820) --------------------------------------------------------
 int __stdcall sub_42F820(int a1, int a2)
@@ -46251,7 +46322,6 @@ NetzError __fastcall NETZ_host_or_join(BOOL is_host)
   g_netz_should_enum_sessions = 0;
   return NetzError_Ok;
 }
-// 468D20: using guessed type int g_netz_current_connecting_slot;
 
 //----- (0042F8E0) --------------------------------------------------------
 NetzError __fastcall NETZ_switch_host_or_join(BOOL is_host)
@@ -46332,9 +46402,6 @@ NetzError __fastcall NETZ_create_player(int player)
   NETZ_send_to(v2, NETZ_PKT_JOIN_REQ_WITH_VERSION, &g_netz_join_pkt_static, 0x21u, 1);
   return NetzError_Ok;
 }
-// 468CE7: using guessed type char g_netz_player_palette;
-// 468CE8: using guessed type int g_netz_player_flags;
-// 468D20: using guessed type int g_netz_current_connecting_slot;
 
 //----- (0042FA00) --------------------------------------------------------
 NetzError __fastcall NETZ_send(
@@ -46350,7 +46417,7 @@ NetzError __fastcall NETZ_send(
   if ( player == -1 )                           // broadcast
   {
     player_ = 0;
-    v7 = g_netz_links;
+    v7 = g_netz_links; // INLINED KKK
     do
     {
       if ( v7->is_active && v7->connection_state == NetzLinkConnectionState_Connected )
@@ -46358,7 +46425,7 @@ NetzError __fastcall NETZ_send(
       ++v7;
       ++player_;
     }
-    while ( (int)v7 < (int)g_netz_send_bufs );  // BUG
+    while ( (int)v7 < (int)&g_netz_links[8] );
     return NetzError_Ok;
   }
   else if ( g_netz_protocol == NetzProtocol_Invalid )
@@ -46377,7 +46444,6 @@ NetzError __fastcall NETZ_send(
     return NetzError_LinkNotOpen;
   }
 }
-// 42FA5E: conditional instruction was optimized away because ecx.4!=FFFFFFFF
 
 //----- (0042FAC0) --------------------------------------------------------
 NetzProtocol __fastcall NETZ_provider_find(const char *name)
@@ -46703,7 +46769,6 @@ LABEL_12:
   g_netz_should_enum_sessions = 0;
   return NetzError_Ok;
 }
-// 468D20: using guessed type int g_netz_current_connecting_slot;
 
 //----- (004301E0) --------------------------------------------------------
 int __fastcall DP_connect_to_player(int player)
@@ -46785,7 +46850,6 @@ int __fastcall DP_connect_to_player(int player)
   }
   return v3;
 }
-// 47A938: using guessed type char g_47A938_unused;
 
 //----- (00430340) --------------------------------------------------------
 int DP_recv_loop()
@@ -46856,7 +46920,7 @@ int DP_recv_loop()
         strcpy((char *)g_join_pkt.build_date, "Oct 23 1997");
         strcpy((char *)g_join_pkt.build_time, "17:00:00");
         v5 = 0;
-        v6 = g_netz_links;
+        v6 = g_netz_links; // INLINED KKK
         do
         {
           if ( v6->is_active && v6->connection_state == NetzLinkConnectionState_Connected )
@@ -46864,7 +46928,7 @@ int DP_recv_loop()
           ++v6;
           ++v5;
         }
-        while ( (int)v6 < (int)g_netz_send_bufs );// BUG
+        while ( (int)v6 < (int)&g_netz_links[8] );
         g_netz_should_enum_sessions = 0;
       }
     }
@@ -46895,11 +46959,11 @@ int DP_recv_loop()
   v8 = -1;
   v15.player_slot = -1;
   link = &g_netz_links[0];
-  while ( !link->is_active || link->dpid != v0 )
+  while ( !link->is_active || link->dpid != v0 ) // INLINED
   {
     ++link;
     ++v7;
-    if ( (int)link + 0x24 >= (int)&g_netz_send_bufs[0].buf[32] )// BUG
+    if ( (int)link >= (int)&g_netz_links[8] )
       goto LABEL_36;
   }
   v8 = v7;
@@ -46917,9 +46981,6 @@ LABEL_39:
   }
   return 0;
 }
-// 468CE7: using guessed type char g_netz_player_palette;
-// 468CE8: using guessed type int g_netz_player_flags;
-// 468D20: using guessed type int g_netz_current_connecting_slot;
 
 //----- (00430610) --------------------------------------------------------
 void DP_session_disable_new_players()
@@ -47277,10 +47338,9 @@ void NETZ_player_release_all()
   i = &g_netz_links[0];
   do
     (i++)->is_active = 0;
-  while ( (int)i + 0x28 < (int)&g_netz_send_bufs[0].buf[36] );// BUG
+  while ( (int)i < (int)&g_netz_links[8] );
   g_netz_num_player_slots_allocated = 0;
 }
-// 47B3A0: using guessed type int dword_47B3A0;
 
 //----- (00430D10) --------------------------------------------------------
 int NETZ_player_alloc()
@@ -47292,11 +47352,11 @@ int NETZ_player_alloc()
 
   v0 = 0;
   i = &g_netz_links[0];
-  while ( i->is_active )
+  while ( i->is_active )  // INLINED
   {
     ++i;
     ++v0;
-    if ( (int)i + 0x28 >= (int)&g_netz_send_bufs[0].buf[36] )// BUG
+    if ( (int)i >= (int)&g_netz_links[8] )
     {
       result = -1;
       goto LABEL_5;
@@ -47315,7 +47375,6 @@ LABEL_5:
   }
   return result;
 }
-// 47B3A0: using guessed type int g_netz_num_player_slots_allocated;
 
 //----- (00430D70) --------------------------------------------------------
 void __fastcall NETZ_player_release(int player)
@@ -47326,7 +47385,6 @@ void __fastcall NETZ_player_release(int player)
     --g_netz_num_player_slots_allocated;
   }
 }
-// 47B3A0: using guessed type int g_netz_num_player_slots_allocated;
 
 //----- (00430DA0) --------------------------------------------------------
 int __fastcall DP_tick(unsigned int time_threshold)
@@ -47479,11 +47537,11 @@ void __fastcall UNIT_register_player_base(Unit *unit)
 
   i = 0;
   v2 = g_player_bases;
-  while ( *v2 )
+  while ( *v2 ) // INLINED AAA
   {
     ++v2;
     ++i;
-    if ( (int)v2 >= (int)&g_sidebar_buildings_prod )// BUG should be i=0..4
+    if ( (int)v2 >= (int)&g_player_bases[4] )
       return;
   }
   g_player_bases[i] = unit;
@@ -47503,22 +47561,22 @@ void __fastcall UNIT_update_aircraft_spawn_base(Unit *unit)
   {
     v2 = 0;
     v3 = g_player_bases;
-    while ( *v3 != unit )
+    while ( *v3 != unit )  // INLINED BBB
     {
       ++v3;
       ++v2;
-      if ( (int)v3 >= (int)&g_sidebar_buildings_prod )// BUG -- loop end
+      if ( (int)v3 >= (int)&g_player_bases[4] )
         goto LABEL_7;
     }
     g_player_bases[v2] = nullptr;
 LABEL_7:
     v4 = 0;
     v5 = g_player_bases;
-    while ( !*v5 )
+    while ( !*v5 ) // INLINED AAA
     {
       ++v5;
       ++v4;
-      if ( (int)v5 >= (int)&g_sidebar_buildings_prod )// BUG -- loop end
+      if ( (int)v5 >= (int)&g_player_bases[4] )
         return;
     }
     v1->factory_or_factory_type = g_player_bases[v4];
@@ -47616,7 +47674,6 @@ void __fastcall MSG_outpost_upgrades(
   UNIT_status_bar_update_tech(unit);
   MSG_building_generic(receiver, sender, message, payload);
 }
-// 47B3DC: using guessed type int dword_47B3DC[];
 
 //----- (00431270) --------------------------------------------------------
 void __fastcall MSG_outpost(Task *receiver, Task *sender, TaskMessageType message, void *payload)
@@ -47750,7 +47807,7 @@ void __fastcall UNIT_mode_outpost_set_default_prod(Unit *unit)
           }
           ++opt;
         }
-        while ( (int)opt + 8 < (int)&g_surv_default_infantry[0].type );// BUG
+        while ( (int)opt < (int)&g_surv_default_buildings[5] );
         if ( !g_sidebar_aircraft_prod )
           g_sidebar_aircraft_prod = UI_sidebar_prod_enable_category(unit, ProductionType_Aircraft);
         TECHLVL_reset(&g_outpost_levels);
@@ -47777,11 +47834,11 @@ void __cdecl UNIT_outpost_tick(Task *task)
       {
         v2 = 0;
         v3 = g_player_bases;
-        while ( *v3 )
+        while ( *v3 ) // INLINED AAA
         {
           ++v3;
           ++v2;
-          if ( (int)v3 >= (int)&g_sidebar_buildings_prod )
+          if ( (int)v3 >= (int)&g_player_bases[4] )
             goto LABEL_9;
         }
         g_player_bases[v2] = unit;
@@ -47840,7 +47897,7 @@ void __fastcall UNIT_mode_outpost_on_completed(Unit *unit)
       }
       ++opt;
     }
-    while ( (int)opt + 8 < (int)&g_pal_bytes_per_color );// BUG loop range
+    while ( (int)opt < (int)&g_surv_default_infantry[3] );
     ++g_outpost_levels.num_buildings_by_level[1];
   }
   else if ( !player_num )
@@ -47848,7 +47905,6 @@ void __fastcall UNIT_mode_outpost_on_completed(Unit *unit)
     unit->mode_arrive = UNIT_mode_outpost_on_completed;
   }
 }
-// 468FDC: using guessed type int g_pal_bytes_per_color;
 
 //----- (00431680) --------------------------------------------------------
 void __fastcall UNIT_mode_outpost_complete(Unit *unit)
@@ -47952,22 +48008,22 @@ LABEL_22:
     {
       v9 = 0;
       v10 = g_player_bases;
-      while ( *v10 != v1 )
+      while ( *v10 != v1 ) // INLINED BBB
       {
         ++v10;
         ++v9;
-        if ( (int)v10 >= (int)&g_sidebar_buildings_prod )// BUG
+        if ( (int)v10 >= (int)&g_player_bases[4] )
           goto LABEL_34;
       }
       g_player_bases[v9] = nullptr;
 LABEL_34:
       v11 = 0;
       v12 = g_player_bases;
-      while ( !*v12 )
+      while ( !*v12 ) // INLINED AAA
       {
         ++v12;
         ++v11;
-        if ( (int)v12 >= (int)&g_sidebar_buildings_prod )// BUG
+        if ( (int)v12 >= (int)&g_player_bases[4] )
           return;
       }
       v8->factory_or_factory_type = g_player_bases[v11];
@@ -47975,7 +48031,6 @@ LABEL_34:
     }
   }
 }
-// 47B3DC: using guessed type int dword_47B3DC[];
 
 //----- (004318E0) --------------------------------------------------------
 void UI_sidebar_buildings_disable()
@@ -48000,7 +48055,6 @@ void REND_hdc_init()
   if ( g_window_bpp == 8 )
     g_window_hdc = GetDC(g_hwnd);
 }
-// 47980C: using guessed type int g_window_bpp;
 
 //----- (00431940) --------------------------------------------------------
 void PAL_gdi_cleanup()
@@ -48017,7 +48071,6 @@ void PAL_gdi_cleanup()
     g_gdi_hpalette = nullptr;
   }
 }
-// 47980C: using guessed type int g_window_bpp;
 
 //----- (00431980) --------------------------------------------------------
 UINT __fastcall PAL_commit(PaletteEntry *pal)
@@ -48040,7 +48093,7 @@ UINT __fastcall PAL_commit(PaletteEntry *pal)
   v2 = pal;
   if ( g_window_bpp == 8 )
   {
-    g_coroutine_eax = 8;
+    g_coroutine_eax = 8;  // INLINED LLL
     v3 = g_coroutine_current;
     if ( g_coroutine_list_head != v3 && ++g_coroutine_nesting_depth == 1 )
       g_coroutine_esp = &v11;
@@ -48054,7 +48107,7 @@ UINT __fastcall PAL_commit(PaletteEntry *pal)
       v2 = g_pal_hw_buf;
     if ( g_fullscreen )
     {
-      p_peGreen = &g_dd_palette[0].peGreen;
+      p_peGreen = &g_dd_palette[0].peGreen;  // INLINED LLL (cont'd)
       p_b = &v2->b;
       do
       {
@@ -48065,7 +48118,7 @@ UINT __fastcall PAL_commit(PaletteEntry *pal)
         p_peGreen += 4;
         p_b += 4;
       }
-      while ( (int)p_peGreen < (int)((BYTE *)&g_window_hdc + 1) );// BUG
+      while ( (int)p_peGreen < (int)&g_dd_palette[256] );
       v1 = REND_is_primary_surface_lost();      // INLINED (see PAL_restore_on_win32_activate)
       if ( !v1 )
       {
@@ -48112,11 +48165,6 @@ UINT __fastcall PAL_commit(PaletteEntry *pal)
   }
   return result;
 }
-// 468FD4: using guessed type int g_pal_468FD4_unused;
-// 468FD8: using guessed type int g_pal_468FD8_unused;
-// 468FDC: using guessed type int g_pal_bytes_per_color;
-// 47980C: using guessed type int g_window_bpp;
-// 47C018: using guessed type int g_pal_47C018_unused;
 
 //----- (00431B60) --------------------------------------------------------
 HPALETTE __fastcall PAL_gdi_palette_create(unsigned __int8 *pal, int size)
@@ -48218,7 +48266,7 @@ int PAL_restore_on_win32_activate()
         result = *(&g_pal_hw_buf[0].r + i);
       *(&g_47BC10[0].r + i) = result;
     }
-    g_coroutine_eax = result;
+    g_coroutine_eax = result;  // INLINED LLL
     v3 = g_coroutine_current;
     if ( g_coroutine_list_head != v3 && ++g_coroutine_nesting_depth == 1 )
       g_coroutine_esp = &v12;
@@ -48233,7 +48281,7 @@ int PAL_restore_on_win32_activate()
       v4 = g_pal_hw_buf;
     if ( g_fullscreen )
     {
-      p_peGreen = &g_dd_palette[0].peGreen;
+      p_peGreen = &g_dd_palette[0].peGreen;  // INLINED LLL (cont'd)
       p_b = &v4->b;
       do
       {
@@ -48244,7 +48292,7 @@ int PAL_restore_on_win32_activate()
         p_peGreen += 4;
         p_b += 4;
       }
-      while ( (int)p_peGreen < (int)((BYTE *)&g_window_hdc + 1) );// BUG
+      while ( (int)p_peGreen < (int)&g_dd_palette[256] );
       is_primary_surface_lost = REND_is_primary_surface_lost();// INLINED (see PAL_commit)
       if ( !is_primary_surface_lost )
       {
@@ -48291,12 +48339,6 @@ int PAL_restore_on_win32_activate()
   }
   return result;
 }
-// 431C98: variable 'result' is possibly undefined
-// 468FD4: using guessed type int g_pal_468FD4_unused;
-// 468FD8: using guessed type int g_pal_468FD8_unused;
-// 468FDC: using guessed type int g_pal_bytes_per_color;
-// 47980C: using guessed type int g_window_bpp;
-// 47C018: using guessed type int g_pal_47C018_unused;
 
 //----- (00431E60) --------------------------------------------------------
 void __cdecl INPUT_keyboard_dispatcher_task(Task *task)
@@ -48473,8 +48515,6 @@ LABEL_35:
   ENT_remove(entity);
   TSK_schedule_self_destruct(task);
 }
-// 4690B0: using guessed type int g_music_vol_prev;
-// 4690B4: using guessed type int g_scroll_step;
 
 //----- (004321A0) --------------------------------------------------------
 void __fastcall UI_ingame_sound_settings(Task *task)
@@ -49505,8 +49545,6 @@ LABEL_65:
   TSK_send_message(task, TaskMessage_PauseGame, nullptr, g_game_update_loop_task);
   goto LABEL_26;
 }
-// 433278: the default case was optimized away because edi.4 is in (1..7)
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (00433640) --------------------------------------------------------
 // Same as 4336E0 UI_main_menu_button_init
@@ -49733,8 +49771,6 @@ void __cdecl UI_ingame_menu_quit_yes(Task *task)
   ENT_remove(entity);
   TSK_schedule_self_destruct(task);
 }
-// 468B50: using guessed type int g_num_multi_players;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (00433BA0) --------------------------------------------------------
 void __cdecl UI_ingame_menu_quit_no(Task *task)
@@ -50307,8 +50343,6 @@ void __fastcall REND_clear_impl(BOOL front)
   if ( g_coroutine_list_head != v7 )
     --g_coroutine_nesting_depth;
 }
-// 43479A: variable 'v1' is possibly undefined
-// 46BB50: using guessed type struct tagRECT g_46BB50_static;
 
 //----- (00434890) --------------------------------------------------------
 // __asm
@@ -50353,8 +50387,6 @@ BOOL __fastcall REND_clip_rect(int *src_x, int *src_y, int *width, int *height, 
   }
   return result;
 }
-// 47C034: using guessed type int g_rend_clip_w;
-// 47C038: using guessed type int g_rend_clip_z;
 
 //----- (004349A0) --------------------------------------------------------
 void __fastcall REND_blt_scrl_impl(unsigned __int8 *pixels, int x, int y)
@@ -50393,8 +50425,6 @@ void __fastcall REND_blt_rle_impl(unsigned __int8 *pixels, int x, int y, int wid
       g_rend_clip_y + y,
       g_dd_stride);
 }
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (00434A90) --------------------------------------------------------
 void __fastcall REND_434A90(unsigned __int8 *pixels, int x, int y, int width, int height, int a6)
@@ -50440,8 +50470,6 @@ void __fastcall REND_blt_rle_mirrored_impl(unsigned __int8 *pixels, int x, int y
       g_rend_clip_y + y,
       g_dd_stride);
 }
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (00434B70) --------------------------------------------------------
 void __fastcall REND_434B70(unsigned __int8 *pixels, int x, int y, int width, int height, int a6)
@@ -50490,8 +50518,6 @@ void __fastcall REND_blit_rle_override_palette_impl(
       g_rend_clip_y + y,
       g_dd_stride);
 }
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (00434C60) --------------------------------------------------------
 void __fastcall REND_blit_rle_override_palette_mirrored_impl(
@@ -50523,8 +50549,6 @@ void __fastcall REND_blit_rle_override_palette_mirrored_impl(
       g_rend_clip_y + y,
       g_dd_stride);
 }
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (00434D00) --------------------------------------------------------
 void __fastcall REND_blt_opaque_impl(unsigned __int8 *pixels, int x, int y, int width, int height)
@@ -50635,10 +50659,6 @@ LABEL_25:
     }
   }
 }
-// 47C034: using guessed type int g_rend_clip_w;
-// 47C038: using guessed type int g_rend_clip_z;
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (00434EA0) --------------------------------------------------------
 void __fastcall REND_blt_opaque_interlaced_impl(unsigned __int8 *pixels, int x, int y, int width, int height)
@@ -50735,10 +50755,6 @@ void __fastcall REND_blt_opaque_interlaced_impl(unsigned __int8 *pixels, int x, 
     --v10;
   }
 }
-// 47C034: using guessed type int g_rend_clip_w;
-// 47C038: using guessed type int g_rend_clip_z;
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (004351A0) --------------------------------------------------------
 // colorkey = index 0 in the pal
@@ -50809,10 +50825,6 @@ void __fastcall REND_blt_colorkey_impl(unsigned __int8 *pixels, int x, int y, in
     while ( v7 );
   }
 }
-// 47C034: using guessed type int g_rend_clip_w;
-// 47C038: using guessed type int g_rend_clip_z;
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (00435320) --------------------------------------------------------
 void __fastcall REND_blt_colorkey_mirrored_impl(unsigned __int8 *pixels, int x, int y, int width, int height)
@@ -51011,10 +51023,6 @@ void __fastcall REND_blt_colorkey_fast_impl(unsigned __int8 *pixels, int x, int 
     --v11;
   }
 }
-// 47C034: using guessed type int g_rend_clip_w;
-// 47C038: using guessed type int g_rend_clip_z;
-// 47C03C: using guessed type int g_rend_clip_x;
-// 47C040: using guessed type int g_rend_clip_y;
 
 //----- (00435790) --------------------------------------------------------
 void __fastcall MSG_power_plant(Task *receiver, Task *sender, TaskMessageType message, void *payload)
@@ -53032,7 +53040,7 @@ void SAVE_read_save_list()
   v0 = fopen(g_save_list_path, "r");            // BUG why not File* ?
   if ( v0 )
   {
-    g_save_slot_active = 0;
+    g_save_slot_active = 0;  // INLINED (reset list)
     v1 = g_save_slots;
     do
     {
@@ -53041,7 +53049,7 @@ void SAVE_read_save_list()
       *(int *)&v2->name[4] = 0;
       *(int *)&v2->name[8] = 0;
     }
-    while ( (int)v1 < (int)g_save_list_path );  // BUG
+    while ( (int)v1 < (int)&g_save_slots[20] );
     v3 = fscanf(v0, "ActiveSlot=%d\n", &g_save_slot_active);
     if ( !v3 )
       g_save_slot_active = 0;
@@ -53088,7 +53096,7 @@ BOOL UI_load_init()
   v2 = v1;
   if ( !v1 )
     return 0;
-  fprintf(v1, "ActiveSlot=%d\n", g_save_slot_active);
+  fprintf(v1, "ActiveSlot=%d\n", g_save_slot_active);  // INLINED (active slot write)
   v3 = 0;
   v4 = g_save_slots;
   do
@@ -53098,7 +53106,7 @@ BOOL UI_load_init()
     ++v4;
     ++v3;
   }
-  while ( (int)v4 < (int)g_save_list_path );    // BUG
+  while ( (int)v4 < (int)&g_save_slots[20] );
   fclose(v2);
   return 1;
 }
@@ -53124,7 +53132,7 @@ BOOL UI_save_init()
   v2 = v1;
   if ( !v1 )
     return 0;
-  fprintf(v1, "ActiveSlot=%d\n", g_save_slot_active);
+  fprintf(v1, "ActiveSlot=%d\n", g_save_slot_active); // INLINED (active slot write)
   v3 = 0;
   v4 = g_save_slots;
   do
@@ -53134,7 +53142,7 @@ BOOL UI_save_init()
     ++v4;
     ++v3;
   }
-  while ( (int)v4 < (int)g_save_list_path );    // BUG
+  while ( (int)v4 < (int)&g_save_slots[20] );
   fclose(v2);
   return 1;
 }
@@ -53262,8 +53270,6 @@ LABEL_11:
     }
   }
 }
-// 478AB4: using guessed type int g_map_width;
-// 478FF0: using guessed type int g_map_height;
 
 //----- (00438B40) --------------------------------------------------------
 void SCHRAP_init()
@@ -53271,8 +53277,6 @@ void SCHRAP_init()
   g_num_gore_and_debris = 0;
   g_num_explosions = 0;
 }
-// 47C350: using guessed type int g_num_gore_and_debris;
-// 47C354: using guessed type int g_num_explosions;
 
 //----- (00438B50) --------------------------------------------------------
 BOOL SCHRAP_explosion_reserve()
@@ -53282,7 +53286,6 @@ BOOL SCHRAP_explosion_reserve()
   ++g_num_explosions;
   return 1;
 }
-// 47C354: using guessed type int g_num_explosions;
 
 //----- (00438B70) --------------------------------------------------------
 void SCHRAP_explosion_release()
@@ -53290,7 +53293,6 @@ void SCHRAP_explosion_release()
   if ( g_num_explosions > 0 )
     --g_num_explosions;
 }
-// 47C354: using guessed type int g_num_explosions;
 
 //----- (00438B80) --------------------------------------------------------
 void __cdecl SCHRAP_gore(Task *task)
@@ -53314,7 +53316,6 @@ void __cdecl SCHRAP_gore(Task *task)
   ENT_remove(entity);
   TSK_schedule_self_destruct(task);
 }
-// 47C350: using guessed type int g_num_gore_and_debris;
 
 //----- (00438C20) --------------------------------------------------------
 void __cdecl SCHRAP_debris(Task *task)
@@ -53361,7 +53362,6 @@ void __cdecl SCHRAP_debris(Task *task)
   ENT_remove(entity);
   TSK_schedule_self_destruct(task);
 }
-// 47C350: using guessed type int g_num_gore_and_debris;
 
 //----- (00438D90) --------------------------------------------------------
 void __fastcall SCHRAP_create(Unit *unit)
@@ -53427,7 +53427,6 @@ void __fastcall SCHRAP_create(Unit *unit)
     }
   }
 }
-// 47C350: using guessed type int g_num_gore_and_debris;
 
 //----- (00438F50) --------------------------------------------------------
 void __cdecl SCHRAP_nuke_flak(Task *task)
@@ -53460,7 +53459,6 @@ void __cdecl SCHRAP_nuke_flak(Task *task)
   ENT_remove(entity);
   TSK_schedule_self_destruct(task);
 }
-// 47C350: using guessed type int g_num_gore_and_debris;
 
 //----- (00439050) --------------------------------------------------------
 void __cdecl SCHRAP_bomber_fire_trail(Task *task)
@@ -53480,7 +53478,6 @@ void __cdecl SCHRAP_bomber_fire_trail(Task *task)
   ENT_remove(task->entity);
   TSK_schedule_self_destruct(task);
 }
-// 47C354: using guessed type int g_num_explosions;
 
 //----- (004390F0) --------------------------------------------------------
 Entity *__fastcall SCHRAP_bomber_fire_trail_create(Unit *unit)
@@ -53495,7 +53492,6 @@ Entity *__fastcall SCHRAP_bomber_fire_trail_create(Unit *unit)
   }
   return result;
 }
-// 47C354: using guessed type int g_num_explosions;
 
 //----- (00439120) --------------------------------------------------------
 Entity *__fastcall SCHRAP_explosion_medium(Unit *unit)
@@ -53510,7 +53506,6 @@ Entity *__fastcall SCHRAP_explosion_medium(Unit *unit)
   }
   return result;
 }
-// 47C354: using guessed type int g_num_explosions;
 
 //----- (00439150) --------------------------------------------------------
 Entity *__fastcall SCHRAP_explosion_building(Unit *unit)
@@ -53525,7 +53520,6 @@ Entity *__fastcall SCHRAP_explosion_building(Unit *unit)
   }
   return result;
 }
-// 47C354: using guessed type int g_num_explosions;
 
 //----- (00439180) --------------------------------------------------------
 void __fastcall SCHRAP_nuke_flak_create(Entity *entity)
@@ -53542,7 +53536,6 @@ void __fastcall SCHRAP_nuke_flak_create(Entity *entity)
       break;
   }
 }
-// 47C350: using guessed type int g_num_gore_and_debris;
 
 //----- (004391D0) --------------------------------------------------------
 void __fastcall MAPD_camera_follow_target(MapdCamera *camera, Entity *target)
@@ -53599,8 +53592,8 @@ BOOL LVL_mapd_init()
       }
       while ( v4 );
       v3->next = (MapdRenderNode *)&g_mapd_render_node_next_free;
-      g_mapd_render_node_tail = g_mapd_render_node_list;
-      g_mapd_render_node_head = g_mapd_render_node_list;
+      g_mapd_render_node_tail = &g_mapd_render_node_list;
+      g_mapd_render_node_head = &g_mapd_render_node_list;
       g_mapd_camera_target = nullptr;
       g_mapd_camera.z = 0;
       g_mapd_camera.y = 0;
@@ -53620,25 +53613,22 @@ BOOL LVL_mapd_init()
     return 1;
   }
 }
-// 47C37C: using guessed type int g_current_lvl_mapd_num_layers;
 
 //----- (00439300) --------------------------------------------------------
 MapdRenderNode *__fastcall LVL_get_mapd(MenuId mapd_id, int image_id, int z)
 {
   MapdRenderNode *result; // eax
-  MenuId v5; // edi
-  LevelMapdSurface *layers; // eax
+  LevelMapdSurface *layer; // eax
   MapdRenderNode *v7; // esi
   RenderNode *rn; // ecx
   MapdScrlImage *v9; // eax
 
-  if ( mapd_id > (unsigned int)g_current_lvl_mapd_num_layers )
+  if (mapd_id > (unsigned int)g_current_lvl_mapd_num_layers)
     return nullptr;
-  v5 = mapd_id;
-  layers = g_mapd[mapd_id].layers;
-  if ( layers == (LevelMapdSurface *)g_current_lvl )
+  layer = &g_mapd[mapd_id].layers[0];
+  if ( layer == (LevelMapdSurface *)g_current_lvl )
     return nullptr;
-  if ( (unsigned int)image_id > (unsigned int)layers->num_images )// preserves original off-by-one (== allowed through)
+  if (image_id > layer->num_images)
     return nullptr;
   if ( g_mapd_render_node_next_free == (MapdRenderNode *)&g_mapd_render_node_next_free )
     return nullptr;
@@ -53653,7 +53643,8 @@ MapdRenderNode *__fastcall LVL_get_mapd(MenuId mapd_id, int image_id, int z)
     g_mapd_render_node_tail->next = v7;
     g_mapd_render_node_tail = v7;
     rn = v7->rn;
-    v9 = &g_mapd[v5].layers[0].images[image_id];
+    LevelMapdSurface_2images *test = (LevelMapdSurface_2images *)layer;
+    v9 = (&layer->images)[image_id]; // 1 or more Image* in images depending on the level type (all menus has just one, game levels have 2 - map & fog of war)
     v7->scrl = v9;
     rn->cmd.image = (RenderImage *)v9;
     v7->z = z;
@@ -53661,18 +53652,22 @@ MapdRenderNode *__fastcall LVL_get_mapd(MenuId mapd_id, int image_id, int z)
   }
   return result;
 }
-// 47C37C: using guessed type int g_current_lvl_mapd_num_layers;
 
 //----- (004393C0) --------------------------------------------------------
 void __fastcall MAPD_release(MapdRenderNode *node)
 {
   RenderNode *rn; // eax
 
+  if ( !node )
+    return;
   rn = node->rn;
   if ( rn )
     rn->flags |= RenderNode_Deleted;
-  node->prev->next = node->next;
-  node->next->prev = node->prev;
+  if ( node->prev && node->next )
+  {
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+  }
   node->next = g_mapd_render_node_next_free;
   g_mapd_render_node_next_free = node;
 }
@@ -53733,9 +53728,9 @@ BOOL SOUND_init()
   while ( v4 >= 1 );
   g_sounds_initialized = 0;
   g_sound_next_id = 0;
-  g_47C398_sentinel = nullptr;
-  g_sounds_head = (SoundStream *)&g_47C398_sentinel;
-  g_sounds_tail = (SoundStream *)&g_47C398_sentinel;
+  g_47C398_sentinel.next = nullptr;
+  g_sounds_head = &g_47C398_sentinel;
+  g_sounds_tail = &g_47C398_sentinel;
   g_sounds_free_head = nullptr;
   if ( DirectSoundCreate(nullptr, &g_ds, nullptr) )
     return 1;
@@ -53759,9 +53754,9 @@ BOOL SOUND_init()
       v6 = g_sounds_pool;
     }
     g_sounds_pool[7].next = nullptr;
-    g_47C398_sentinel = nullptr;                // INLINED the above
-    g_sounds_head = (SoundStream *)&g_47C398_sentinel;
-    g_sounds_tail = (SoundStream *)&g_47C398_sentinel;
+    g_47C398_sentinel.next = nullptr;                // INLINED the above
+    g_sounds_head = &g_47C398_sentinel;
+    g_sounds_tail = &g_47C398_sentinel;
     g_sounds_free_head = g_sounds_pool;
     g_sounds_initialized = 1;
     return 1;
@@ -53773,10 +53768,6 @@ BOOL SOUND_init()
     return 1;
   }
 }
-// 4630F8: using guessed type double dbl_4630F8;
-// 463100: using guessed type double dbl_463100;
-// 463108: using guessed type double dbl_463108;
-// 47C5C4: using guessed type int g_sound_next_id;
 
 //----- (00439610) --------------------------------------------------------
 BOOL __fastcall SOUND_bank_load(const char *filename)
@@ -53827,7 +53818,6 @@ BOOL __fastcall SOUND_bank_load(const char *filename)
   }
   return 1;
 }
-// 47C5C0: using guessed type int g_sound_bank_initialized;
 
 //----- (004396C0) --------------------------------------------------------
 int __fastcall SOUND_play(SoundId sound_id, BOOL loop, int volume, int pan, Task *task)
@@ -53898,7 +53888,7 @@ int __fastcall SOUND_play(SoundId sound_id, BOOL loop, int volume, int pan, Task
           v11->id = g_sound_next_id;
           v7 = g_sounds_head;
           v11->next = g_sounds_head;
-          v11->prev = (SoundStream *)&g_47C398_sentinel;
+          v11->prev = &g_47C398_sentinel;
           g_sounds_head->prev = v11;
           g_sounds_head = v11;
         }
@@ -54010,9 +54000,6 @@ int __fastcall SOUND_play(SoundId sound_id, BOOL loop, int volume, int pan, Task
     return 0;
   }
 }
-// 4396CC: variable 'v5' is possibly undefined
-// 47C5C0: using guessed type int g_sound_bank_initialized;
-// 47C5C4: using guessed type int g_sound_next_id;
 
 //----- (00439AA0) --------------------------------------------------------
 int __fastcall SOUND_play_async(const char *filename, BOOL looping, int volume, int pan, Task *task)
@@ -54043,7 +54030,7 @@ int __fastcall SOUND_play_async(const char *filename, BOOL looping, int volume, 
   v6->id = g_sound_next_id;
   v7 = g_sounds_head;
   v6->next = g_sounds_head;
-  v6->prev = (SoundStream *)&g_47C398_sentinel;
+  v6->prev = &g_47C398_sentinel;
   g_sounds_head->prev = v6;
   g_sounds_head = v6;
   if ( !v6 )
@@ -54079,7 +54066,6 @@ int __fastcall SOUND_play_async(const char *filename, BOOL looping, int volume, 
     --g_coroutine_nesting_depth;
   return v6->id;
 }
-// 47C5C4: using guessed type int g_sound_next_id;
 
 //----- (00439C10) --------------------------------------------------------
 void __cdecl SOUND_thread(SoundStream *snd)
@@ -54451,7 +54437,7 @@ LABEL_6:
     }
     else
     {
-      while ( v1 != (SoundStream *)&g_47C398_sentinel )
+      while ( v1 != &g_47C398_sentinel )
       {
         v1 = v1->next;
         if ( v1->id == sound_id )
@@ -54472,7 +54458,7 @@ void SOUND_unload_bank()
   {
     do
     {
-      if ( v0 == (SoundStream *)&g_47C398_sentinel )
+      if ( v0 == &g_47C398_sentinel )
         break;
       next = v0->next;
       SOUND_slot_cleanup(v0);
@@ -54487,7 +54473,6 @@ void SOUND_unload_bank()
     g_sound_lvl = nullptr;
   }
 }
-// 47C5C0: using guessed type int g_sound_bank_initialized;
 
 //----- (0043A370) --------------------------------------------------------
 void SOUND_tick()
@@ -54515,7 +54500,7 @@ void SOUND_tick()
   int v20; // [esp+20h] [ebp-4h]
 
   v0 = g_sounds_head;
-  for ( i = 0; v0 != (SoundStream *)&g_47C398_sentinel; v0 = v0->next )
+  for ( i = 0; v0 != &g_47C398_sentinel; v0 = v0->next )
   {
     if ( !v0 )
       break;
@@ -54527,7 +54512,7 @@ void SOUND_tick()
         dsb->lpVtbl->GetStatus(dsb, (LPDWORD)&i);
         if ( (i & 1) != 0 || (v0->flags & 4) != 0 )
         {
-          if ( v0->vol_transition_remaining_ticks )
+          if ( v0->vol_transition_remaining_ticks ) // INLINED MMM
           {
             v3 = v0->dsb;
             p_volume = &v0->volume;
@@ -54549,7 +54534,7 @@ void SOUND_tick()
               }
               ++v7;
               ++v6;
-              if ( (int)v7 >= (int)&g_sounds_free_head )// BUG
+              if ( (int)v7 >= (int)&g_sound_volumes[17] )
               {
                 v6 = v20;
                 break;
@@ -54562,7 +54547,7 @@ void SOUND_tick()
             if ( !v0->vol_transition_remaining_ticks && v0->task )
               TSK_send_message(nullptr, TaskMessage_SoundVolumeTransitionComplete, nullptr, v0->task);
           }
-          if ( v0->pan_transition_remaining_ticks )
+          if ( v0->pan_transition_remaining_ticks ) // INLINED MMM
           {
             v11 = v0->dsb;
             p_pan = &v0->pan;
@@ -54584,7 +54569,7 @@ void SOUND_tick()
               }
               ++v15;
               ++v14;
-              if ( (int)v15 >= (int)&g_sounds_pool )// BUG
+              if ( (int)v15 >= (int)&g_sound_pans[32] )
               {
                 v14 = v20;
                 break;
@@ -54623,7 +54608,7 @@ void SOUND_cleanup()
   {
     do
     {
-      if ( v0 == (SoundStream *)&g_47C398_sentinel )
+      if ( v0 == &g_47C398_sentinel )
         break;
       next = v0->next;
       SOUND_slot_cleanup(v0);
@@ -54645,7 +54630,6 @@ void SOUND_cleanup()
     free(g_sounds_pool);
   }
 }
-// 47C5C0: using guessed type int g_sound_bank_initialized;
 
 //----- (0043A590) --------------------------------------------------------
 BOOL __fastcall SOUND_wav_parse_file(File *file, WAVEFORMATEX *a2, unsigned int *a3)
@@ -54784,7 +54768,7 @@ LABEL_6:
     }
     else
     {
-      while ( v1 != (SoundStream *)&g_47C398_sentinel )
+      while ( v1 != &g_47C398_sentinel )
       {
         v1 = v1->next;
         if ( v1->id == g_current_streaming_sound_id )
@@ -54920,7 +54904,9 @@ void __cdecl REND_decode_rle(
         {
           if ( !v26 )
           {
-            v27 = &v19[v21];
+            v27 = v19 + (int)v21;// v21 is a negative 16-bit delta stored in an
+                                  // unsigned int; cast to int so the backward
+                                  // pointer step is signed math, not UB unsigned overflow
             v18 = -v21;
             goto LABEL_16;
           }
@@ -54976,7 +54962,6 @@ LABEL_20:
   while ( (_WORD)v15 );
   /* __asm { popfw } (vestigial x86 flags restore) */
 }
-// 46BD04: using guessed type int g_blt_dst_stride_pad;
 
 //----- (0043A9E7) --------------------------------------------------------
 // __asm
@@ -55122,7 +55107,6 @@ LABEL_26:
   }
   while ( (_WORD)v11 );
 }
-// 46BD04: using guessed type int g_blt_dst_stride_pad;
 
 //----- (0043B4A6) --------------------------------------------------------
 void __cdecl REND_decode_rle_remapped(
@@ -55275,7 +55259,6 @@ LABEL_26:
   }
   while ( (_WORD)v12 );
 }
-// 46BD04: using guessed type int g_blt_dst_stride_pad;
 
 //----- (0043B59F) --------------------------------------------------------
 void __cdecl REND_decode_rle_remapped_mirrored(
@@ -55431,7 +55414,6 @@ LABEL_26:
   while ( (_WORD)v16 );
   /* __asm { popfw } (vestigial x86 flags restore) */
 }
-// 46BD04: using guessed type int g_blt_dst_stride_pad;
 
 //----- (0043B6B0) --------------------------------------------------------
 BOOL REND_lists_init()
@@ -55615,8 +55597,9 @@ LABEL_7:
       transform = i->transform;
       if ( transform )
       {
-        if ( (i->flags & RenderNode_Deleted) == 0 )
+        if ( (i->flags & RenderNode_Deleted) == 0 ) {
           transform(i->payload, i);
+        }
       }
       i->cmd.flags = (RenderCommandFlags)i->flags;
       i = i->next;
@@ -55630,7 +55613,6 @@ LABEL_7:
     i = next;
   }
 }
-// 43B86A: conditional instruction was optimized away because edi.4==1
 
 //----- (0043B8C0) --------------------------------------------------------
 void __fastcall REND_batch_sort(RenderBatch *list)
@@ -56106,7 +56088,6 @@ LABEL_54:
     UI_widget_select(v11);
   goto LABEL_56;
 }
-// 47C6F0: using guessed type int g_cdrom_drive_idx;
 
 //----- (0043C040) --------------------------------------------------------
 void __cdecl UI_select_main_menu(Task *task)
@@ -56895,7 +56876,6 @@ void __cdecl UI_main_menu_multi_ipx(Task *task)
     }
   }
 }
-// 46E404: using guessed type int dword_46E404;
 
 //----- (0043D270) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_serial(Task *task) {
@@ -57406,7 +57386,6 @@ void __cdecl UI_main_menu_multi_modem_baud_selector(Task *task)
       phonebook->baud_index = 0;
   }
 }
-// 46E408: using guessed type int g_netz_modem_bauds[6];
 
 //----- (0043E110) --------------------------------------------------------
 void __fastcall UI_main_menu_multi_modem_dialog(Task *task, NetzMobemPhonebook *phonebook, ptrdiff_t anim)
@@ -57648,7 +57627,6 @@ LABEL_4:
   FADE_out(task);
   TSK_schedule_self_destruct(task);
 }
-// 47C6CC: using guessed type int g_netz_modem_selected;
 
 //----- (0043E670) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_modem_cancel_to_main(Task *task)
@@ -57802,7 +57780,7 @@ LABEL_12:
         ++v6;
         ++v1;
       }
-      while ( (int)v6 < (int)dword_47C690 && i != (NetzMobemPhonebook *)&g_phonbook_head );// BUG boundary check
+      while ( (int)v6 < (int)&g_ui_slot_controller_items[10] && i != (NetzMobemPhonebook *)&g_phonbook_head );
     }
     if ( v1 < 10 )
     {
@@ -57825,7 +57803,7 @@ LABEL_12:
 LABEL_21:
         ;
       }
-      while ( (int)v8 < (int)dword_47C690 );    // BUG
+      while ( (int)v8 < (int)&g_ui_slot_controller_items[10] );
     }
     v1 = 0;
     TSK_yield(task, TaskWait_Message, 0);
@@ -57864,8 +57842,6 @@ LABEL_21:
     g_netz_modem_selected = v3 + v12;
   }
 }
-// 47C690: using guessed type int dword_47C690[10];
-// 47C6CC: using guessed type int g_netz_modem_selected;
 
 //----- (0043EA90) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_modem_up(Task *task)
@@ -58098,7 +58074,6 @@ LABEL_8:
     TSK_send_message(nullptr, TaskMessage_SiderbarRightClick, nullptr, g_ui_input_cursor_entity->task);
   }
 }
-// 47C6CC: using guessed type int g_netz_modem_selected;
 
 //----- (0043EE90) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_modem_add(Task *task)
@@ -58282,7 +58257,6 @@ void __cdecl UI_main_menu_multi_modem_connect(Task *task)
   FADE_out(task);
   TSK_schedule_self_destruct(task);
 }
-// 47C6CC: using guessed type int g_netz_modem_selected;
 
 //----- (0043F330) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_modem_host(Task *task)
@@ -58364,7 +58338,6 @@ void __cdecl UI_main_menu_multi_modem_host(Task *task)
   FADE_out(task);
   TSK_schedule_self_destruct(task);
 }
-// 47C6CC: using guessed type int g_netz_modem_selected;
 
 //----- (0043F520) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_modem_phonebook_select(Task *task)
@@ -58464,7 +58437,7 @@ void __cdecl UI_main_menu_multi_serial_cancel(Task *task)
   MAPD_release(g_mapd_layers_rns[0]);
   TSK_yield(task, TaskWait_Interval, 3);
   mapd = (LevelMapd *)LVL_find_section("MAPD");
-  PAL_apply(mapd[1].layers->palette);
+  PAL_apply(mapd[1].layers[0].palette);
   g_mapd_layers_rns[0] = LVL_get_mapd(MenuId_Multiplayer, 0, -10);
   CPLC_select(1);
   CPLC_viewport_update();
@@ -58553,7 +58526,7 @@ void __cdecl UI_main_menu_multi_lobby_list(Task *task)
         }
         ++player;
       }
-      while ( (int)player + 0x18 < (int)&g_join_pkt ); // BUG
+      while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
       if ( v8 > 1 )
         g_lobby_ready_player_count = v8 - 1;
       v1 = task;
@@ -58569,7 +58542,6 @@ void __cdecl UI_main_menu_multi_lobby_list(Task *task)
     }
   }
 }
-// 47C700: using guessed type int g_lobby_list_guard_unused;
 
 //----- (0043F9E0) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_session_slot(Task *task)
@@ -58785,8 +58757,6 @@ void __cdecl UI_main_menu_multi_session_list(Task *task)
     }
   }
 }
-// 47C5F8: using guessed type int g_session_prev_count;
-// 47C660: using guessed type int g_session_count;
 
 //----- (0043FDE0) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_join_cancel(Task *task)
@@ -58961,10 +58931,6 @@ void __cdecl UI_main_menu_multi_join(Task *task)
   FADE_out(task);
   TSK_schedule_self_destruct(task);
 }
-// 440025: variable 'v5' is possibly undefined
-// 440172: variable 'v14' is possibly undefined
-// 47C5F8: using guessed type int g_session_prev_count;
-// 47C660: using guessed type int g_session_count;
 
 //----- (004402A0) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_host(Task *task)
@@ -59044,8 +59010,6 @@ void __cdecl UI_main_menu_multi_host(Task *task)
     TSK_schedule_self_destruct(task);
   }
 }
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47C6F4: using guessed type int g_netz_num_pending_joins;
 
 //----- (004404D0) --------------------------------------------------------
 void __cdecl UI_main_menu_multi_host_lobby_init(Task *task)
@@ -59184,7 +59148,6 @@ void __cdecl UI_main_menu_multi_host_lobby_init(Task *task)
   ENT_remove(entity);
   TSK_schedule_self_destruct(v1);
 }
-// 468B58: using guessed type int g_netz_local_player_slot;
 
 //----- (00440770) --------------------------------------------------------
 void __fastcall UI_main_menu_game_player_name_cb(char *text, int cursor_pos)
@@ -59400,9 +59363,6 @@ LABEL_29:
     v1 = task;
   }
 }
-// 440BAB: variable 'v18' is possibly undefined
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 468CE8: using guessed type int g_netz_player_flags;
 
 //----- (00440CA0) --------------------------------------------------------
 void __cdecl UI_main_menu_game_palette(Task *task)
@@ -59485,14 +59445,14 @@ void __cdecl UI_main_menu_game_palette(Task *task)
         v4 = 0;
       v5 = 0;
       player = &g_netz_players[1];
-      while ( v5 == g_netz_local_player_slot
+      while ( v5 == g_netz_local_player_slot // INLINED JJJ
            || player->connection_status == NetzConnection_None
            || !player->synced
            || player->palette_idx != v4 )
       {
         ++player;
         ++v5;
-        if ( (int)player + 0x18 >= (int)&g_join_pkt )  // BUG
+        if ( (int)player >= (int)&g_netz_players[PLAYERS_MAX] )
         {
           v7 = 0;
           goto LABEL_22;
@@ -59508,8 +59468,6 @@ LABEL_22:
     NETZ_send_roster(NETZ_PKT_LOBBY_PLAYERS_BROADCAST, 0);
   }
 }
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47C654: using guessed type char g_current_multi_pal;
 
 //----- (00440ED0) --------------------------------------------------------
 void __cdecl UI_main_menu_game_faction(Task *task)
@@ -59576,7 +59534,6 @@ LABEL_12:
     ;
   goto LABEL_12;
 }
-// 468B58: using guessed type int g_netz_local_player_slot;
 
 //----- (00441050) --------------------------------------------------------
 void __cdecl UI_main_menu_game_map(Task *task)
@@ -59990,7 +59947,6 @@ LABEL_13:
     UI_button_tick(task, 2112, 0, 2);
   }
 }
-// 46E3FC: using guessed type int g_kaos_num_enemy_slots;
 
 //----- (00441940) --------------------------------------------------------
 void __cdecl UI_main_menu_game_cancel(Task *task)
@@ -60269,7 +60225,6 @@ void __cdecl UI_main_menu_game_start_signal_waiter(Task *task)
     }
   }
 }
-// 47A828: using guessed type int g_netz_game_start_signal;
 
 //----- (00441FC0) --------------------------------------------------------
 void __cdecl UI_main_menu_game_allies_count_and_lobby_watch(Task *task)
@@ -60386,7 +60341,6 @@ void __cdecl UI_main_menu_game_allies_count_and_lobby_watch(Task *task)
   ENT_remove(v5);
   TSK_schedule_self_destruct(task);
 }
-// 46E3F8: using guessed type int g_kaos_num_allied_slots;
 
 //----- (004421F0) --------------------------------------------------------
 void __cdecl UI_main_menu_game_difficulty_or_leave_lobby_as_client(Task *task)
@@ -61066,14 +61020,6 @@ LABEL_77:
     g_play_mission_level_idx = v15;
   }
 }
-// 46E440: using guessed type int dword_46E440[16];
-// 46E480: using guessed type int dword_46E480[16];
-// 46E4C0: using guessed type int dword_46E4C0[12];
-// 46E4F0: using guessed type int dword_46E4F0[11];
-// 47A2DC: using guessed type __int16 g_current_mute_level;
-// 47A2E0: using guessed type __int16 g_current_surv_level;
-// 47C6E4: using guessed type int g_play_mission_faction;
-// 47C6E8: using guessed type int g_play_mission_level_idx;
 
 //----- (00443000) --------------------------------------------------------
 void __cdecl UI_main_menu_play_mission_cancel(Task *task)
@@ -61195,8 +61141,6 @@ void __cdecl UI_main_menu_play_mission_start(Task *task)
   FADE_in(task);
   g_game_loop = GameLoop_NextMission;
 }
-// 47C6E4: using guessed type int g_play_mission_faction;
-// 47C6E8: using guessed type int g_play_mission_level_idx;
 
 //----- (00443290) --------------------------------------------------------
 void __cdecl UI_main_menu_play_mission_faction_toggle(Task *task)
@@ -61237,10 +61181,6 @@ void __cdecl UI_main_menu_play_mission_faction_toggle(Task *task)
     }
   }
 }
-// 47A2DC: using guessed type __int16 g_current_mute_level;
-// 47A2E0: using guessed type __int16 g_current_surv_level;
-// 47C6E4: using guessed type int g_play_mission_faction;
-// 47C6E8: using guessed type int g_play_mission_level_idx;
 
 //----- (00443380) --------------------------------------------------------
 BOOL __fastcall UI_main_menu_msg_loop(Task *task, ptrdiff_t label_frame_anim, BOOL disable_clicking)
@@ -62342,7 +62282,6 @@ void __fastcall UNIT_mode_tanker_oil_exhausted(Unit *unit) {
   (void)unit;
   g_dbg_mode_sentinel = 901223;
 }
-// 477358: using guessed type int g_dbg_mode_sentinel;
 
 //----- (004446B0) --------------------------------------------------------
 void __fastcall UNIT_mode_tanker_load_oil(Unit *unit)
@@ -62963,20 +62902,22 @@ BOOL __fastcall TSK_init(int default_coroutine_stack_size)
 
   v1 = default_coroutine_stack_size;
   if ( !default_coroutine_stack_size )
-    v1 = 4096;
+    // 4096 (the original MSVC-binary sizing) isn't enough headroom under this
+    // unoptimized/UBSan-instrumented build: the canary in TSK_coroutine_create
+    // has been observed clobbered right at context[0], meaning some coroutine's
+    // call chain used the entire buffer down to the last 4 bytes before the
+    // deepest push - one frame away from overflowing into the adjacent heap chunk
+    v1 = 1024 * 1024;
   result = TSK_message_pool_init();
   if ( result )
   {
-    result = (BOOL)malloc(0x21340u);
-    g_tasks = (Task *)result;
+    g_tasks = (Task *)malloc(MAX_TASKS * sizeof(Task));
+    result = (BOOL)g_tasks;
     if ( result )
     {
-      for ( i = 0; i < 0x212FC; i += 68 )
-      {
-        *(int *)(result + i) = result + i + 68;
-        result = (BOOL)g_tasks;
-      }
-      g_tasks[1999].next = nullptr;
+      for ( i = 0; i < MAX_TASKS - 1; ++i )
+        g_tasks[i].next = &g_tasks[i + 1];
+      g_tasks[MAX_TASKS - 1].next = nullptr;
       g_task_terminated_head = g_tasks;
       g_task_active_head = (Task *)&g_task_active_head;
       g_task_active_tail = (Task *)&g_task_active_head;
@@ -62992,10 +62933,9 @@ BOOL __fastcall TSK_init(int default_coroutine_stack_size)
   }
   return result;
 }
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (00445210) --------------------------------------------------------
-Task *__fastcall TSK_async(TaskChannel chan, TaskFn fn, size_t stack_size)
+Task *__fastcall TSK_async_impl(TaskChannel chan, TaskFn fn, size_t stack_size, const char *name)
 {
   Task *v3; // esi
   Task *result; // eax
@@ -63012,7 +62952,8 @@ Task *__fastcall TSK_async(TaskChannel chan, TaskFn fn, size_t stack_size)
   memset(v3, 0, sizeof(Task));
   v3->channel = chan;
   v3->kind = TaskKind_Coroutine;
-  result = (Task *)TSK_coroutine_create(TSK_coroutine_starter, v6);
+  v3->name = name;
+  result = (Task *)TSK_coroutine_create(TSK_coroutine_starter, v6, name);
   v3->entry_point = (TaskFn)result;
   if ( result )
   {
@@ -63030,7 +62971,7 @@ Task *__fastcall TSK_async(TaskChannel chan, TaskFn fn, size_t stack_size)
 }
 
 //----- (004452B0) --------------------------------------------------------
-Task *__fastcall TSK_callback(TaskChannel chan, TaskFn fn)
+Task *__fastcall TSK_callback_impl(TaskChannel chan, TaskFn fn, const char *name)
 {
   Task *v2; // esi
   Task *result; // eax
@@ -63044,6 +62985,7 @@ Task *__fastcall TSK_callback(TaskChannel chan, TaskFn fn)
   memset(v2, 0, sizeof(Task));
   v2->channel = chan;
   v2->kind = TaskKind_Callback;
+  v2->name = name;
   v2->entry_point = fn;
   if ( fn )
   {
@@ -63185,6 +63127,13 @@ void __fastcall TSK_schedule_self_destruct(Task *task)
   v3 = v2 | sticky_events;
   kind = task->kind;
   task->sticky_events = v3;
+  // UI_menu_controller can self-destruct (credits/idle-timeout path) without
+  // going through any of the TSK_kill(g_current_menu_controller) call sites
+  // that clear this global; left uncleared it dangles at a Task struct that
+  // TSK_run is about to recycle, so a later TSK_kill(g_current_menu_controller)
+  // would double-free/UAF whatever unrelated task now occupies that slot.
+  if ( task == g_current_menu_controller )
+    g_current_menu_controller = nullptr;
   if ( kind == TaskKind_Coroutine )
     TSK_execute_async(g_coroutine_list_head);
 }
@@ -63207,6 +63156,8 @@ void TSK_run()
 
   for ( i = g_task_active_head; i != (Task *)&g_task_active_head; i = i->next )
   {
+    if ( i->kind == TaskKind_Coroutine )
+      TSK_coroutine_check_canary((Coroutine *)i->entry_point, "TSK_run");
     if ( (i->transient_events & TaskEvent_Terminated) != 0 )
     {
       i = i->prev;                              // INLINED 445310 TSK_kill
@@ -63272,7 +63223,6 @@ void TSK_run()
     }
   }
 }
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (004455A0) --------------------------------------------------------
 void TSK_cleanup()
@@ -63378,7 +63328,6 @@ BOOL UI_str_init()
     return 0;
   }
 }
-// 47C76C: using guessed type int g_glyph_free_count;
 
 //----- (00445770) --------------------------------------------------------
 void __fastcall UI_str_set_text(UiStr *str, const char *text, GlyphDesc **font_remap_tbl)
@@ -63592,7 +63541,6 @@ LABEL_32:
   }
   return result;
 }
-// 47C76C: using guessed type int g_glyph_free_count;
 
 //----- (00445A60) --------------------------------------------------------
 void __fastcall UIS_str_free(UiStr *str)
@@ -63630,8 +63578,6 @@ void __fastcall UIS_str_free(UiStr *str)
   str->next = g_string_free_head;
   g_string_free_head = str;
 }
-// 445A84: variable 'v4' is possibly undefined
-// 47C76C: using guessed type int g_glyph_free_count;
 
 //----- (00445AE0) --------------------------------------------------------
 void __fastcall UI_str_clear(UiStr *str)
@@ -63689,8 +63635,6 @@ void __fastcall UI_str_cleanup()
     g_uistr_initialized = 0;
   }
 }
-// 445B7A: variable 'p_next' is possibly undefined
-// 47C76C: using guessed type int g_glyph_free_count;
 
 //----- (00445C00) --------------------------------------------------------
 int __fastcall UI_str_calc_height_wrapped(const char *text, int max_line_width)
@@ -64091,21 +64035,12 @@ void __fastcall UI_sidebar_mode_airstrike_open(SidebarButton *button)
 {
   (void)button;
 
-  SidebarButton **v1; // esi
-
   TSK_send_message(nullptr, TaskMessage_AirstrikeSetTargetingMode, nullptr, g_game_update_loop_task);
-  v1 = &g_help_button;
-  do
-  {
-    if ( v1 != &g_airstrike_button )            // BUG - only send it to help button
-      TSK_send_message(
-        nullptr,
-        TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
-        nullptr,
-        (*v1)->task);
-    ++v1;
-  }
-  while ( (int)v1 < (int)&g_sidebar_button_minimap );// BUG
+  TSK_send_message(
+    nullptr,
+    TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
+    nullptr,
+    g_help_button->task);
 }
 
 //----- (004461E0) --------------------------------------------------------
@@ -64674,8 +64609,6 @@ BOOL UI_sidebar_create_layout()
     v0 = g_sidebar_prod_job_pool;
   }
   g_sidebar_prod_job_pool[255].next = nullptr;
-  g_47C9C8_unused = (SidebarFactoryProductionOption *)&g_47C9C8_unused;
-  g_47C9CC_unused = (SidebarFactoryProductionOption *)&g_47C9C8_unused;
   v2 = (SidebarFactoryProduction *)malloc(0x980u);// 31
   g_sidebar_prod_pool = v2;
   if ( !v2 )
@@ -64695,8 +64628,6 @@ BOOL UI_sidebar_create_layout()
   g_sidebar_color_bars_used[2] = 0;
   g_is_sidebar_open[3] = 0;
   g_sidebar_color_bars_used[3] = 0;
-  g_47C918_unused = (SidebarFactoryProduction *)&g_47C918_unused;
-  g_47C91C_unused = (SidebarFactoryProduction *)&g_47C918_unused;
   v4 = g_factory_prod_head;
   g_is_sidebar_open[4] = 0;
   g_sidebar_color_bars_used[4] = 0;
@@ -64709,7 +64640,7 @@ BOOL UI_sidebar_create_layout()
     ++v4;
     *p_prod_head = (SidebarFactoryProductionOption *)p_prod_head;
   }
-  while ( (int)v4 < (int)&g_sidebar );          // BUG loop condition
+  while ( (int)v4 < (int)&g_factory_prod_head[MAX_PROD_TYPES] );
   g_sidebar_color_bars_used[5] = 0;
   v6 = UI_sidebar_create(nullptr, nullptr, 288, 0, 0);
   v7 = 0;
@@ -64856,20 +64787,11 @@ void __fastcall UI_sidebar_mode_help_open(SidebarButton *button)
 {
   (void)button;
 
-  SidebarButton **v1; // esi
-
-  v1 = &g_help_button;
-  do
-  {
-    if ( v1 != &g_help_button )                 // BUG - send this message to aircraft button
-      TSK_send_message(
-        nullptr,
-        TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
-        nullptr,
-        (*v1)->task);
-    ++v1;
-  }
-  while ( (int)v1 < (int)&g_sidebar_button_minimap );// BUG
+  TSK_send_message(
+    nullptr,
+    TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
+    nullptr,
+    g_airstrike_button->task);
   TSK_send_message(nullptr, TaskMessage_ShowHint_or_SaveLoadScrollUp, nullptr, g_game_update_loop_task);
 }
 
@@ -64910,7 +64832,7 @@ void __cdecl UI_sidebar_refresh_loop(Task *task)
   v1 = g_production_buttons;
   do
     TSK_send_message(nullptr, TaskMessage_SidebarRefreshOptions, nullptr, (*v1++)->task);
-  while ( (int)v1 < (int)&g_aircraft_unlocked );// BUG
+  while ( (int)v1 < (int)&g_production_buttons[5] );
   TSK_send_message(nullptr, TaskMessage_SidebarRefreshOptions, nullptr, g_sidebar_button_minimap->task);
   TSK_send_message(nullptr, TaskMessage_SidebarRefreshOptions, nullptr, g_airstrike_button->task);
   while ( 1 )
@@ -65040,17 +64962,16 @@ LABEL_10:
 //----- (004471E0) --------------------------------------------------------
 void AIRSTRIKE_on_launch()
 {
-  int i; // esi
-
-  for ( i = 0; i < 8; i += 4 )
-  {
-    if ( i != -4 )
-      TSK_send_message(
-        nullptr,
-        TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
-        nullptr,
-        (*(SidebarButton **)((char *)&g_help_button + i))->task);// BUG
-  }
+  TSK_send_message(
+    nullptr,
+    TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
+    nullptr,
+    g_help_button->task);
+  TSK_send_message(
+    nullptr,
+    TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
+    nullptr,
+    g_airstrike_button->task);
   TSK_send_message(
     nullptr,
     TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
@@ -65116,12 +65037,13 @@ BOOL __fastcall UI_sidebar_toggle_help_airstrike(int button_id)
   int v2; // edi
   SidebarButton **v3; // esi
   BOOL result; // eax
+  SidebarButton *buttons[2] = { g_help_button, g_airstrike_button };
 
   v2 = 0;
-  v3 = &g_help_button;
+  v3 = buttons;
   do
   {
-    if ( v2 != button_id )                      // BUG - it's always -1 and code clumps airstrike and help for no reason
+    if ( v2 != button_id )
       result = TSK_send_message(
                  nullptr,
                  TaskMessage_UnitDeselected_or_SaveLoadScrollDown_or_ShowNotificationBox,
@@ -65130,7 +65052,7 @@ BOOL __fastcall UI_sidebar_toggle_help_airstrike(int button_id)
     ++v3;
     ++v2;
   }
-  while ( (int)v3 < (int)&g_sidebar_button_minimap );// BUG
+  while ( v2 < 2 );
   return result;
 }
 
@@ -65194,14 +65116,12 @@ void __fastcall UNIT_mode_tower_complete(Unit *unit) {
   (void)unit;
   g_dbg_mode_sentinel = 1123344;
 }
-// 477358: using guessed type int g_dbg_mode_sentinel;
 
 //----- (004474E0) --------------------------------------------------------
 void __fastcall UNIT_mode_tower_advance_construction(Unit *unit) {
   (void)unit;
   g_dbg_mode_sentinel = 908793;
 }
-// 477358: using guessed type int g_dbg_mode_sentinel;
 
 //----- (004474F0) --------------------------------------------------------
 void __fastcall UNIT_mode_tower_on_death(Unit *unit)
@@ -66182,40 +66102,20 @@ void __fastcall REND_transform_infantry_overlay(Unit *unit, RenderNode *node)
 //----- (004487B0) --------------------------------------------------------
 void __fastcall REND_transform_vehicle_overlay(Unit *unit, RenderNode *node)
 {
-  MobdPoint *pt; // esi
-  int x; // eax
-  Unit * unit_; // ecx
-  int y; // esi
-  int v6; // eax
-
-  pt = unit->mobd_anchors.render;
-  x = unit->entity->x;
-  unit_ = unit;
-  node->cmd.x = (pt->x + x - g_mapd_camera.x - 4096) >> 8;
-  y = g_mapd_camera.y;
-  v6 = unit_->mobd_anchors.render->y + unit_->entity->y;
+  node->cmd.x = (unit->mobd_anchors.render->x + unit->entity->x - g_mapd_camera.x - 4096) >> 8;
+  node->cmd.y = (unit->mobd_anchors.render->y + unit->entity->y - g_mapd_camera.y - 1024) >> 8;
   node->cmd.z = 0x200000;
   node->cmd.image = (RenderImage *)&unit->overlay_sprt;
-  node->cmd.y = (v6 - y - 1024) >> 8;
   node->cmd.viewport = g_rend_default_viewport;
 }
 
 //----- (00448820) --------------------------------------------------------
 void __fastcall REND_transform_tanker_overlay(Unit *unit, RenderNode *node)
 {
-  Entity *entity; // eax
-  Unit * unit_; // ecx
-  int y; // esi
-  int v5; // eax
-
-  entity = unit->entity;
-  unit_ = unit;
-  node->cmd.x = (entity->x - g_mapd_camera.x - 4096) >> 8;
-  y = g_mapd_camera.y;
-  v5 = unit_->entity->y;
+  node->cmd.x = (unit->entity->x - g_mapd_camera.x - 4096) >> 8;
+  node->cmd.y = (unit->entity->y - g_mapd_camera.y - 6400) >> 8;
   node->cmd.z = 0x200000;
   node->cmd.image = (RenderImage *)&unit->overlay_sprt;
-  node->cmd.y = (v5 - y - 6400) >> 8;
   node->cmd.viewport = g_rend_default_viewport;
 }
 
@@ -66993,14 +66893,13 @@ BOOL UNIT_order_dispatcher_init()
     ++v1;
     ++v8;
   }
-  while ( (int)p < (int)&g_join_pkt.name[4] );  // BUG
+  while ( v1 < PLAYERS_MAX );
   if ( v0 )
     g_netz_is_game_started_2_unused = 1;
   else
     TSK_async(TaskChannel_None, NETZ_sync_loop, 0)->netz_flags = Task_CanRunDuringSync;
   return 1;
 }
-// 47A830: using guessed type int g_netz_is_game_started_2_unused;
 
 //----- (00449800) --------------------------------------------------------
 void UNIT_order_dispatcher_terminate()
@@ -67014,7 +66913,7 @@ void UNIT_order_dispatcher_terminate()
       TSK_kill(*v0);
     ++v0;
   }
-  while ( (int)v0 < (int)&g_netz_new_game_events );// BUG
+  while ( (int)v0 < (int)&g_per_player_dispatch_tasks[PLAYERS_MAX] );
 }
 
 //----- (00449820) --------------------------------------------------------
@@ -67070,8 +66969,8 @@ void __cdecl NETZ_sync_loop(Task *task)
     g_netz_num_pending_acks = g_num_multi_players - 1;
     player = &g_netz_players[1];
     do
-      (player++)->event_received_this_tick = 0;
-    while ( (int)player + 0x14 < (int)&dword_47A83C ); // BUG
+      (player++)->event_received_this_tick = 0; // INLINED GGG
+    while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
     NETZ_broadcast_roster_on_game_start(NETZ_PKT_GAME_START_LOBBY_STATE_BROADCAST);
     Time = timeGetTime();
     v4 = timeGetTime();
@@ -67128,8 +67027,8 @@ void __cdecl NETZ_sync_loop(Task *task)
           player_ = &g_netz_players[1];
           g_netz_num_pending_acks = g_num_multi_players - 1;
           do
-            (player_++)->event_received_this_tick = 0;
-          while ( (int)player_ + 0x14 < (int)&dword_47A83C );// BUG
+            (player_++)->event_received_this_tick = 0; // INLINED GGG
+          while ( (int)player_ < (int)&g_netz_players[PLAYERS_MAX] );
           NETZ_broadcast_roster_on_game_start(NETZ_PKT_GAME_START_LOBBY_STATE_BROADCAST);
           v4 = timeGetTime();
         }
@@ -67191,14 +67090,14 @@ LABEL_18:
           ++v13;
           ++v37;
         }
-        while ( (int)v14 < (int)&g_netz_game_start_signal );// BUG
+        while ( (int)v14 < (int)&g_netz_players[PLAYERS_MAX] );
         LOBYTE(v13) = v36;
         v16 = 0;
         a3 = v36;
         _player = &g_netz_players[1];
         do
         {
-          if ( _player->connection_status == NetzConnection_Joined && v16 != v10 )
+          if ( _player->connection_status == NetzConnection_Joined && v16 != v10 )  // INLINED III HHH-esque (sister function)
           {
             g_coroutine_eax = (UINT)v13;
             v18 = g_coroutine_current;
@@ -67214,7 +67113,7 @@ LABEL_18:
           ++_player;
           ++v16;
         }
-        while ( (int)_player + 0x10 < (int)&g_netz_msg_loop );// BUG
+        while ( (int)_player < (int)&g_netz_players[PLAYERS_MAX] );
         if ( g_netz_new_game_events )
           TSK_yield(task, TaskWait_Interval, 4);
         else
@@ -67224,8 +67123,8 @@ LABEL_18:
         g_netz_num_pending_packets = g_num_multi_players - 1;
         __player = &g_netz_players[1];
         do
-          (__player++)->event_received_this_tick = 0;
-        while ( (int)__player + 0x14 < (int)&dword_47A83C );// BUG
+          (__player++)->event_received_this_tick = 0; // INLINED GGG
+        while ( (int)__player < (int)&g_netz_players[PLAYERS_MAX] );
         if ( NETZ_wait_for_packets(&g_netz_num_pending_packets, 40000, "waiting for player packet") )
           goto LABEL_56;
         if ( !g_netz_continue_loop )
@@ -67343,16 +67242,6 @@ LABEL_57:
     g_netz_players[0].event_received_this_tick = 1;
   TSK_schedule_self_destruct(task);
 }
-// 449BF5: variable 'v1' is possibly undefined
-// 468B50: using guessed type int g_num_multi_players;
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47A828: using guessed type int g_netz_game_start_signal;
-// 47A830: using guessed type int g_netz_is_game_started_2_unused;
-// 47A83C: using guessed type int dword_47A83C;
-// 47C6F4: using guessed type int g_netz_num_pending_joins;
-// 47C764: using guessed type __int16 g_netz_sync_pause;
-// 47CB10: using guessed type int g_netz_num_pending_acks;
-// 47CB18: using guessed type int g_netz_game_over_signal;
 
 //----- (00449E00) --------------------------------------------------------
 BOOL __fastcall NETZ_wait_for_packets(int *pending_count, int timeout_ms, const char *debug_message)
@@ -67416,7 +67305,7 @@ BOOL __fastcall NETZ_wait_for_packets(int *pending_count, int timeout_ms, const 
           }
           ++v8;
         }
-        while ( (int)v8 < (int)&g_netz_game_start_signal );// BUG
+        while ( (int)v8 < (int)&g_netz_players[PLAYERS_MAX] );
       }
       else
       {
@@ -67436,9 +67325,6 @@ BOOL __fastcall NETZ_wait_for_packets(int *pending_count, int timeout_ms, const 
   while ( *pending_count );
   return *pending_count && *pending_count != -1;
 }
-// 449F1E: variable 'v10' is possibly undefined
-// 449F9B: variable 'v13' is possibly undefined
-// 47A828: using guessed type int g_netz_game_start_signal;
 
 //----- (00449FF0) --------------------------------------------------------
 void NETZ_signal_game_over()
@@ -67459,7 +67345,7 @@ void NETZ_signal_game_over()
     player = &g_netz_players[1];
     do
     {
-      if ( player->connection_status == NetzConnection_Joined )
+      if ( player->connection_status == NetzConnection_Joined )  // INLINED III HHH-esque (sister function)
       {
         g_coroutine_eax = v0;
         v2 = g_coroutine_current;
@@ -67474,7 +67360,7 @@ void NETZ_signal_game_over()
       }
       ++player;
     }
-    while ( (int)player + 0x10 < (int)&g_netz_msg_loop );// BUG
+    while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
   }
   else
   {
@@ -67504,9 +67390,6 @@ void NETZ_signal_game_over()
   g_netz_continue_loop = 0;
   g_netz_num_pending_packets = -1;
 }
-// 468B50: using guessed type int g_num_multi_players;
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47CB18: using guessed type int g_netz_game_over_signal;
 
 //----- (0044A160) --------------------------------------------------------
 // Fire and forget, UDP-style
@@ -67531,7 +67414,7 @@ void __fastcall NETZ_broadcast(NetzPacketType pkt, const void *data, const size_
     player = &g_netz_players[1];
     do
     {
-      LOBYTE(v3) = player->connection_status;
+      LOBYTE(v3) = player->connection_status; // INLINED III HHH-esque (sister function)
       if ( (_BYTE)v3 && v4 != g_netz_local_player_slot )
       {
         g_coroutine_eax = v3;
@@ -67547,10 +67430,9 @@ void __fastcall NETZ_broadcast(NetzPacketType pkt, const void *data, const size_
       ++player;
       ++v4;
     }
-    while ( (int)player + 0x10 < (int)&g_netz_msg_loop );// BUG
+    while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
   }
 }
-// 468B58: using guessed type int g_netz_local_player_slot;
 
 //----- (0044A220) --------------------------------------------------------
 void *__fastcall NETZ_send_to_host(NetzPacketType pkt, const void *data, const size_t size)
@@ -67612,8 +67494,8 @@ void __fastcall NETZ_broadcast_mandatory_response(NetzPacketType pkt, void *data
   g_netz_num_pending_acks = g_num_multi_players - 1;
   player = &g_netz_players[1];
   do
-    (player++)->event_received_this_tick = 0;
-  while ( (int)player + 0x14 < (int)&dword_47A83C );   // BUG
+    (player++)->event_received_this_tick = 0; // INLINED GGG
+  while ( (int)player < (int)&g_netz_players[PLAYERS_MAX] );
   v6 = g_netz_is_game_host;
   if ( g_netz_is_game_host )
   {
@@ -67621,7 +67503,7 @@ void __fastcall NETZ_broadcast_mandatory_response(NetzPacketType pkt, void *data
     player_ = &g_netz_players[1];
     do
     {
-      LOBYTE(v6) = player_->connection_status;
+      LOBYTE(v6) = player_->connection_status; // INLINED III HHH-esque (sister function)
       if ( (_BYTE)v6 && v7 != g_netz_local_player_slot )
       {
         g_coroutine_eax = v6;
@@ -67637,7 +67519,7 @@ void __fastcall NETZ_broadcast_mandatory_response(NetzPacketType pkt, void *data
       ++player_;
       ++v7;
     }
-    while ( (int)player_ + 0x10 < (int)&g_netz_msg_loop );// BUG
+    while ( (int)player_ < (int)&g_netz_players[PLAYERS_MAX] );
     v3 = timeGetTime;
   }
   while ( g_netz_num_pending_acks > 0 )
@@ -67658,8 +67540,8 @@ void __fastcall NETZ_broadcast_mandatory_response(NetzPacketType pkt, void *data
       g_netz_num_pending_acks = g_num_multi_players - 1;
       _player = &g_netz_players[1];
       do
-        (_player++)->event_received_this_tick = 0;
-      while ( (int)_player + 0x14 < (int)&dword_47A83C );// BUG
+        (_player++)->event_received_this_tick = 0; // INLINED GGG
+      while ( (int)_player < (int)&g_netz_players[PLAYERS_MAX] );
       v15 = g_netz_is_game_host;
       if ( g_netz_is_game_host )
       {
@@ -67667,7 +67549,7 @@ void __fastcall NETZ_broadcast_mandatory_response(NetzPacketType pkt, void *data
         _player_ = &g_netz_players[1];
         do
         {
-          LOBYTE(v15) = _player_->connection_status;
+          LOBYTE(v15) = _player_->connection_status; // INLINED III HHH-esque (sister function)
           if ( (_BYTE)v15 && v16 != g_netz_local_player_slot )
           {
             g_coroutine_eax = v15;
@@ -67683,7 +67565,7 @@ void __fastcall NETZ_broadcast_mandatory_response(NetzPacketType pkt, void *data
           ++_player_;
           ++v16;
         }
-        while ( (int)_player_ + 0x10 < (int)&g_netz_msg_loop );// BUG
+        while ( (int)_player_ < (int)&g_netz_players[PLAYERS_MAX] );
         v3 = timeGetTime;
       }
       t = v3();
@@ -67691,10 +67573,6 @@ void __fastcall NETZ_broadcast_mandatory_response(NetzPacketType pkt, void *data
   }
   g_netz_is_lobby_locked = 0;
 }
-// 468B50: using guessed type int g_num_multi_players;
-// 468B58: using guessed type int g_netz_local_player_slot;
-// 47A83C: using guessed type int dword_47A83C;
-// 47CB10: using guessed type int g_netz_num_pending_acks;
 
 //----- (0044A500) --------------------------------------------------------
 void __cdecl MINI_mouse_loop(Task *task)
@@ -67747,8 +67625,6 @@ void __cdecl MINI_mouse_loop(Task *task)
     g_minimap_camera_tile_y = g_mapd_camera.y >> 12;
   }
 }
-// 47CB68: using guessed type int g_minimap_camera_tile_x;
-// 47CB6C: using guessed type int g_minimap_camera_tile_y;
 
 //----- (0044A650) --------------------------------------------------------
 void MINI_open()
@@ -67774,7 +67650,6 @@ void __fastcall MINI_pos_set(int right_x, int top_y)
   g_minimap_entity->is_collidable = 1;
   g_minimap_entity->y = top_y << 8;
 }
-// 47CB7C: using guessed type int g_minimap_width;
 
 //----- (0044A700) --------------------------------------------------------
 void __fastcall MINI_toggle(Task *task)
@@ -67861,9 +67736,12 @@ void SAVE_unpack_shroud()
     while ( v3 < g_map_num_tiles_y );
   }
 }
-// 47CB7C: using guessed type int g_minimap_width;
 
 //----- (0044A840) --------------------------------------------------------
+// Disable UBSan alignment checks: this function works with packed level file data
+// which has intentionally misaligned pointers. The code uses pointer punning on
+// packed structs that's safe at runtime but violates C strict alignment rules.
+__attribute__((no_sanitize("alignment")))
 BOOL MINI_init()
 {
   BOOL result; // eax
@@ -68128,13 +68006,11 @@ BOOL MINI_init()
               pixels[2 * v22 - 2] = -93;
               v31[1] = -93;
               *v28 = -93;
-              v35 = &g_palette_idx_per_player[1];
-              do
-              {
-                v36 = *(_BYTE *)v35++;
+              // Loop through g_palette_idx_per_player[1..6] (7 elements total, skip [0])
+              for (int i = 1; i < 7; ++i) {
+                v36 = g_palette_idx_per_player[i];
                 g_minimap_per_player_dot_color_palette[v34++] = 16 * v36 + 12;
               }
-              while ( (int)v35 < (int)&g_num_player_units );// BUG
               g_minimap_sprt_data->width = g_minimap_width + 4;
               g_minimap_sprt_data->height = g_minimap_height + 4;
               g_minimap_sprt.bitmap = g_minimap_sprt_data;
@@ -68162,9 +68038,6 @@ BOOL MINI_init()
   }
   return result;
 }
-// 47CB2C: using guessed type int g_fog_of_war_num_tiles_y;
-// 47CB7C: using guessed type int g_minimap_width;
-// 47CB80: using guessed type int g_fog_of_war_num_tiles_x;
 
 //----- (0044AE30) --------------------------------------------------------
 void MINI_draw()
@@ -68362,16 +68235,12 @@ void MINI_draw()
     }
   }
 }
-// 47CB68: using guessed type int g_minimap_camera_tile_x;
-// 47CB6C: using guessed type int g_minimap_camera_tile_y;
-// 47CB7C: using guessed type int g_minimap_width;
 
 //----- (0044B0D0) --------------------------------------------------------
 BOOL __fastcall SHROUD_is_revealed(int word_x, int world_y)
 {
   return *(&g_shroud_grid[g_fog_of_war_num_tiles_x * ((world_y >> 13) + 2) + 2] + (word_x >> 13)) != g_shroud_full_opaque;// BUG don't need *&
 }
-// 47CB80: using guessed type int g_fog_of_war_num_tiles_x;
 
 //----- (0044B100) --------------------------------------------------------
 void __fastcall SHROUD_reveal(Unit *unit)
@@ -69040,9 +68909,6 @@ LABEL_296:
     goto LABEL_230;
   }
 }
-// 47CB2C: using guessed type int g_fog_of_war_num_tiles_y;
-// 47CB7C: using guessed type int g_minimap_width;
-// 47CB80: using guessed type int g_fog_of_war_num_tiles_x;
 
 //----- (0044BC00) --------------------------------------------------------
 void MINI_cleanup()
@@ -69058,6 +68924,8 @@ void MINI_cleanup()
 }
 
 //----- (0044BC80) --------------------------------------------------------
+// Disable UBSan alignment checks: works with packed level file data
+__attribute__((no_sanitize("alignment")))
 // prompts re-rendering
 void __fastcall SHROUD_invalidate_tiles(int dirty_x, int dirty_z, int dirty_y, int dirty_w)
 {
@@ -69116,44 +68984,27 @@ void __fastcall SHROUD_invalidate_tiles(int dirty_x, int dirty_z, int dirty_y, i
 }
 
 //----- (0044BD50) --------------------------------------------------------
-void SHROUD_clear_tiles()
-{
-  int y; // ebx
-  MapdScrlImage *image1; // ecx
-  MapdScrlImage *image2; // ebp
-  int num_x_tiles; // eax
-  MapdScrlImageTile **v4; // esi
-  MapdScrlImageTile **v5; // edi
-  int v6; // edx
+// Disable UBSan alignment checks: works with packed level file data
+__attribute__((no_sanitize("alignment")))
+void SHROUD_clear_tiles() {
+  MapdScrlImage *image1 = (MapdScrlImage *)g_mapd_layers_rns[0]->rn->cmd.image;
+  MapdScrlImage *image2 = (MapdScrlImage *)g_mapd_layers_rns[1]->rn->cmd.image;
 
-  y = 0;
-  image1 = (MapdScrlImage *)g_mapd_layers_rns[0]->rn->cmd.image;
-  image2 = (MapdScrlImage *)g_mapd_layers_rns[1]->rn->cmd.image;
-  if ( image1->num_y_tiles > 0 )
-  {
-    do
-    {
-      num_x_tiles = image1->num_x_tiles;
-      v4 = &image1->tiles[num_x_tiles * y];
-      v5 = &image2->tiles[image2->num_x_tiles * y];
-      v6 = 0;
-      if ( num_x_tiles > 0 )
-      {
-        do
-        {
-          if ( *v4 )
-            (*v4)->flags |= 2u;
-          if ( *v5 )
-            (*v5)->flags |= 2u;
-          ++v4;
-          ++v5;
-          ++v6;
-        }
-        while ( v6 < image1->num_x_tiles );
-      }
-      ++y;
+  if(!image1 || !image2) return;
+  if(image1->num_y_tiles <= 0 || image1->num_x_tiles <= 0) return;
+
+  // Process both layers, bounded by minimum of both dimensions for safety
+  int num_x = image1->num_x_tiles < image2->num_x_tiles ? image1->num_x_tiles : image2->num_x_tiles;
+  int num_y = image1->num_y_tiles < image2->num_y_tiles ? image1->num_y_tiles : image2->num_y_tiles;
+
+  for(int y = 0; y < num_y; ++y) {
+    for(int x = 0; x < num_x; ++x) {
+      MapdScrlImageTile *tile1 = image1->tiles[y * image1->num_x_tiles + x];
+      MapdScrlImageTile *tile2 = image2->tiles[y * image2->num_x_tiles + x];
+
+      if(tile1) tile1->flags |= 2u;
+      if(tile2) tile2->flags |= 2u;
     }
-    while ( y < image1->num_y_tiles );
   }
 }
 
@@ -69300,12 +69151,12 @@ BOOL PAL_multi_init()
   MissionDiplomacyTable *i; // [esp+10h] [ebp-4h]
 
   v0 = 4;
-  v1 = 0;
+  v1 = -1;
   do
   {
-    _47D3C4_bugged[++v1] = ((v0 + 4) >> 4) & 0xF;// BUG ++v1 means it's actually indexing g_angle_to_orientation[]
+    g_angle_to_orientation[++v1] = ((v0 + 4) >> 4) & 0xF;
     v2 = (v0++ >> 3) & 0x1F;
-    dword_47CFC4[v1] = v2;                      // BUG g_orientation_to_sin[]
+    g_orientation_to_sin[v1] = v2;
   }
   while ( v0 - 4 < 256 );
   v3 = 0;
@@ -69359,7 +69210,7 @@ BOOL PAL_multi_init()
     ++v3;
     v5 += 7;
     i = (MissionDiplomacyTable *)((char *)i + 32);
-    if ( (int)i >= (int)&g_unit_list_head )     // BUG
+    if ( v3 >= PLAYERS_MAX )
       break;
   }
   v15 = 1;
@@ -69369,7 +69220,7 @@ BOOL PAL_multi_init()
     v17 = v15++ - 1;
     *v16++ = v17;
   }
-  while ( (int)v16 < (int)&g_next_entity_id );  // BUG
+  while ( (int)v16 < (int)&g_palette_idx_per_player[PLAYERS_MAX] );
   g_palette_idx_per_player[0] = 3;
   if ( !g_is_single_player )
   {
@@ -69382,13 +69233,11 @@ BOOL PAL_multi_init()
       ++v19;
       ++player;
     }
-    while ( (int)v19 < (int)&g_next_entity_id );// BUG
+    while ( (int)v19 < (int)&g_palette_idx_per_player[PLAYERS_MAX] );
   }
   PAL_multi_apply();
   return 1;
 }
-// 47CFC4: using guessed type int dword_47CFC4[];
-// 47D3C4: using guessed type int _47D3C4_bugged[];
 
 //----- (0044C1D0) --------------------------------------------------------
 void PAL_multi_cleanup()
@@ -69398,7 +69247,7 @@ void PAL_multi_cleanup()
   v0 = (void **)g_tint_palettes_per_player;
   do
     free(*v0++);
-  while ( (int)v0 < (int)&g_box_query_head );   // BUG
+  while ( (int)v0 < (int)&g_tint_palettes_per_player[PLAYERS_MAX] );
 }
 
 //----- (0044C1F0) --------------------------------------------------------
@@ -69564,11 +69413,11 @@ void GAME_update_anim_anchors_and_minimap()
     for ( i = g_unit_list_head; i != (Unit *)&g_unit_list_head; i = i->next )
     {
       p_mobd_anchors = &i->mobd_anchors;
-      memcpy(&i->mobd_anchors, g_mobd_anchors_default, 6*4);// BUG only 4, 6 would corrupt memory
+      memcpy(&i->mobd_anchors, g_mobd_anchors_default, 6*4);
       anim_current_frame = i->entity->anim_current_frame;
       if ( anim_current_frame )
       {
-        id = (MobdPoint *)anim_current_frame->points[0].id;
+        id = (MobdPoint *)anim_current_frame->points[0].id;  // INLINED NNN
         if ( id )
         {
           for ( j = id->id; j != -1; ++id )
@@ -69600,7 +69449,6 @@ void GAME_update_anim_anchors_and_minimap()
     MINI_draw();
   }
 }
-// 47C764: using guessed type __int16 g_netz_sync_pause;
 
 //----- (0044C5C0) --------------------------------------------------------
 void GAME_mission_cleanup()
@@ -69731,7 +69579,7 @@ LABEL_18:
   v1->orientation = 0x80;
   v1->hitpoints = hitpoints;
   v1->_unit_field_78_unused = 0;
-  memcpy(&v1->mobd_anchors, g_mobd_anchors_default, 6*4);// BUG - there's just 4 - 2 are corrupted mem
+  memcpy(&v1->mobd_anchors, g_mobd_anchors_default, 6*4);
   entity->rn->cmd.palette_override = g_tint_palettes_per_player[g_palette_idx_per_player[v1->player_num]];
   entity->rn->flags |= RenderNode_PaletteOverride;
   TSK_broadcast_message(task, TaskMessage_UnitCreated, v1, TaskChannel_UnitEvents);
@@ -69795,10 +69643,6 @@ void __fastcall CURSOR_box_query_init(int y, int x, int z, int w)
   g_box_query_z = z;
   g_box_query_w = w;
 }
-// 47D98C: using guessed type int g_box_query_x;
-// 47D994: using guessed type int g_box_query_w;
-// 47D998: using guessed type int g_box_query_z;
-// 47D9A0: using guessed type int g_box_query_y;
 
 //----- (0044C9A0) --------------------------------------------------------
 Task *CURSOR_box_query_next()
@@ -69840,10 +69684,6 @@ Task *CURSOR_box_query_next()
   g_box_query_head = v0->next;
   return result;
 }
-// 47D98C: using guessed type int g_box_query_x;
-// 47D994: using guessed type int g_box_query_w;
-// 47D998: using guessed type int g_box_query_z;
-// 47D9A0: using guessed type int g_box_query_y;
 
 //----- (0044CA30) --------------------------------------------------------
 Unit *__fastcall UINT_find_by_id(int unit_id)
@@ -70087,7 +69927,6 @@ BOOL GAME_is_player_at_units_limit()
     max_units_per_player = 549 / g_num_multi_players;
   return g_num_player_units > max_units_per_player;
 }
-// 468B50: using guessed type int g_num_multi_players;
 
 //----- (0044CE00) --------------------------------------------------------
 BOOL __fastcall GAME_is_enemy(int player_num, Unit *unit)
@@ -70483,7 +70322,6 @@ LABEL_32:
   }
   return 0;
 }
-// 44D47E: conditional instruction was optimized away because edi.4==0
 
 //----- (0044D560) --------------------------------------------------------
 void OS_message_pump()

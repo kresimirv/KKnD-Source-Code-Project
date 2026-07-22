@@ -648,6 +648,7 @@ struct Task {
   Entity *entity;
   void *ctx;
   TaskFn entry_point;
+  const char *name;              ///< debug: stringized fn arg from TSK_async/TSK_callback call site
 };
 
 typedef struct {
@@ -795,6 +796,20 @@ typedef struct {
   int max_x;
   int max_y;
 } __attribute__((packed)) BoxdAabb;
+
+// BoxdGrid::tiles is a raw BoxdAabb* array embedded in packed level-hunk data,
+// so element addresses aren't guaranteed 4-byte aligned. Plain `BoxdAabb **`
+// dereference (and even memcpy() through that type - clang can still lower a
+// small constant-size memcpy to a typed load) trips UBSan's alignment check.
+// This typedef tells the compiler the pointee genuinely only needs align 1.
+typedef BoxdAabb *BoxdAabbPtrUnaligned __attribute__((aligned(1)));
+
+// Same story: LVL_terrain_init walks a linked chain through this packed BOXD
+// data where a "type" field doubles as a pointer to more (also unaligned) int
+// data, and the list's "next" pointer is read from the following int-sized
+// cell rather than through a named struct field. Plain `int *` dereference of
+// these pointers trips UBSan alignment checks the same way BoxdAabb** did.
+typedef int IntUnaligned __attribute__((aligned(1)));
 
 typedef struct {
   BoxdAabb *box;
@@ -1503,10 +1518,18 @@ typedef struct {
 
 typedef struct {
   int num_images;
-  MapdScrlImage *images; // pointer to dynamic-sized array
+  MapdScrlImage *images; // dynamic-sized array in the middle of the struct
   int num_palette_entries;
   PaletteEntry palette[];
 } __attribute__((packed)) LevelMapdSurface;
+
+
+typedef struct {
+  int num_images;
+  MapdScrlImage *images[2]; // dynamic-sized array in the middle of the struct
+  int num_palette_entries;
+  PaletteEntry palette[];
+} __attribute__((packed)) LevelMapdSurface_2images;
 
 typedef struct {
   LevelMapdSurface *layers;
@@ -1559,6 +1582,7 @@ struct Coroutine {
   uintptr_t *context;
   void *stack;
   Coroutine *next;
+  const char *name;              ///< debug: stringized fn arg from TSK_async call site
 };
 
 typedef struct {
