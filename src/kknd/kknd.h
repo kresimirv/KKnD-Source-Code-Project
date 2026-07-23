@@ -3168,7 +3168,76 @@ typedef struct {
   int32_t current_destination_unit_id_2;
   int32_t num_destinations;
   int32_t destinations[20];
-} TankerSaveStruct;
+} __attribute__((may_alias)) TankerSaveStruct;
+
+// Save trailer for TankerConvoy units (the region right after the base
+// UnitSaveStruct). Original packed/unpacked this by aliasing UnitSaveStruct's
+// own field names via raw byte offset; this names it properly.
+typedef struct {
+  int32_t x;
+  int32_t y;
+  int32_t checkpoint;
+} __attribute__((may_alias)) TankerConvoySaveStruct;
+
+// Save trailer for all building unit types. The upgrade_* extension is only
+// present for ResearchLab / AlchemyHall whose upgrade_remaining_cost > 0.
+// upgrade_progress_bar is an embedded entity; the upgrade task's scheduler
+// fields are aliased over the base struct's `turret` entity region. The
+// _Static_asserts below pin every non-trivial field to the exact UnitSaveStruct
+// byte offset the original pack/unpack aliasing relied on.
+typedef struct {
+  int32_t oil_patch_index;                // drillrig: index of its oil patch (-1 = none)
+  int32_t upgrade_level;
+  int32_t upgrade_remaining_cost;
+  int16_t same_building_count;
+  int16_t garrison_strength;
+  int32_t docked_tanker_unit_id;          // resolved live docked-tanker id
+  int32_t docked_tanker_unit_id_2;        // raw stored docked-tanker id
+  int32_t num_active_repairs;
+  int32_t upgrade_mode_id;
+  int32_t upgrade_pulse_cooldown;
+  int32_t upgrade_stage;
+  int32_t upgrade_cancelled;
+  int32_t upgrade_building_unit_id;
+  EntitySaveStruct upgrade_progress_bar;
+  int32_t upgrade_task_channel;
+  int32_t upgrade_tick_id;
+  int32_t upgrade_message_handler_id;
+  int32_t upgrade_task_transient_events;
+  int32_t upgrade_task_sleep;
+  int32_t upgrade_task_sticky_events;
+  int32_t upgrade_task_wait_flags;
+  int32_t upgrade_task_wait_filter;
+} __attribute__((may_alias)) BuildingSaveStruct;
+
+_Static_assert(offsetof(TankerConvoySaveStruct, x) == offsetof(UnitSaveStruct, locked_target_unit_id)
+  && offsetof(TankerConvoySaveStruct, y) == offsetof(UnitSaveStruct, task_channel)
+  && offsetof(TankerConvoySaveStruct, checkpoint) == offsetof(UnitSaveStruct, creature_id),
+  "TankerConvoy trailer must alias UnitSaveStruct offsets");
+_Static_assert(offsetof(BuildingSaveStruct, oil_patch_index) == offsetof(UnitSaveStruct, locked_target_unit_id)
+  && offsetof(BuildingSaveStruct, upgrade_level) == offsetof(UnitSaveStruct, task_channel)
+  && offsetof(BuildingSaveStruct, upgrade_remaining_cost) == offsetof(UnitSaveStruct, creature_id)
+  && offsetof(BuildingSaveStruct, same_building_count) == offsetof(UnitSaveStruct, message_handler_id)
+  && offsetof(BuildingSaveStruct, docked_tanker_unit_id) == offsetof(UnitSaveStruct, task_transient_events)
+  && offsetof(BuildingSaveStruct, docked_tanker_unit_id_2) == offsetof(UnitSaveStruct, task_sleep)
+  && offsetof(BuildingSaveStruct, num_active_repairs) == offsetof(UnitSaveStruct, task_global_events),
+  "Building trailer scalar block must alias UnitSaveStruct offsets");
+_Static_assert(offsetof(BuildingSaveStruct, upgrade_mode_id) == offsetof(UnitSaveStruct, task_wait_flags)
+  && offsetof(BuildingSaveStruct, upgrade_pulse_cooldown) == offsetof(UnitSaveStruct, task_field_2C)
+  && offsetof(BuildingSaveStruct, upgrade_stage) == offsetof(UnitSaveStruct, type)
+  && offsetof(BuildingSaveStruct, upgrade_cancelled) == offsetof(UnitSaveStruct, player_num)
+  && offsetof(BuildingSaveStruct, upgrade_building_unit_id) == offsetof(UnitSaveStruct, turret_task_channel)
+  && offsetof(BuildingSaveStruct, upgrade_progress_bar) == offsetof(UnitSaveStruct, turret_creature_id),
+  "Building upgrade extension must alias UnitSaveStruct offsets");
+_Static_assert(offsetof(BuildingSaveStruct, upgrade_task_channel) == offsetof(UnitSaveStruct, turret) + offsetof(EntitySaveStruct, z_index)
+  && offsetof(BuildingSaveStruct, upgrade_tick_id) == offsetof(UnitSaveStruct, turret) + offsetof(EntitySaveStruct, x_speed)
+  && offsetof(BuildingSaveStruct, upgrade_message_handler_id) == offsetof(UnitSaveStruct, turret) + offsetof(EntitySaveStruct, y_speed)
+  && offsetof(BuildingSaveStruct, upgrade_task_transient_events) == offsetof(UnitSaveStruct, turret) + offsetof(EntitySaveStruct, z_speed)
+  && offsetof(BuildingSaveStruct, upgrade_task_sleep) == offsetof(UnitSaveStruct, turret) + offsetof(EntitySaveStruct, mobd_offset)
+  && offsetof(BuildingSaveStruct, upgrade_task_sticky_events) == offsetof(UnitSaveStruct, turret) + offsetof(EntitySaveStruct, _54_inside_mobd_ptr4)
+  && offsetof(BuildingSaveStruct, upgrade_task_wait_flags) == offsetof(UnitSaveStruct, turret) + offsetof(EntitySaveStruct, anim_speed)
+  && offsetof(BuildingSaveStruct, upgrade_task_wait_filter) == offsetof(UnitSaveStruct, turret_target_unit_id),
+  "Building upgrade task fields must alias UnitSaveStruct.turret entity region");
 
 typedef struct {
   int32_t num_buildings_by_level[5];

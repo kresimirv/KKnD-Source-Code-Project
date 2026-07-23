@@ -96,7 +96,7 @@ void __fastcall UNIT_mode_clanhall_downgrade_production(Unit *unit);
 BOOL __fastcall PROD_is_tower_available(UnitType type);
 BOOL __fastcall PROD_is_building_available(UnitType type);
 void __fastcall UNIT_mode_clanhall_on_death(Unit *unit);
-void PAL_copy(uint8_t *dst, uint8_t *src);
+void PAL_copy(uint8_t *src, uint8_t *block);
 BOOL __fastcall BOXD_collide_solid(Entity *mover, Entity *obstacle, BoxdCollisionAxis axis, BoxdAabb *mover_aabb, BoxdAabb *obstacle_aabb);
 BOOL __fastcall BOXD_collide_floor(Entity *mover, Entity *obstacle, BoxdCollisionAxis axis, BoxdAabb *mover_aabb, BoxdAabb *obstacle_aabb);
 BOOL __fastcall BOXD_collide_ramp_ltr(Entity *mover, Entity *obstacle, BoxdCollisionAxis axis, BoxdAabb *mover_aabb, BoxdAabb *obstacle_aabb);
@@ -668,7 +668,7 @@ void __fastcall UNIT_mode_outpost_on_death(Unit *unit);
 void REND_hdc_init();
 void PAL_gdi_cleanup();
 UINT __fastcall PAL_commit(PaletteEntry *pal);
-HPALETTE __fastcall PAL_gdi_palette_create(unsigned __int8 *pal, int size);
+HPALETTE __fastcall PAL_gdi_palette_create(const PaletteEntry *pal, int size);
 int PAL_restore_on_win32_activate();
 void __cdecl INPUT_keyboard_dispatcher_task(Task *task);
 void __cdecl UI_slider(Task *task);
@@ -792,6 +792,7 @@ void __fastcall MAPD_camera_follow_target(MapdCamera *camera, Entity *target);
 void __fastcall MAPD_render_mapd(MapdRenderNode *mapd, RenderNode *node);
 BOOL LVL_mapd_init();
 MapdRenderNode *__fastcall LVL_get_mapd(MenuId mapd_id, int image_id, int z);
+PaletteEntry *__fastcall MAPD_layer_palette(const LevelMapdSurface *layer, int *out_num_entries);
 void __fastcall MAPD_release(MapdRenderNode *node);
 void MAPD_camera_update();
 void MAPD_cleanup();
@@ -5255,7 +5256,10 @@ UnitStats g_unit_stats[89] =
   { MobdId_Surv_AnacondaTank,    nullptr,                    "AirStrike",               0,    0,   0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 },
   { MobdId_Invalid,              nullptr,                    "No unit here massa...",   0,    0,   0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, UnitSize_None, 0u, 0, 0, UnitType_Surv_Rifleman, 0 }
 };
-signed int g_sin_tbl[32] =
+// 32-step sine (scaled by 256). Cosine is looked up as g_sin_tbl[i + 8] (90 deg
+// phase), and orientation indices reach 31, so entries [32..39] duplicate [0..7]
+// as guard/wraparound values to keep that i+8 lookup in bounds.
+signed int g_sin_tbl[40] =
 {
   0,
   50,
@@ -5288,7 +5292,16 @@ signed int g_sin_tbl[32] =
   -181,
   -142,
   -98,
-  -50
+  -50,
+  // [32..39] == [0..7], wraparound for the cosine lookup g_sin_tbl[i + 8]
+  0,
+  50,
+  98,
+  142,
+  181,
+  213,
+  237,
+  251
 };
 int g_vbc8_prev_delta = 0; // weak
 int g_vbc8_motion_lut = 0; // weak
@@ -5569,7 +5582,7 @@ int g_dd_4798E4_unused; // weak
 HWND g_hwnd; // idb
 BOOL g_ddraw_initialized;
 int g_render_num_frames_skipped; // weak
-unsigned __int8 g_sprt_pal_4798F8_unused[256];
+unsigned __int8 g_sprt_pal_4798F8_unused[512]; // oversized so PAL_copy's 256-aligned window fits
 RenderViewport *g_rend_current_viewport;
 char g_479B00_buf_static[88];
 KeyboardState g_work_keyboard_state_static;
@@ -5929,6 +5942,7 @@ Unit *g_unit_list_tail;
 Unit *g_unit_pool;
 Unit *g_unit_free_head;
 int g_victory_condition_ticks;
+UnitEscortNode g_escort_active_list_sentinel;
 UnitEscortNode *g_escort_active_list_head;
 UnitEscortNode *g_escort_active_list_tail;
 UnitEscortNode *g_escort_pool;
@@ -5940,7 +5954,7 @@ int g_next_entity_id;
 int g_num_player_units;
 int g_num_ai_units;
 int g_num_towers;
-MobdPoint *g_mobd_anchors_default[6];
+MobdPoint g_mobd_anchor_default = {.id = 0, .x = 0, .y = 0, .z = 0};
 BOOL g_escort_initialized;
 HINSTANCE g_hinstance; // idb
 int g_cmd_show; // idb
@@ -8799,10 +8813,17 @@ void __fastcall UNIT_mode_clanhall_on_death(Unit *unit)
 }
 
 //----- (00404510) --------------------------------------------------------
-void PAL_copy(uint8_t *dst, uint8_t *src)
+// Copy a flat 256-byte sprite remap table into `block`'s 256-aligned window.
+// Per-player remap tables are allocated oversized (512 bytes) and the live
+// table lives in the aligned window, because the RLE blitters address it via
+// (ptr + 255) & ~255 (see REND_decode_rle_remapped). The original aligned the
+// destination block and copied the flat source in; the Hex-Rays output had it
+// inverted (aligning the source), leaving the real table uninitialized -> all
+// pixels remapped to index 0 -> black units. (Ref: copy_player_sprite_palette_aligned.)
+void PAL_copy(uint8_t *src, uint8_t *block)
 {
-  uint8_t *src_aligned_up = (uint8_t *)(((uintptr_t)src + 256) & ~(uintptr_t)255);
-  memcpy(dst, src_aligned_up, 256);
+  uint8_t *dst_aligned_up = (uint8_t *)(((uintptr_t)block + 255) & ~(uintptr_t)255);
+  memcpy(dst_aligned_up, src, 256);
 }
 
 //----- (00404530) --------------------------------------------------------
@@ -9030,6 +9051,15 @@ BOOL __fastcall BOXD_collide_floor(
     mover->task->sticky_events |= mover->task->transient_events;
   }
   return 1;
+}
+
+void UNIT_anchors_reset(Unit *unit) {
+  unit->mobd_anchors.turret = &g_mobd_anchor_default;
+  unit->mobd_anchors.rally = &g_mobd_anchor_default;
+  unit->mobd_anchors.render = &g_mobd_anchor_default;
+  unit->mobd_anchors.grid = &g_mobd_anchor_default;
+  unit->mobd_anchors._unit_mobd_anchors_10_unused = &g_mobd_anchor_default;
+  unit->mobd_anchors.dock_point = &g_mobd_anchor_default;
 }
 
 //----- (004047E0) --------------------------------------------------------
@@ -10173,6 +10203,7 @@ void __fastcall UISTR_set_row_y(UiStr *str, int row, int y)
 }
 
 //----- (00405A60) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 void __fastcall UISTR_set_text_multiline(UiStr *str, const char *text, int x, int y)
 {
   const char *v5; // ebp
@@ -15984,7 +16015,7 @@ void AI_cleanup()
 {
   for (int i = 0; i < PLAYERS_MAX; ++i) {
     Task *task = g_ai_players_tasks[i];
-    if (task) {
+    if (!task) {
       continue;
     }
 
@@ -16022,6 +16053,7 @@ void AI_cleanup()
       free(ai->active_wanderer_pool);
     }
     TSK_kill(task);
+    g_ai_players_tasks[i] = nullptr;// slot not repopulated for non-AI players; clear to avoid UAF on re-cleanup
   }
 }
 
@@ -20336,9 +20368,9 @@ void UNIT_status_bar_short_sprites_init()
       }
 
       if (frame % 2 == 0) {
-        if (color_idx < 4) {
-          fill_top = g_healthbar_border_color_top[color_idx];
-          fill_bot = g_healthbar_border_color_bottom[color_idx];
+        if (color_idx < 5) {   // 5 fill levels: [0]=red .. [4]=green (full health)
+          fill_top = g_healthbar_fill_color_top[color_idx];
+          fill_bot = g_healthbar_fill_color_bottom[color_idx];
           color_idx++;
         }
       }
@@ -20384,9 +20416,9 @@ void UNIT_status_bar_wide_sprites_init()
       }
 
       if (frame % 5 == 0) {
-        if (color_idx < 4) {
-          fill_top = g_healthbar_border_color_top[color_idx];
-          fill_bot = g_healthbar_border_color_bottom[color_idx];
+        if (color_idx < 5) {   // 5 fill levels: [0]=red .. [4]=green (full health)
+          fill_top = g_healthbar_fill_color_top[color_idx];
+          fill_bot = g_healthbar_fill_color_bottom[color_idx];
           color_idx++;
         }
       }
@@ -21031,6 +21063,7 @@ static void REND_present_indices(void *surface, int pitch)
 {
   if ( !g_brightness_adjusted_pal )
     return; // no palette applied yet; nothing to convert
+
   const uint8_t *src = g_dd_index_buffer;
   uint8_t *row = (uint8_t *)surface;
   for ( int y = 0; y < g_window_height; ++y )
@@ -21309,6 +21342,7 @@ BOOL __fastcall REND_mode_scrl_setup()
 }
 
 //----- (00412860) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 int __fastcall REND_mode_scrl_draw(RenderCommand *cmd, BlitterMode mode)
 {
   MapdScrlImage *image; // edi
@@ -30491,87 +30525,89 @@ BOOL __fastcall SAVE_pack_entity(Entity *entity, EntitySaveStruct *data)
   return 1;
 }
 
+// Resolves a saved unit-id reference back to a live Unit pointer. Returns
+// nullptr for the -1 sentinel, an empty list, or an id not present in the list.
+// (Save files store cross-unit links as ids; load resolves them to pointers.)
+static Unit *SAVE_find_unit_by_id(int unit_id)
+{
+  if(unit_id == -1) {
+    return nullptr;
+  }
+  for(Unit *u = g_unit_list_head; u != END(g_unit_list_head); u = u->next) {
+    if(u->unit_id == unit_id) {
+      return u;
+    }
+  }
+  return nullptr;
+}
+
+// Rescans the unit's current anim frame for the grid anchor (point id==3) and
+// caches it in mobd_anchors.grid. Anchors aren't serialized, so they are
+// recomputed on load — same INLINED point-list walk used at unit spawn.
+static void SAVE_restore_grid_anchor(Unit *unit)
+{
+  MobdPoint *pt = (MobdPoint *)unit->entity->anim_current_frame->points[0].id;
+  if(pt) {
+    for(int point_id = pt->id; point_id != -1; ++pt) {
+      if(point_id == 3) {
+        unit->mobd_anchors.grid = pt;
+      }
+      point_id = pt[1].id;
+    }
+  }
+}
+
+// Resolves a 1-based script-handler id to its function pointer (as void*), or
+// nullptr for id 0 / out of range. Bound `id <= g_script_handlers_num` is
+// verbatim from the original — note g_script_handlers_num is 353 while
+// g_script_handlers has 352 entries, so id==353 indexes one past the array;
+// kept as-is, not "fixed".
+// NOTE: id is evaluated multiple times — pass a side-effect-free expression.
+// SCRIPT_HANDLER / MESSAGE_HANDLER bake in the two casts the save data uses for
+// task tick functions (TaskFn) and message handlers (MessageHandler). The _RAW
+// form (void*) is for the mode fields, which the caller casts to their own
+// pointer types (UnitMode/TurretMode) — matching the original's per-site casts.
+#define SCRIPT_HANDLER_RAW(id) \
+  ((unsigned int)(id) && (unsigned int)(id) <= g_script_handlers_num \
+    ? g_script_handlers[(unsigned int)(id) - 1] \
+    : nullptr)
+#define SCRIPT_HANDLER(id)  ((TaskFn)SCRIPT_HANDLER_RAW(id))
+#define MESSAGE_HANDLER(id) ((MessageHandler)SCRIPT_HANDLER_RAW(id))
+
+// Re-spawns `count` technician tasks (each ctx = unit) that were live at save
+// time; only the count is serialized, not the tasks. A macro, not a function,
+// so TSK_async's `#fn` still stringifies each distinct task name for debugging.
+// NOTE: `count` is re-evaluated each iteration — pass a side-effect-free expr.
+#define SPAWN_TECHNICIANS(unit, count, fn) \
+  for(int _n = 0; _n < (count); ++_n) { \
+    Task *_t = TSK_async(TaskChannel_None, fn, 0); \
+    if(_t) \
+      _t->ctx = (unit); \
+  }
+
 //----- (0041DAA0) --------------------------------------------------------
 BOOL __fastcall SAVE_unpack_unit(Unit *unit, const UnitSaveStruct *data)
 {
-  Unit *v4; // eax
-  unsigned __int32 creature_id; // eax
   UnitType type; // eax
-  __int32 turret_target_unit_id; // ecx
-  Unit *v16; // eax
-  __int32 order_target_unit_id; // ecx
-  Unit *v33; // eax
-  __int32 opportunity_target_unit_id; // ecx
-  Unit *v35; // eax
-  __int32 last_attacker_unit_id; // ecx
-  Unit *v37; // eax
-  __int32 nav_obstacle_unit_id; // ecx
-  Unit *v39; // eax
   int v40; // eax
-  TankerSaveStruct *v43; // esi
-  __int32 task_channel; // edx
-  Unit *v45; // ecx
-  __int32 v46; // edx
-  Unit *v47; // ecx
-  __int32 v48; // edx
-  Unit *v49; // ecx
-  Unit **v50; // edx
-  char *v51; // esi
-  int v52; // edi
-  int v53; // ecx
-  Unit *v54; // eax
   BuildingState *v55; // esi
   UnitType v56; // eax
   OilPatch *v57; // eax
   int v58; // ecx
   int v59; // eax
   UnitType v60; // ecx
-  __int32 task_transient_events; // ecx
-  Unit *v62; // eax
-  int task_global_events; // edx
-  int k; // edi
-  Task *v65; // eax
   UnitType v66; // eax
-  unsigned __int32 x_speed; // eax
   void (__cdecl *v68)(Task *); // edx
   Task *v69; // edi
   Task *v70; // eax
-  unsigned __int32 y_speed; // ecx
   void (__fastcall *v72)(Task *, Task *, TaskMessageType, void *); // ecx
   UpgradeProcess *v73; // esi
-  unsigned __int32 task_wait_flags; // eax
   void *v75; // eax
-  __int32 turret_task_channel; // ecx
-  Unit *v77; // eax
-  MobdPoint *v78; // ecx
-  int m; // eax
-  MobdPoint *id; // ecx
-  int i; // eax
-  int j; // esi
-  Task *task; // eax
   Turret *turret; // ebx
   int *remaining_cost; // [esp+10h] [ebp-4h]
 
-  if ( data->locked_target_unit_id == -1 || (v4 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-  {
-LABEL_5:
-    v4 = nullptr;
-  }
-  else
-  {
-    while ( v4->unit_id != data->locked_target_unit_id )
-    {
-      v4 = v4->next;
-      if ( v4 == (Unit *)&g_unit_list_head )
-        goto LABEL_5;
-    }
-  }
-  unit->locked_target = v4;
-  creature_id = data->creature_id;
-
-  TaskFn unit_tick = nullptr;
-  if ( creature_id && creature_id <= g_script_handlers_num )
-    unit_tick = (TaskFn)g_script_handlers[creature_id - 1];
+  unit->locked_target = SAVE_find_unit_by_id(data->locked_target_unit_id);
+  TaskFn unit_tick = SCRIPT_HANDLER(data->creature_id);
   assert(unit_tick);
 
   Task *unit_task = TSK_callback((TaskChannel)data->task_channel, unit_tick);
@@ -30579,12 +30615,7 @@ LABEL_5:
 
   unit->task = unit_task;
 
-  unsigned int message_handler_id = (unsigned int)data->message_handler_id;
-  MessageHandler unit_task_msg = nullptr;
-  if ( message_handler_id && message_handler_id <= g_script_handlers_num )
-    unit_task_msg = (MessageHandler)g_script_handlers[message_handler_id - 1];
-
-  unit_task->message_handler = unit_task_msg;
+  unit_task->message_handler = MESSAGE_HANDLER(data->message_handler_id);
   unit_task->transient_events = data->task_transient_events;
   unit_task->sleep = data->task_sleep;
   unit_task->sticky_events = data->task_global_events;
@@ -30615,23 +30646,15 @@ LABEL_5:
         turret->parent = unit;
         turret->attachment = unit->stats->attachment;
 
-        unsigned int turret_creature_id = (unsigned int)data->turret_creature_id;
-        TaskFn turret_tick = nullptr;
-        if ( turret_creature_id && turret_creature_id <= g_script_handlers_num )
-          turret_tick = (TaskFn)g_script_handlers[turret_creature_id - 1];
-        else
+        TaskFn turret_tick = SCRIPT_HANDLER(data->turret_creature_id);
+        if ( !turret_tick )
           turret->task = nullptr;
         if (turret_tick)
         {
           Task *turret_task = TSK_callback((TaskChannel)data->turret_task_channel, turret_tick);
           assert(turret_task);
 
-          unsigned int turret_message_handler = (unsigned int)data->turret_message_handler;
-          MessageHandler turret_msg = nullptr;
-          if ( turret_message_handler && turret_message_handler <= g_script_handlers_num )
-            turret_msg = (MessageHandler)g_script_handlers[turret_message_handler - 1];
-
-          turret_task->message_handler = turret_msg;
+          turret_task->message_handler = MESSAGE_HANDLER(data->turret_message_handler);
           turret_task->transient_events = data->turret_task_transient_events;
           turret_task->sleep = data->turret_task_sleep;
           turret_task->sticky_events = data->turret_task_global_events;
@@ -30657,28 +30680,8 @@ LABEL_5:
         else
           turret->entity->rn->transform = (RenderTransform)REND_transform_unit_turret;
         turret->entity->parent = unit->entity;
-        turret_target_unit_id = data->turret_target_unit_id;
-        if ( turret_target_unit_id == -1
-          || (v16 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-        {
-LABEL_42:
-          v16 = nullptr;
-        }
-        else
-        {
-          while ( v16->unit_id != turret_target_unit_id )
-          {
-            v16 = v16->next;
-            if ( v16 == (Unit *)&g_unit_list_head )
-              goto LABEL_42;
-          }
-        }
-        turret->target = v16;
-        unsigned int turret_mode_idx = (unsigned int)data->turret_mode;
-        if ( turret_mode_idx && turret_mode_idx <= g_script_handlers_num )
-          turret->mode = (TurretMode)g_script_handlers[turret_mode_idx - 1];
-        else
-          turret->mode = nullptr;
+        turret->target = SAVE_find_unit_by_id(data->turret_target_unit_id);
+        turret->mode = (TurretMode)SCRIPT_HANDLER_RAW(data->turret_mode);
         assert(turret->mode);
 
         turret->current_mobd_frame = data->turret_mobd_lookup_id;
@@ -30694,51 +30697,17 @@ LABEL_42:
         unit->turret = nullptr;
       }
 
-      unsigned int unit_mode = (unsigned int)data->unit_mode;
-      if ( unit_mode && unit_mode <= g_script_handlers_num )
-        unit->mode = g_script_handlers[unit_mode - 1];
-      else
-        unit->mode = nullptr;
+      unit->mode = SCRIPT_HANDLER_RAW(data->unit_mode);
       assert(unit->mode);
-
-      unsigned int unit_mode_idle = (unsigned int)data->unit_mode_idle;
-      if ( unit_mode_idle && unit_mode_idle <= g_script_handlers_num )
-        unit->mode_idle = g_script_handlers[unit_mode_idle - 1];
-      else
-        unit->mode_idle = nullptr;
-
-      unsigned int unit_mode_arrive = (unsigned int)data->unit_mode_arrive;
-      if ( unit_mode_arrive && unit_mode_arrive <= g_script_handlers_num )
-        unit->mode_arrive = g_script_handlers[unit_mode_arrive - 1];
-      else
-        unit->mode_arrive = nullptr;
-
-      unsigned int unit_mode_attacked = (unsigned int)data->unit_mode_attacked;
-      if ( unit_mode_attacked && unit_mode_attacked <= g_script_handlers_num )
-        unit->mode_attacked = g_script_handlers[unit_mode_attacked - 1];
-      else
-        unit->mode_attacked = nullptr;
-
-      unsigned int unit_mode_return = (unsigned int)data->unit_mode_return;
-      if ( unit_mode_return && unit_mode_return <= g_script_handlers_num )
-        unit->mode_return = g_script_handlers[unit_mode_return - 1];
-      else
-        unit->mode_return = nullptr;
-
-      unsigned int unit_mode_turn_return = (unsigned int)data->unit_mode_turn_return;
-      if ( unit_mode_turn_return && unit_mode_turn_return <= g_script_handlers_num )
-        unit->mode_turn_return = g_script_handlers[unit_mode_turn_return - 1];
-      else
-        unit->mode_turn_return = nullptr;
-
-      unsigned int unit_message_handler = (unsigned int)data->unit_message_handler;
-      if ( unit_message_handler && unit_message_handler <= g_script_handlers_num )
-        unit->message_handler = (MessageHandler)g_script_handlers[unit_message_handler - 1];
-      else
-        unit->message_handler = nullptr;
+      unit->mode_idle = SCRIPT_HANDLER_RAW(data->unit_mode_idle);
+      unit->mode_arrive = SCRIPT_HANDLER_RAW(data->unit_mode_arrive);
+      unit->mode_attacked = SCRIPT_HANDLER_RAW(data->unit_mode_attacked);
+      unit->mode_return = SCRIPT_HANDLER_RAW(data->unit_mode_return);
+      unit->mode_turn_return = SCRIPT_HANDLER_RAW(data->unit_mode_turn_return);
+      unit->message_handler = MESSAGE_HANDLER(data->unit_message_handler);
 
       memset(unit->ai_node_per_side, 0, sizeof(unit->ai_node_per_side));
-      memcpy(&unit->mobd_anchors, g_mobd_anchors_default, 6*4);
+      UNIT_anchors_reset(unit);
       unit->_unit_field_78_unused = data->unit_field_78;
       unit->orientation = data->orientation;
       unit->_unit_field_80_unused = data->unit_field_80;
@@ -30765,39 +30734,8 @@ LABEL_42:
       unit->path_scan_direction = data->path_scan_direction;
       unit->path_scan_orientation = data->path_scan_orientation;
       unit->order = data->order;
-      order_target_unit_id = data->order_target_unit_id;
-      if ( order_target_unit_id == -1 || (v33 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-      {
-LABEL_84:
-        v33 = nullptr;
-      }
-      else
-      {
-        while ( v33->unit_id != order_target_unit_id )
-        {
-          v33 = v33->next;
-          if ( v33 == (Unit *)&g_unit_list_head )
-            goto LABEL_84;
-        }
-      }
-      unit->order_target = v33;
-      opportunity_target_unit_id = data->opportunity_target_unit_id;
-      if ( opportunity_target_unit_id == -1
-        || (v35 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-      {
-LABEL_89:
-        v35 = nullptr;
-      }
-      else
-      {
-        while ( v35->unit_id != opportunity_target_unit_id )
-        {
-          v35 = v35->next;
-          if ( v35 == (Unit *)&g_unit_list_head )
-            goto LABEL_89;
-        }
-      }
-      unit->opportunity_target = v35;
+      unit->order_target = SAVE_find_unit_by_id(data->order_target_unit_id);
+      unit->opportunity_target = SAVE_find_unit_by_id(data->opportunity_target_unit_id);
       unit->escort_target = nullptr;
       unit->order_target_id = data->order_target_unit_id_2;
       unit->opportunity_target_id = data->opportunity_target_unit_id_2;
@@ -30808,22 +30746,7 @@ LABEL_89:
       unit->escort_list_head = (UnitEscortNode *)&unit->escort_list_head;
       unit->escort_list_tail = (UnitEscortNode *)&unit->escort_list_head;
       unit->_unit_field_110_unused = 0;
-      last_attacker_unit_id = data->last_attacker_unit_id;
-      if ( last_attacker_unit_id == -1 || (v37 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-      {
-LABEL_94:
-        v37 = nullptr;
-      }
-      else
-      {
-        while ( v37->unit_id != last_attacker_unit_id )
-        {
-          v37 = v37->next;
-          if ( v37 == (Unit *)&g_unit_list_head )
-            goto LABEL_94;
-        }
-      }
-      unit->last_attacker = v37;
+      unit->last_attacker = SAVE_find_unit_by_id(data->last_attacker_unit_id);
       memcpy(&unit->_u1, &data->entity_field_11C, sizeof(unit->_u1));
       unit->path_flags = data->path_flags;
       unit->multi_purpose_field_1 = data->multi_purpose_field_1;
@@ -30844,22 +30767,7 @@ LABEL_94:
       memcpy(unit->ray_unit_obstacle_map_ys, data->ray_unit_obstacle_map_ys, sizeof(unit->ray_unit_obstacle_map_ys));
       memcpy(unit->ray_terrain_obstacle_xs, data->ray_terrain_obstacle_xs, sizeof(unit->ray_terrain_obstacle_xs));
       memcpy(unit->ray_terrain_obstacle_ys, data->ray_terrain_obstacle_ys, 0x58u);// BUG reading extra fields here
-      nav_obstacle_unit_id = data->nav_obstacle_unit_id;
-      if ( nav_obstacle_unit_id == -1 || (v39 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-      {
-LABEL_99:
-        v39 = nullptr;
-      }
-      else
-      {
-        while ( v39->unit_id != nav_obstacle_unit_id )
-        {
-          v39 = v39->next;
-          if ( v39 == (Unit *)&g_unit_list_head )
-            goto LABEL_99;
-        }
-      }
-      unit->nav_obstacle = v39;
+      unit->nav_obstacle = SAVE_find_unit_by_id(data->nav_obstacle_unit_id);
       unit->nav_obstacle_id = data->nav_obstacle_unit_id_2;
       v40 = 0;
       do
@@ -30871,106 +30779,42 @@ LABEL_99:
       unit->last_stuck_tile_x = data->last_stuck_tile_x;
       unit->last_stuck_tile_y = data->last_stuck_tile_y;
       unit->stuck_timer = data->stuck_timer;
+      // Building units store their type-specific state in a BuildingSaveStruct
+      // trailer right after the base record; cast once, used by the building /
+      // drillrig / upgrade paths below (harmless for non-building unit types).
+      const BuildingSaveStruct *bld = (const BuildingSaveStruct *)&data[1];
       switch ( unit->type )
       {
         case UnitType_Surv_Tanker:
         case UnitType_Mute_Tanker: {
-          v43 = (TankerSaveStruct *)&data[1];
-          if ( (unsigned)data[1].locked_target_unit_id == 0xFC000000 )
+          const TankerSaveStruct *saved = (const TankerSaveStruct *)&data[1];
+          if ( (unsigned)saved->oil_loaded == 0xFC000000 )
             goto LABEL_206;
           TankerState *tanker_state = TSK_alloc(unit->task, sizeof(TankerState));
           assert(tanker_state);
 
           unit->state = tanker_state;
-          tanker_state->oil_loaded = v43->oil_loaded;
-          task_channel = data[1].task_channel;
-          if ( task_channel == -1 )
-            goto LABEL_109;
-          v45 = g_unit_list_head;
-          if ( g_unit_list_head == (Unit *)&g_unit_list_head )
-            goto LABEL_109;
-          do
-          {
-            if ( v45->unit_id == task_channel )
-              goto LABEL_110;
-            v45 = v45->next;
-          }
-          while ( v45 != (Unit *)&g_unit_list_head );
-LABEL_109:
-          v45 = nullptr;
-LABEL_110:
-          tanker_state->current_destination = v45;
-          v46 = data[1].creature_id;
-          if ( v46 == -1 || (v47 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-          {
-LABEL_114:
-            v47 = nullptr;
-          }
-          else
-          {
-            while ( v47->unit_id != v46 )
-            {
-              v47 = v47->next;
-              if ( v47 == (Unit *)&g_unit_list_head )
-                goto LABEL_114;
-            }
-          }
-          tanker_state->powerplant = v47;
-          v48 = data[1].message_handler_id;
-          if ( v48 == -1 || (v49 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-          {
-LABEL_119:
-            v49 = nullptr;
-          }
-          else
-          {
-            while ( v49->unit_id != v48 )
-            {
-              v49 = v49->next;
-              if ( v49 == (Unit *)&g_unit_list_head )
-                goto LABEL_119;
-            }
-          }
-          tanker_state->drillrig = v49;
-          tanker_state->drillrig_unit_id = data[1].task_transient_events;
-          tanker_state->powerplant_unit_id = data[1].task_sleep;
-          tanker_state->current_destination_unit_id = data[1].task_global_events;
-          tanker_state->num_destinations = data[1].task_wait_flags;
-          v50 = tanker_state->destinations;
-          v51 = (char *)((char *)v43 - (char *)tanker_state);
-          v52 = 20;
-          while ( 1 )
-          {
-            v53 = *(int *)((char *)v50 + (int)v51);
-            if ( v53 == -1 || (v54 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-            {
-LABEL_125:
-              v54 = nullptr;
-            }
-            else
-            {
-              while ( v54->unit_id != v53 )
-              {
-                v54 = v54->next;
-                if ( v54 == (Unit *)&g_unit_list_head )
-                  goto LABEL_125;
-              }
-            }
-            *v50++ = v54;
-            if ( !--v52 )
-            {
-              UNIT_tanker_status_bar_init(unit);
-              goto LABEL_131;
-            }
-          }
+          tanker_state->oil_loaded = saved->oil_loaded;
+          tanker_state->current_destination = SAVE_find_unit_by_id(saved->current_destination_unit_id);
+          tanker_state->powerplant = SAVE_find_unit_by_id(saved->powerplant_unit_id);
+          tanker_state->drillrig = SAVE_find_unit_by_id(saved->drillrig_unit_id);
+          tanker_state->drillrig_unit_id = saved->drillrig_unit_id_2;
+          tanker_state->powerplant_unit_id = saved->powerplant_unit_id_2;
+          tanker_state->current_destination_unit_id = saved->current_destination_unit_id_2;
+          tanker_state->num_destinations = saved->num_destinations;
+          for ( int i = 0; i < 20; ++i )
+            tanker_state->destinations[i] = SAVE_find_unit_by_id(saved->destinations[i]);
+          UNIT_tanker_status_bar_init(unit);
+          goto LABEL_131;
         }
         case UnitType_TankerConvoy: {
+          const TankerConvoySaveStruct *saved = (const TankerConvoySaveStruct *)&data[1];
           TankerConvoyState *state = TSK_alloc(unit->task, sizeof(TankerConvoyState));
           assert(state);
           unit->state = state;
-          state->x = data[1].locked_target_unit_id;
-          state->y = data[1].task_channel;
-          state->checkpoint = data[1].creature_id;
+          state->x = saved->x;
+          state->y = saved->y;
+          state->checkpoint = saved->checkpoint;
           UNIT_rendering_default(unit);
 LABEL_131:
           unit->entity->is_collidable = 1;
@@ -31018,22 +30862,8 @@ LABEL_131:
         case UnitType_Mute_RotaryCannon:
           unit->state = nullptr;
           UNIT_rendering_default(unit);
-          id = (MobdPoint *)unit->entity->anim_current_frame->points[0].id; // INLINED NNN
-          if ( id )
-          {
-            for ( i = id->id; i != -1; ++id )
-            {
-              if ( i == 3 )
-                unit->mobd_anchors.grid = id;
-              i = id[1].id;
-            }
-          }
-          for ( j = 0; j < unit->multi_purpose_field_1; ++j )
-          {
-            task = TSK_async(TaskChannel_None, UNIT_technician_repairing_tower_task, 0);
-            if ( task )
-              task->ctx = unit;
-          }
+          SAVE_restore_grid_anchor(unit);
+          SPAWN_TECHNICIANS(unit, unit->multi_purpose_field_1, UNIT_technician_repairing_tower_task);
           goto LABEL_194;
         default:
 LABEL_206:
@@ -31043,7 +30873,7 @@ LABEL_206:
           BOXD_place_unit_world_coords(unit, unit->entity->x, unit->entity->y, UnitPosition_Slot0);
           goto LABEL_207;
       }
-      while ( v58 != data[1].locked_target_unit_id )// BUG - full of bugs this function is
+      while ( v58 != bld->oil_patch_index )
       {
         v57 = v57->next;
         ++v58;
@@ -31058,7 +30888,7 @@ LABEL_139:
         v57->drillrig = unit;
       v55->ctx = v57;
 LABEL_143:
-      v59 = data[1].task_channel;
+      v59 = bld->upgrade_level;
       v55->upgrade_level = v59;
       v60 = unit->type;
       if ( (v60 == UnitType_Surv_Outpost || v60 == UnitType_Mute_Clanhall)
@@ -31068,62 +30898,34 @@ LABEL_143:
         MINI_enable();
       }
       remaining_cost = &v55->upgrade_remaining_cost;
-      v55->upgrade_remaining_cost = data[1].creature_id;
-      *(int *)&v55->same_building_count = data[1].message_handler_id;
+      v55->upgrade_remaining_cost = bld->upgrade_remaining_cost;
+      v55->same_building_count = bld->same_building_count;
+      v55->garrison_strength = bld->garrison_strength;
       v55->prod = nullptr;
-      task_transient_events = data[1].task_transient_events;
-      if ( task_transient_events == -1 || (v62 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-      {
-LABEL_152:
-        v62 = nullptr;
-      }
-      else
-      {
-        while ( v62->unit_id != task_transient_events )
-        {
-          v62 = v62->next;
-          if ( v62 == (Unit *)&g_unit_list_head )
-            goto LABEL_152;
-        }
-      }
-      v55->docked_tanker = v62;
-      v55->docked_tanker_unit_id = data[1].task_sleep;
+      v55->docked_tanker = SAVE_find_unit_by_id(bld->docked_tanker_unit_id);
+      v55->docked_tanker_unit_id = bld->docked_tanker_unit_id_2;
       UNIT_building_status_bar_init(unit);
-      task_global_events = data[1].task_global_events;
       v55->repair_anim = nullptr;
-      v55->num_active_repairs = task_global_events;
+      v55->num_active_repairs = bld->num_active_repairs;
       if ( unit->player_num == g_player_num )
         LIMITS_inc(unit->type);
-      for ( k = 0; k < v55->num_active_repairs; ++k )
-      {
-        v65 = TSK_async(TaskChannel_None, UNIT_technician_repairing_building_task, 0);
-        if ( v65 )
-          v65->ctx = unit;
-      }
+      SPAWN_TECHNICIANS(unit, v55->num_active_repairs, UNIT_technician_repairing_building_task);
       v66 = unit->type;
       if ( (v66 != UnitType_Surv_ResearchLab && v66 != UnitType_Surv_AlchemyHall) || !*remaining_cost )
         goto LABEL_189;
-      x_speed = data[1].turret.x_speed;
-      if ( x_speed && x_speed <= g_script_handlers_num )
-        v68 = g_script_handlers[x_speed - 1];
-      else
-        v68 = nullptr;
+      v68 = SCRIPT_HANDLER(bld->upgrade_tick_id);
       if ( v68 )
       {
-        v70 = TSK_callback((TaskChannel)data[1].turret.z_index, v68);
+        v70 = TSK_callback((TaskChannel)bld->upgrade_task_channel, v68);
         if ( v70 )
         {
-          y_speed = data[1].turret.y_speed;
-          if ( y_speed && y_speed <= g_script_handlers_num )
-            v72 = g_script_handlers[y_speed - 1];
-          else
-            v72 = nullptr;
+          v72 = MESSAGE_HANDLER(bld->upgrade_message_handler_id);
           v70->message_handler = v72;
-          v70->transient_events = data[1].turret.z_speed;
-          v70->sleep = data[1].turret.mobd_offset;
-          v70->sticky_events = data[1].turret._54_inside_mobd_ptr4;
-          v70->wait_flags = data[1].turret.anim_speed;
-          v70->wait_filter = data[1].turret_target_unit_id;
+          v70->transient_events = bld->upgrade_task_transient_events;
+          v70->sleep = bld->upgrade_task_sleep;
+          v70->sticky_events = bld->upgrade_task_sticky_events;
+          v70->wait_flags = bld->upgrade_task_wait_flags;
+          v70->wait_filter = bld->upgrade_task_wait_filter;
         }
         v69 = v70;
       }
@@ -31138,32 +30940,13 @@ LABEL_152:
       if (v73)
       {
         v73->task = v69;
-        task_wait_flags = data[1].task_wait_flags;
-        if ( task_wait_flags && task_wait_flags <= g_script_handlers_num )
-          v75 = g_script_handlers[task_wait_flags - 1];
-        else
-          v75 = nullptr;
+        v75 = SCRIPT_HANDLER_RAW(bld->upgrade_mode_id);
         v73->mode = v75;
-        v73->pulse_cooldown = (int)data[1].task_field_2C;
-        v73->stage = (int)data[1].type;
-        v73->cancelled = (BOOL)data[1].player_num;
-        turret_task_channel = data[1].turret_task_channel;
-        if ( turret_task_channel == -1 || (v77 = g_unit_list_head, g_unit_list_head == (Unit *)&g_unit_list_head) )
-        {
-LABEL_186:
-          v77 = nullptr;
-        }
-        else
-        {
-          while ( v77->unit_id != turret_task_channel )
-          {
-            v77 = v77->next;
-            if ( v77 == (Unit *)&g_unit_list_head )
-              goto LABEL_186;
-          }
-        }
-        v73->building = v77;
-        v73->progress_bar = SAVE_unpack_entity((const EntitySaveStruct *)&data[1].turret_creature_id);
+        v73->pulse_cooldown = (int)bld->upgrade_pulse_cooldown;
+        v73->stage = (int)bld->upgrade_stage;
+        v73->cancelled = (BOOL)bld->upgrade_cancelled;
+        v73->building = SAVE_find_unit_by_id(bld->upgrade_building_unit_id);
+        v73->progress_bar = SAVE_unpack_entity(&bld->upgrade_progress_bar);
         if (v73)
         {
           v73->progress_bar->ctx1 = remaining_cost;
@@ -31173,16 +30956,7 @@ LABEL_186:
           PROD_enqueue_one_ex(&g_cash.cash[unit->player_num], remaining_cost, 300, 42, unit->task, v73->building, -1);
           unit->entity->parent = (Entity *)v73->building->unit_id;
 LABEL_189:
-          v78 = (MobdPoint *)unit->entity->anim_current_frame->points[0].id;
-          if ( v78 )
-          {
-            for ( m = v78->id; m != -1; ++v78 )
-            {
-              if ( m == 3 )
-                unit->mobd_anchors.grid = v78;
-              m = v78[1].id;
-            }
-          }
+          SAVE_restore_grid_anchor(unit);
 LABEL_194:
           BOXD_building_claim_area(unit);
 LABEL_207:
@@ -31199,6 +30973,11 @@ LABEL_207:
   }
   return 0;
 }
+
+#undef SCRIPT_HANDLER
+#undef MESSAGE_HANDLER
+#undef SCRIPT_HANDLER_RAW
+#undef SPAWN_TECHNICIANS
 
 //----- (0041E8E0) --------------------------------------------------------
 Entity *__fastcall SAVE_unpack_entity(const EntitySaveStruct *data)
@@ -34206,203 +33985,192 @@ LABEL_68:
   return 0;
 }
 
+// Reads a 4-byte length prefix, allocates that many bytes, and reads the block
+// into them. Returns the malloc'd buffer (caller frees) or nullptr if the
+// length/data could not be read or the allocation failed.
+static void *GAME_load_read_block(FILE *f)
+{
+  uint32_t size;
+  void *buf;
+
+  if(!fread(&size, 1u, sizeof(size), f)) {
+    return nullptr;
+  }
+  buf = malloc(size);
+  if(!buf) {
+    return nullptr;
+  }
+  if(!fread(buf, 1u, size, f)) {
+    free(buf);
+    return nullptr;
+  }
+  return buf;
+}
+
 //----- (004218B0) --------------------------------------------------------
 BOOL GAME_load()
 {
-  Entity *v0; // eax
-  Task *task; // eax
-  FILE *v2; // eax MAPDST
-  OilPatchSaveStruct *v4; // eax
-  OilPatchSaveStruct *v5; // esi
-  int i; // ecx
-  Unit *v7; // eax
-  Unit *v8; // ecx
-  Unit *next; // edx
-  UnitSaveStruct *v10; // ebp
-  Unit *v11; // esi
-  int player_num; // eax
-  AiPlayersSaveStruct *v13; // eax
-  AiPlayersSaveStruct *v14; // esi
-  void *v15; // eax
-  void *v16; // esi
-  char *v17; // eax
-  char *v18; // ebp
-  MapdScrlImageTile **v19; // ecx
-  char *v20; // edx
-  int v21; // esi
-  char v22; // al
-  MapdScrlImageTile *v23; // eax
-  MetaSaveStruct *v24; // esi
-  size_t Size; // [esp+10h] [ebp-14h] BYREF
-  int v27; // [esp+14h] [ebp-10h] BYREF
-  BOOL v28; // [esp+18h] [ebp-Ch]
-  int Buffer[2]; // [esp+1Ch] [ebp-8h] BYREF
+  Entity *cursor;
+  FILE *f;
+  int camera[2];
 
-  v27 = -1;
-  v28 = 0;
-  v0 = ENT_find_by_mobd_id(MobdId_Cursors);
-  if ( !v0
-    || (task = v0->task) == nullptr
-    || (g_game_update_loop_task = task,
-        g_num_player_units = 0,
-        g_num_ai_units = 0,
-        (v2 = fopen(g_current_savegame_filename, "rb")) == nullptr) )
-  {
+  cursor = ENT_find_by_mobd_id(MobdId_Cursors);
+  if(!cursor || !cursor->task) {
     g_is_game_loading = 0;
     return 0;
   }
-  if ( !fread(&g_player_num, 1u, 4u, v2) )
-    goto LABEL_56;
-  if ( !fread(&g_cash, 1u, 0x1Cu, v2) )
-    goto LABEL_56;
-  if ( !fread(&g_diplomacy, 1u, 0xC4u, v2) )
-    goto LABEL_56;
-  if ( !fread(Buffer, 1u, 8u, v2) )
-    goto LABEL_56;
-  g_mapd_camera.x = Buffer[0];
-  g_mapd_camera.y = Buffer[1];
-  if ( !fread(&Size, 1u, 4u, v2) )
-    goto LABEL_56;
-  v4 = (OilPatchSaveStruct *)malloc(Size);
-  v5 = v4;
-  if ( !v4 )
-    goto LABEL_56;
-  if ( !fread(v4, 1u, Size, v2) )
-    goto LABEL_56;
-  if ( !SAVE_unpack_oil(v5) )
-    goto LABEL_56;
-  free(v5);
-  if ( !fread(&v27, 1u, 4u, v2) )
-    goto LABEL_56;
-  for ( i = v27; v27 != -1; i = v27 )
-  {
-    v7 = g_unit_free_head;
-    if ( g_unit_free_head )
-      g_unit_free_head = g_unit_free_head->next;
-    else
-      v7 = nullptr;
-    if ( !v7 )
-      goto LABEL_59;
-    v7->unit_id = i;
-    if ( v27 >= g_next_entity_id )
-      g_next_entity_id = v27 + 1;
-    v8 = g_unit_list_tail;
-    next = g_unit_list_tail->next;
-    v7->prev = g_unit_list_tail;
-    v7->next = next;
-    v8->next->prev = v7;
-    v8->next = v7;
-    if ( !fread(&v27, 1u, 4u, v2) )
-      goto LABEL_59;
-  }
-  if ( !fread(&Size, 1u, 4u, v2) || (v10 = (UnitSaveStruct *)malloc(Size)) == nullptr )
-  {
-LABEL_56:
-    fclose(v2);
+  g_game_update_loop_task = cursor->task;
+  g_num_player_units = 0;
+  g_num_ai_units = 0;
+
+  f = fopen(g_current_savegame_filename, "rb");
+  if(!f) {
     g_is_game_loading = 0;
-    return v28;
+    return 0;
   }
-  v11 = g_unit_list_head;
-  if ( g_unit_list_head == (Unit *)&g_unit_list_head )
+
+  if(!fread(&g_player_num, 1u, 4u, f)
+    || !fread(&g_cash, 1u, 0x1Cu, f)
+    || !fread(&g_diplomacy, 1u, 0xC4u, f)
+    || !fread(camera, 1u, 8u, f)) {
+    goto fail;
+  }
+  g_mapd_camera.x = camera[0];
+  g_mapd_camera.y = camera[1];
+
   {
-LABEL_33:
-    free(v10);
-    if ( fread(&Size, 1u, 4u, v2) )
-    {
-      v13 = (AiPlayersSaveStruct *)malloc(Size);
-      v14 = v13;
-      if ( v13 )
-      {
-        if ( fread((void *)v13, 1u, Size, v2) )
-        {
-          if ( SAVE_unpack_ai_players(v14) )
-          {
-            free((void *)v14);
-            if ( fread(&Size, 1u, 4u, v2) )
-            {
-              v15 = malloc(Size);
-              v16 = v15;
-              if ( v15 )
-              {
-                if ( fread(v15, 1u, Size, v2) )
-                {
-                  if ( SAVE_unpack_prod((int *)v16) )
-                  {
-                    free(v16);
-                    if ( fread(&Size, 1u, 4u, v2) )
-                    {
-                      v17 = (char *)malloc(Size);
-                      v18 = v17;
-                      if ( v17 )
-                      {
-                        if ( fread(v17, 1u, Size, v2) )
-                        {
-                          v19 = g_shroud_grid;
-                          v20 = v18;
-                          if ( (g_map_num_tiles_y + 4) * (g_map_num_tiles_x + 4) > 0 )// INLINED version of pack
-                          {
-                            v21 = (g_map_num_tiles_y + 4) * (g_map_num_tiles_x + 4);
-                            do
-                            {
-                              v22 = *v20;
-                              if ( *v20 <= 0 || v22 >= 16 )
-                                v23 = nullptr;
-                              else
-                                v23 = g_shroud_backup->tiles[(int)v22];
-                              *v19++ = v23;
-                              ++v20;
-                              --v21;
-                            }
-                            while ( v21 );
-                          }
-                          SAVE_unpack_shroud();
-                          free(v18);
-                          if ( fread(&Size, 1u, 4u, v2) )
-                          {
-                            v24 = (MetaSaveStruct *)malloc(Size);
-                            if ( v24 )
-                            {
-                              if ( fread(v24, 1u, Size, v2) )
-                              {
-                                if ( SAVE_unpack_meta(v24) )
-                                {
-                                  free(v24);
-                                  v28 = 1;
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+    OilPatchSaveStruct *oil = (OilPatchSaveStruct *)GAME_load_read_block(f);
+    if(!oil) {
+      goto fail;
+    }
+    if(!SAVE_unpack_oil(oil)) {
+      free(oil);
+      goto fail;
+    }
+    free(oil);
+  }
+
+  {
+    int32_t unit_id;
+
+    if(!fread(&unit_id, 1u, sizeof(unit_id), f)) {
+      goto fail;
+    }
+    while(unit_id != -1) {
+      Unit *unit = g_unit_free_head;
+      if(!unit) {
+        goto fail;                          // out of free unit slots
+      }
+      g_unit_free_head = unit->next;
+      unit->unit_id = unit_id;
+      if(unit_id >= g_next_entity_id) {
+        g_next_entity_id = unit_id + 1;
+      }
+      // link at the tail of the circular live list
+      Unit *tail = g_unit_list_tail;
+      unit->prev = tail;
+      unit->next = tail->next;
+      tail->next->prev = unit;
+      tail->next = unit;
+      if(!fread(&unit_id, 1u, 4u, f)) {
+        goto fail;
       }
     }
-    goto LABEL_56;
   }
-  while ( fread(&Size, 1u, 4u, v2) && fread(v10, 1u, Size, v2) && SAVE_unpack_unit(v11, v10) )
+
+  // --- Unit state: one length-prefixed record per live unit, unpacked in list
+  //     order. The record buffer is sized once (from the first size) and
+  //     reused for every unit. ---
   {
-    player_num = v11->player_num;
-    if ( player_num == g_player_num )
-    {
-      ++g_num_player_units;
+    uint32_t size;
+    UnitSaveStruct *record;
+    Unit *unit;
+
+    if(!fread(&size, 1u, sizeof(size), f)) {
+      goto fail;
     }
-    else if ( player_num )
-    {
-      ++g_num_ai_units;
+    record = (UnitSaveStruct *)malloc(size);
+    if(!record) {
+      goto fail;
     }
-    v11 = v11->next;
-    if ( v11 == (Unit *)&g_unit_list_head )
-      goto LABEL_33;
+    for(unit = g_unit_list_head; unit != END(g_unit_list_head); unit = unit->next) {
+      if(!fread(&size, 1u, sizeof(size), f)
+        || !fread(record, 1u, size, f)
+        || !SAVE_unpack_unit(unit, record)) {
+        free(record);
+        goto fail;
+      }
+      if(unit->player_num == g_player_num) {
+        ++g_num_player_units;
+      } else if(unit->player_num) {
+        ++g_num_ai_units;
+      }
+    }
+    free(record);
   }
-  free(v10);
-LABEL_59:
-  fclose(v2);
+
+  {
+    AiPlayersSaveStruct *ai = (AiPlayersSaveStruct *)GAME_load_read_block(f);
+    if(!ai) {
+      goto fail;
+    }
+    if(!SAVE_unpack_ai_players(ai)) {
+      free(ai);
+      goto fail;
+    }
+    free(ai);
+  }
+
+  {
+    int *prod = (int *)GAME_load_read_block(f);
+    if(!prod) {
+      goto fail;
+    }
+    if(!SAVE_unpack_prod(prod)) {
+      free(prod);
+      goto fail;
+    }
+    free(prod);
+  }
+
+  // --- Shroud: one byte per grid cell (1..15 = tile index, else uncovered) is
+  //     expanded into the tile-pointer grid, then unpacked. ---
+  {
+    char *shroud = (char *)GAME_load_read_block(f);
+    if(!shroud) {
+      goto fail;
+    }
+    int cell_count = (g_map_num_tiles_y + 4) * (g_map_num_tiles_x + 4);
+    for(int i = 0; i < cell_count; ++i) {
+      int tile = (int)shroud[i];
+      if(tile <= 0 || tile >= 16) {
+        g_shroud_grid[i] = nullptr;
+      } else {
+        g_shroud_grid[i] = g_shroud_backup->tiles[tile];
+      }
+    }
+    SAVE_unpack_shroud();
+    free(shroud);
+  }
+
+  {
+    MetaSaveStruct *meta = (MetaSaveStruct *)GAME_load_read_block(f);
+    if(!meta) {
+      goto fail;
+    }
+    if(!SAVE_unpack_meta(meta)) {
+      free(meta);
+      goto fail;
+    }
+    free(meta);
+  }
+
+  fclose(f);
+  g_is_game_loading = 0;
+  return 1;
+
+fail:
+  fclose(f);
   g_is_game_loading = 0;
   return 0;
 }
@@ -35290,7 +35058,7 @@ void GAME_mission_load()
   }
   FADE_reset();
   mapd = (LevelMapd *)LVL_find_section("MAPD");
-  PAL_apply(mapd[0].layers[0].palette);
+  PAL_apply(MAPD_layer_palette(&mapd[0].layers[0], NULL));   // game-level mapd has 2 images; palette offset is num_images-dependent
   UI_sidebar_init();
   LVL_terrain_init();
   PAL_multi_init();
@@ -35329,8 +35097,7 @@ void GAME_mission_load()
       LVL_cleanup();
       NETZ_shutdown();
       SYS_shutdown();
-      if ( "LoadGameState() failed\n" )
-        printf("%s", "LoadGameState() failed\n");
+      printf("LoadGameState() failed\n");
       exit(0);
     }
     g_game_loop = GameLoop_Continue;
@@ -39039,6 +38806,7 @@ void __fastcall ENT_anim_hot_swap(Entity *entity, ptrdiff_t anim)
 }
 
 //----- (004273B0) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 void __fastcall ENT_anim_hot_swap_frame(Entity *entity, ptrdiff_t anim, ptrdiff_t frame)
 {
   MobdAnimation *anim_; // esi
@@ -48075,111 +47843,76 @@ void PAL_gdi_cleanup()
 //----- (00431980) --------------------------------------------------------
 UINT __fastcall PAL_commit(PaletteEntry *pal)
 {
-  UINT result; // eax
-  PaletteEntry *v2; // edx
-  Coroutine *v3; // et1
-  BYTE *p_peGreen; // ecx
-  BYTE *p_b; // eax
-  int v1; // eax
-  char *v7; // ecx
-  char *p_g; // eax
-  HPALETTE v9; // esi
-  Coroutine *v10; // et1
-  int v11; // [esp-Ch] [ebp-410h] BYREF
-  char v12[1024]; // [esp+0h] [ebp-404h] BYREF
-  int v13; // [esp+400h] [ebp-4h]
+  int i;
+  int v1;                 // eax
+  HPALETTE old_hpalette;  // esi
+  int stack_marker;       // [ebp-410h] BYREF -- coroutine stack sentinel
 
-  result = g_window_bpp;
-  v2 = pal;
-  if ( g_window_bpp == 8 )
+  if ( g_window_bpp != 8 )
+    return g_window_bpp;
+
+  // INLINED LLL enter
+  g_coroutine_eax = 8;
+  if ( g_coroutine_list_head != g_coroutine_current && ++g_coroutine_nesting_depth == 1 )
+    g_coroutine_esp = &stack_marker;
+
+  g_pal_47C018_unused = 0;
+  g_pal_468FD4_unused = 1;
+  g_pal_468FD8_unused = 2;
+  g_pal_bytes_per_color = 4;
+
+  // Keep a copy of the last committed palette so PAL_restore_on_win32_activate
+  // can reload it. If pal is null, re-commit whatever is already buffered.
+  if ( pal )
+    memcpy(g_pal_hw_buf, pal, sizeof(g_pal_hw_buf));
+  else
+    pal = g_pal_hw_buf;
+
+  if ( g_fullscreen )
   {
-    g_coroutine_eax = 8;  // INLINED LLL
-    v3 = g_coroutine_current;
-    if ( g_coroutine_list_head != v3 && ++g_coroutine_nesting_depth == 1 )
-      g_coroutine_esp = &v11;
-    g_pal_47C018_unused = 0;
-    g_pal_468FD4_unused = 1;
-    g_pal_468FD8_unused = 2;
-    g_pal_bytes_per_color = 4;
-    if ( pal )
-      memcpy(g_pal_hw_buf, pal, sizeof(g_pal_hw_buf));
-    else
-      v2 = g_pal_hw_buf;
-    if ( g_fullscreen )
+    for ( i = 0; i < 256; ++i )
     {
-      p_peGreen = &g_dd_palette[0].peGreen;  // INLINED LLL (cont'd)
-      p_b = &v2->b;
-      do
-      {
-        p_b[&g_dd_palette[0].peGreen - (BYTE *)v2] = 0;
-        *(p_peGreen - 1) = *(p_b - 2);
-        *p_peGreen = *(p_b - 1);
-        p_b[(char *)g_dd_palette - (char *)v2] = *p_b;
-        p_peGreen += 4;
-        p_b += 4;
-      }
-      while ( (int)p_peGreen < (int)&g_dd_palette[256] );
-      v1 = REND_is_primary_surface_lost();      // INLINED (see PAL_restore_on_win32_activate)
-      if ( !v1 )
-      {
-        v1 = (int)g_ddpal;
-        if ( g_ddpal )
-          v1 = g_ddpal->lpVtbl->SetEntries(g_ddpal, 0, 0, 256, g_dd_palette);
-      }
+      g_dd_palette[i].peRed   = pal[i].r;
+      g_dd_palette[i].peGreen = pal[i].g;
+      g_dd_palette[i].peBlue  = pal[i].b;
+      g_dd_palette[i].peFlags = 0;
     }
-    else
+    v1 = REND_is_primary_surface_lost();
+    if ( !v1 )
     {
-      v7 = v12;
-      p_g = (char *)&v2->g;
-      v13 = 256;
-      do
-      {
-        p_g[&v12[2] - (char *)v2] = 0;
-        *v7 = p_g[1];
-        p_g[v12 - (char *)v2] = *p_g;
-        p_g[&v12[1] - (char *)v2] = *(p_g - 1);
-        v7 += 4;
-        p_g += 4;
-        --v13;
-      }
-      while ( v13 );
-      v9 = g_gdi_hpalette;
-      if ( g_gdi_hpalette )
-      {
-        g_gdi_hpalette = PAL_gdi_palette_create((unsigned __int8 *)v12, 256);
-        SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
-        DeleteObject(v9);
-      }
-      else
-      {
-        g_gdi_hpalette = PAL_gdi_palette_create((unsigned __int8 *)v12, 256);
-        g_gdi_hpalette_prev = SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
-      }
-      v1 = RealizePalette(g_window_hdc);
+      v1 = (int)g_ddpal;
+      if ( g_ddpal )
+        v1 = g_ddpal->lpVtbl->SetEntries(g_ddpal, 0, 0, 256, g_dd_palette);
     }
-    g_coroutine_eax = v1;
-    v10 = g_coroutine_current;
-    if ( g_coroutine_list_head != v10 )
-      --g_coroutine_nesting_depth;
-    return g_coroutine_eax;
   }
-  return result;
+  else
+  {
+    old_hpalette = g_gdi_hpalette;
+    if ( g_gdi_hpalette )
+    {
+      g_gdi_hpalette = PAL_gdi_palette_create(pal, 256);
+      SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
+      DeleteObject(old_hpalette);
+    }
+    else
+    {
+      g_gdi_hpalette = PAL_gdi_palette_create(pal, 256);
+      g_gdi_hpalette_prev = SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
+    }
+    v1 = RealizePalette(g_window_hdc);
+  }
+
+  // INLINED LLL leave
+  g_coroutine_eax = v1;
+  if ( g_coroutine_list_head != g_coroutine_current )
+    --g_coroutine_nesting_depth;
+  return g_coroutine_eax;
 }
 
 //----- (00431B60) --------------------------------------------------------
-HPALETTE __fastcall PAL_gdi_palette_create(unsigned __int8 *pal, int size)
+HPALETTE __fastcall PAL_gdi_palette_create(const PaletteEntry *pal, int size)
 {
-  int v3; // ecx
-  int v4; // esi
-  int v5; // edi
-  unsigned __int8 *v6; // eax
-  int v7; // ebp
-  int v8; // edx
-  unsigned __int8 *v9; // eax
-  int v10; // edx
-  unsigned __int8 *v11; // eax
-  int v12; // edx
-  int v14; // [esp+14h] [ebp-408h]
+  int i;
   // Real stack layout is a LOGPALETTE header + 256 PALETTEENTRY (0x404 bytes,
   // matches [ebp-404h]); windows.h's LOGPALETTE only declares palPalEntry[1].
   struct { WORD palVersion; WORD palNumEntries; PALETTEENTRY palPalEntry[256]; } plpal; // [esp+18h] [ebp-404h] BYREF
@@ -48187,50 +47920,17 @@ HPALETTE __fastcall PAL_gdi_palette_create(unsigned __int8 *pal, int size)
   plpal.palVersion = 0x300;
   plpal.palNumEntries = 256;
   memset(plpal.palPalEntry, 0, 0x400u);
-  v14 = size - 10;
-  v3 = &plpal.palPalEntry[0].peBlue - pal;
-  v4 = (char *)&plpal.palNumEntries + 1 - (char *)pal;
-  v5 = (char *)plpal.palPalEntry - (char *)pal;
-  v6 = pal + 1;
-  v7 = &plpal.palPalEntry[0].peGreen - pal;
-  v8 = 10;
-  do
+
+  // Windows reserves the first and last 10 palette slots for the 20 system
+  // static colors. Leaving them zero-filled with peFlags == 0 makes GDI map
+  // them to those system colors; fill the remaining slots with our colors.
+  for ( i = 10; i < size - 10; ++i )
   {
-    v6[v3] = 0;
-    v6[1] = v6[v4];
-    *v6 = v6[v5];
-    *(v6 - 1) = v6[v7];
-    v6 += 4;
-    --v8;
+    plpal.palPalEntry[i].peRed   = pal[i].r;
+    plpal.palPalEntry[i].peGreen = pal[i].g;
+    plpal.palPalEntry[i].peBlue  = pal[i].b;
+    plpal.palPalEntry[i].peFlags = PC_RESERVED | PC_NOCOLLAPSE; // 5
   }
-  while ( v8 );
-  if ( v14 > 10 )
-  {
-    v9 = pal + 41;
-    v10 = v14 - 10;
-    do
-    {
-      v9[v4] = v9[1];
-      v9[v5] = *v9;
-      v9[v7] = *(v9 - 1);
-      v9[v3] = 5;
-      v9 += 4;
-      --v10;
-    }
-    while ( v10 );
-  }
-  v11 = pal + 985;
-  v12 = 10;
-  do
-  {
-    v11[v3] = 0;
-    v11[1] = v11[v4];
-    *v11 = v11[v5];
-    *(v11 - 1) = v11[v7];
-    v11 += 4;
-    --v12;
-  }
-  while ( v12 );
   return CreatePalette((LOGPALETTE *)&plpal);
 }
 
@@ -48238,106 +47938,73 @@ HPALETTE __fastcall PAL_gdi_palette_create(unsigned __int8 *pal, int size)
 int PAL_restore_on_win32_activate()
 {
   int result = 0; // eax
-  int v1; // edx
-  int i; // ecx
-  Coroutine *v3; // et1
-  PaletteEntry *v4; // edx
-  BYTE *p_peGreen; // ecx
-  BYTE *p_b; // eax
+  int i;
   int is_primary_surface_lost; // eax
-  unsigned __int8 *p_pal; // ecx
-  unsigned __int8 *p_g; // eax
-  HPALETTE v10; // esi
-  Coroutine *v11; // et1
-  int v12; // [esp-Ch] [ebp-410h] BYREF
-  unsigned __int8 pal; // [esp+0h] [ebp-404h] BYREF
-  char v14; // [esp+1h] [ebp-403h] BYREF
-  _BYTE v15[1022]; // [esp+2h] [ebp-402h] BYREF
-  int v16; // [esp+400h] [ebp-4h]
+  HPALETTE old_hpalette; // esi
+  int stack_marker; // [ebp-410h] BYREF -- coroutine stack sentinel
 
-  if ( g_window_bpp == 8 )
+  if ( g_window_bpp != 8 )
+    return result;
+
+  // Copy the buffered hardware palette into g_47BC10, clamping each byte to
+  // 255 (a no-op for byte data, kept for fidelity with the original).
+  for ( i = 0; i < g_pal_bytes_per_color * 256; ++i )
   {
-    v1 = g_pal_bytes_per_color << 8;            // *256
-    for ( i = 0; i < v1; ++i )
-    {
-      if ( (unsigned int)(*(&g_pal_hw_buf[0].r + i) << 8) >= 0xFF00u )
-        result = 255;
-      else
-        result = *(&g_pal_hw_buf[0].r + i);
-      *(&g_47BC10[0].r + i) = result;
-    }
-    g_coroutine_eax = result;  // INLINED LLL
-    v3 = g_coroutine_current;
-    if ( g_coroutine_list_head != v3 && ++g_coroutine_nesting_depth == 1 )
-      g_coroutine_esp = &v12;
-    v4 = g_47BC10;
-    g_pal_47C018_unused = 0;
-    g_pal_468FD4_unused = 1;
-    g_pal_468FD8_unused = 2;
-    g_pal_bytes_per_color = 4;
-    if ( 1 )
-      memcpy(g_pal_hw_buf, g_47BC10, sizeof(g_pal_hw_buf));
-    else
-      v4 = g_pal_hw_buf;
-    if ( g_fullscreen )
-    {
-      p_peGreen = &g_dd_palette[0].peGreen;  // INLINED LLL (cont'd)
-      p_b = &v4->b;
-      do
-      {
-        p_b[&g_dd_palette[0].peGreen - (BYTE *)v4] = 0;
-        *(p_peGreen - 1) = *(p_b - 2);
-        *p_peGreen = *(p_b - 1);
-        p_b[(char *)g_dd_palette - (char *)v4] = *p_b;
-        p_peGreen += 4;
-        p_b += 4;
-      }
-      while ( (int)p_peGreen < (int)&g_dd_palette[256] );
-      is_primary_surface_lost = REND_is_primary_surface_lost();// INLINED (see PAL_commit)
-      if ( !is_primary_surface_lost )
-      {
-        is_primary_surface_lost = (int)g_ddpal;
-        if ( g_ddpal )
-          is_primary_surface_lost = g_ddpal->lpVtbl->SetEntries(g_ddpal, 0, 0, 256, g_dd_palette);
-      }
-    }
-    else
-    {
-      p_pal = &pal;
-      p_g = &v4->g;
-      v16 = 256;
-      do
-      {
-        p_g[v15 - (_BYTE *)v4] = 0;
-        *p_pal = p_g[1];
-        p_g[&pal - (unsigned __int8 *)v4] = *p_g;
-        p_g[&v14 - (char *)v4] = *(p_g - 1);
-        p_pal += 4;
-        p_g += 4;
-        --v16;
-      }
-      while ( v16 );
-      v10 = g_gdi_hpalette;
-      if ( g_gdi_hpalette )
-      {
-        g_gdi_hpalette = PAL_gdi_palette_create(&pal, 256);
-        SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
-        DeleteObject(v10);
-      }
-      else
-      {
-        g_gdi_hpalette = PAL_gdi_palette_create(&pal, 256);
-        g_gdi_hpalette_prev = SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
-      }
-      is_primary_surface_lost = RealizePalette(g_window_hdc);
-    }
-    g_coroutine_eax = is_primary_surface_lost;
-    v11 = g_coroutine_current;
-    if ( g_coroutine_list_head != v11 )
-      --g_coroutine_nesting_depth;
-    return g_coroutine_eax;
+    unsigned int c = ((unsigned __int8 *)g_pal_hw_buf)[i];
+    result = (c << 8) >= 0xFF00u ? 255 : (int)c;
+    ((unsigned __int8 *)g_47BC10)[i] = result;
   }
-  return result;
+
+  // INLINED LLL enter
+  g_coroutine_eax = result;
+  if ( g_coroutine_list_head != g_coroutine_current && ++g_coroutine_nesting_depth == 1 )
+    g_coroutine_esp = &stack_marker;
+
+  g_pal_47C018_unused = 0;
+  g_pal_468FD4_unused = 1;
+  g_pal_468FD8_unused = 2;
+  g_pal_bytes_per_color = 4;
+  memcpy(g_pal_hw_buf, g_47BC10, sizeof(g_pal_hw_buf));
+
+  if ( g_fullscreen )
+  {
+    for ( i = 0; i < 256; ++i )
+    {
+      g_dd_palette[i].peRed   = g_47BC10[i].r;
+      g_dd_palette[i].peGreen = g_47BC10[i].g;
+      g_dd_palette[i].peBlue  = g_47BC10[i].b;
+      g_dd_palette[i].peFlags = 0;
+    }
+    is_primary_surface_lost = REND_is_primary_surface_lost();
+    if ( !is_primary_surface_lost )
+    {
+      is_primary_surface_lost = (int)g_ddpal;
+      if ( g_ddpal )
+        is_primary_surface_lost = g_ddpal->lpVtbl->SetEntries(g_ddpal, 0, 0, 256, g_dd_palette);
+    }
+  }
+  else
+  {
+    old_hpalette = g_gdi_hpalette;
+    if ( g_gdi_hpalette )
+    {
+      g_gdi_hpalette = PAL_gdi_palette_create(g_47BC10, 256);
+      SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
+      DeleteObject(old_hpalette);
+    }
+    else
+    {
+      g_gdi_hpalette = PAL_gdi_palette_create(g_47BC10, 256);
+      g_gdi_hpalette_prev = SelectPalette(g_window_hdc, g_gdi_hpalette, 0);
+    }
+    is_primary_surface_lost = RealizePalette(g_window_hdc);
+  }
+
+  // INLINED LLL leave
+  g_coroutine_eax = is_primary_surface_lost;
+  if ( g_coroutine_list_head != g_coroutine_current )
+    --g_coroutine_nesting_depth;
+  return g_coroutine_eax;
 }
 
 //----- (00431E60) --------------------------------------------------------
@@ -49566,7 +49233,7 @@ void __fastcall UI_ingame_button_init(Task *task, TaskChannel chan, int x, int y
   v8 = entity->parent;
   x_ = v8->x;
   entity->is_collidable = 1;
-  entity->x = x_ + (x << 8);
+  entity->x = x_ + (int)((unsigned)x << 8);
   entity->y = v8->y + (y << 8);
   entity->z = v8->z + (z << 8);
   v10 = ENT_create(MobdId_IngameMenuUi, nullptr, nullptr);
@@ -50551,6 +50218,7 @@ void __fastcall REND_blit_rle_override_palette_mirrored_impl(
 }
 
 //----- (00434D00) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 void __fastcall REND_blt_opaque_impl(unsigned __int8 *pixels, int x, int y, int width, int height)
 {
   char *v5; // esi
@@ -50900,6 +50568,7 @@ void __fastcall REND_blt_colorkey_mirrored_impl(unsigned __int8 *pixels, int x, 
 
 //----- (004354A0) --------------------------------------------------------
 // fast (?) dword version - 4 byte transparent checks per iteration
+__attribute__((no_sanitize("alignment")))
 void __fastcall REND_blt_colorkey_fast_impl(unsigned __int8 *pixels, int x, int y, int width, int height)
 {
   unsigned __int8 *v5; // [esp+4h] [ebp-28h]
@@ -52277,9 +51946,9 @@ void __cdecl PROJ_mode_machinegun(Task *task)
     volley->rn->transform = (RenderTransform)REND_transform_airborne;
   volley->is_collidable = 1;
   target->entity->is_collidable = 1;
-  volley->x = target->entity->x + (((GAME_rand_sync("C:\\k\\Scripts\\Projectl.cpp", 805) & 31) - 16) << 8);
+  volley->x = target->entity->x + (((GAME_rand_sync("C:\\k\\Scripts\\Projectl.cpp", 805) & 31) - 16) * 256);  // was <<8: operand is signed (-16..15), shift of negative is UB
   volley->is_collidable = 1;
-  volley->y = target->entity->y + (((GAME_rand_sync("C:\\k\\Scripts\\Projectl.cpp", 806) & 31) - 16) << 8);
+  volley->y = target->entity->y + (((GAME_rand_sync("C:\\k\\Scripts\\Projectl.cpp", 806) & 31) - 16) * 256);  // was <<8: signed operand, UB on negative
   volley->z = target->entity->z + 0x100;
   TSK_yield(task, TaskWait_Interval, 10);
   volley->x_speed = 0;
@@ -53612,6 +53281,22 @@ BOOL LVL_mapd_init()
     g_mapd_active = 0;
     return 1;
   }
+}
+
+// A MAPD layer stores its image-pointer array inline and variable-length
+// (num_images: 1 for menus, 2 for game levels = map + fog of war), so
+// num_palette_entries and palette[] follow it at a num_images-dependent offset.
+// The fixed LevelMapdSurface / LevelMapdSurface_2images structs only compute
+// that offset correctly for exactly 1 / 2 images; derive it from num_images so
+// call sites never have to deal with the mid-struct variable array. Layout:
+//   int num_images; MapdScrlImage *images[num_images]; int num_palette_entries; PaletteEntry palette[];
+PaletteEntry *__fastcall MAPD_layer_palette(const LevelMapdSurface *layer, int *out_num_entries)
+{
+  int num_images = layer->num_images;   // packed struct member (align 1); first field
+  const char *after_images = (const char *)layer + sizeof(int) + (size_t)num_images * sizeof(MapdScrlImage *);  // x64 concern
+  if ( out_num_entries )
+    memcpy(out_num_entries, after_images, sizeof(int));   // may be unaligned; avoid int* deref UB
+  return (PaletteEntry *)(after_images + sizeof(int));
 }
 
 //----- (00439300) --------------------------------------------------------
@@ -55187,7 +54872,7 @@ void __cdecl REND_decode_rle_remapped(
         {
           if ( !v24 )
           {
-            v17 += v19;
+            v17 += (int)v19;                    // v19 is a negative skip stored unsigned
             v15 = -v19;
             goto LABEL_18;
           }
@@ -55212,10 +54897,10 @@ LABEL_15:
       if ( v22 )
       {
         LOWORD(v15) = v18 + v15;
-        v14 += v15;
+        v14 += (int)v15;                        // v15 may carry a negative skip stored unsigned
         goto LABEL_26;
       }
-      v14 += v15;
+      v14 += (int)v15;                          // v15 may carry a negative skip stored unsigned
 LABEL_17:
       LOBYTE(v15) = *v20;
       v17 = v20 + 1;
@@ -55340,7 +55025,7 @@ void __cdecl REND_decode_rle_remapped_mirrored(
         {
           if ( !v28 )
           {
-            v21 += v23;
+            v21 += (int)v23;                    // v23 is a negative skip stored unsigned
             v19 = -v23;
             goto LABEL_18;
           }
@@ -55365,10 +55050,10 @@ LABEL_15:
       if ( v26 )
       {
         LOWORD(v19) = v22 + v19;
-        v18 -= v19;
+        v18 -= (int)v19;                        // v19 may carry a negative skip stored unsigned
         goto LABEL_26;
       }
-      v18 -= v19;
+      v18 -= (int)v19;                          // v19 may carry a negative skip stored unsigned
 LABEL_17:
       LOBYTE(v19) = *v24;
       v21 = v24 + 1;
@@ -56335,6 +56020,7 @@ LABEL_8:
 }
 
 //----- (0043C630) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 void __cdecl UI_main_menu_new_missions(Task *task)
 {
   Entity *entity; // esi
@@ -60734,6 +60420,7 @@ void __cdecl UI_main_menu_multi_ipx_join(Task *task)
 // 4429D8: variable 'v9' is possibly undefined
 
 //----- (00442BB0) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 void __cdecl GAME_new_missions_selection(Task *task)
 {
   Entity *v2; // eax
@@ -60784,7 +60471,6 @@ void __cdecl GAME_new_missions_selection(Task *task)
     {
       while ( 1 )
       {
-        v6 = g_play_mission_faction ? dword_46E4C0[BYTE2(taska->sleep)] : dword_46E4F0[BYTE2(taska->sleep)];
         if ( g_play_mission_level_idx >= 0 )
         {
           if ( g_play_mission_level_idx > 9 )
@@ -60797,6 +60483,7 @@ void __cdecl GAME_new_missions_selection(Task *task)
         v7 = g_widgets_head;
         if ( BYTE2(taska->sleep) > 9u )
           break;
+        v6 = g_play_mission_faction ? dword_46E4C0[BYTE2(taska->sleep)] : dword_46E4F0[BYTE2(taska->sleep)];
         if ( g_widgets_head != (MenuWidget *)&g_widgets_head )
         {
           while ( v7->entity != v5 )
@@ -61788,6 +61475,7 @@ int __fastcall UISTR_find_newline(const char *text)
 }
 
 //----- (00443D80) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 void __fastcall UISTR_append_text(UiStr *str, const char *text, GlyphDesc **font_remap_table)
 {
   const char *v3; // edi
@@ -63102,7 +62790,7 @@ void __fastcall TSK_dealloc(Task *task, void *mem)
   TaskLocal *v2; // eax
   TaskLocal * v3; // edx
 
-  v2 = CONTAINING_RECORD(mem, TaskLocal, data);// BUG idk it's just (TaskLocal *)(mem - 8)
+  v2 = (TaskLocal *)((char *)mem - offsetof(TaskLocal, data));
   v3 = *((TaskLocal * *)mem - 1);
   if ( v3 )
     ((TaskLocal *)((char *)v3 - 4))->prev = v2->next;
@@ -63406,6 +63094,7 @@ void __fastcall UI_str_set_text(UiStr *str, const char *text, GlyphDesc **font_r
 }
 
 //----- (00445870) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 UiStr *__fastcall UI_str_create(
         RenderViewport *viewport,
         FontMobd *font,
@@ -63580,6 +63269,7 @@ void __fastcall UIS_str_free(UiStr *str)
 }
 
 //----- (00445AE0) --------------------------------------------------------
+__attribute__((no_sanitize("alignment")))
 void __fastcall UI_str_clear(UiStr *str)
 {
   Glyph *glyphs; // edx
@@ -67738,9 +67428,6 @@ void SAVE_unpack_shroud()
 }
 
 //----- (0044A840) --------------------------------------------------------
-// Disable UBSan alignment checks: this function works with packed level file data
-// which has intentionally misaligned pointers. The code uses pointer punning on
-// packed structs that's safe at runtime but violates C strict alignment rules.
 __attribute__((no_sanitize("alignment")))
 BOOL MINI_init()
 {
@@ -68924,9 +68611,7 @@ void MINI_cleanup()
 }
 
 //----- (0044BC80) --------------------------------------------------------
-// Disable UBSan alignment checks: works with packed level file data
 __attribute__((no_sanitize("alignment")))
-// prompts re-rendering
 void __fastcall SHROUD_invalidate_tiles(int dirty_x, int dirty_z, int dirty_y, int dirty_w)
 {
   int v5; // ecx
@@ -68984,7 +68669,6 @@ void __fastcall SHROUD_invalidate_tiles(int dirty_x, int dirty_z, int dirty_y, i
 }
 
 //----- (0044BD50) --------------------------------------------------------
-// Disable UBSan alignment checks: works with packed level file data
 __attribute__((no_sanitize("alignment")))
 void SHROUD_clear_tiles() {
   MapdScrlImage *image1 = (MapdScrlImage *)g_mapd_layers_rns[0]->rn->cmd.image;
@@ -69302,8 +68986,8 @@ BOOL GAME_mission_init()
     v2 = g_escort_pool;
   }
   g_escort_pool[499].next = nullptr;
-  g_escort_active_list_head = (UnitEscortNode *)&g_escort_active_list_head;
-  g_escort_active_list_tail = (UnitEscortNode *)&g_escort_active_list_head;
+  g_escort_active_list_head = &g_escort_active_list_sentinel;
+  g_escort_active_list_tail = &g_escort_active_list_sentinel;
   g_escort_initialized = 1;
   g_show_notification_box_task = TSK_async(TaskChannel_None, UI_show_notification_box_task, 0);
   g_show_message_multi_chat = TSK_async(TaskChannel_None, UI_show_message_multi_chat_task, 0);
@@ -69413,7 +69097,7 @@ void GAME_update_anim_anchors_and_minimap()
     for ( i = g_unit_list_head; i != (Unit *)&g_unit_list_head; i = i->next )
     {
       p_mobd_anchors = &i->mobd_anchors;
-      memcpy(&i->mobd_anchors, g_mobd_anchors_default, 6*4);
+      UNIT_anchors_reset(i);
       anim_current_frame = i->entity->anim_current_frame;
       if ( anim_current_frame )
       {
@@ -69437,7 +69121,7 @@ void GAME_update_anim_anchors_and_minimap()
           if ( v6 && (v7 = (MobdPoint *)v6->points[0].id) != nullptr )// BUG
             turret->projectile_spawn_anchor = v7;
           else
-            turret->projectile_spawn_anchor = (MobdPoint *)g_mobd_anchors_default;
+            turret->projectile_spawn_anchor = &g_mobd_anchor_default;
           i->turret->entity->is_collidable = 1;
           i->entity->is_collidable = 1;
           i->turret->entity->x = i->entity->x + p_mobd_anchors->turret->x;
@@ -69579,7 +69263,7 @@ LABEL_18:
   v1->orientation = 0x80;
   v1->hitpoints = hitpoints;
   v1->_unit_field_78_unused = 0;
-  memcpy(&v1->mobd_anchors, g_mobd_anchors_default, 6*4);
+  UNIT_anchors_reset(v1);
   entity->rn->cmd.palette_override = g_tint_palettes_per_player[g_palette_idx_per_player[v1->player_num]];
   entity->rn->flags |= RenderNode_PaletteOverride;
   TSK_broadcast_message(task, TaskMessage_UnitCreated, v1, TaskChannel_UnitEvents);
